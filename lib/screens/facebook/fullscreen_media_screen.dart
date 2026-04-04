@@ -30,7 +30,6 @@ class _FullScreenMediaScreenState extends State<FullScreenMediaScreen> {
   final MetaService _metaService = MetaService();
   int _likesCount = 0;
   int _commentsCount = 0;
-  bool _isLoadingDetails = false;
 
   @override
   void initState() {
@@ -38,26 +37,21 @@ class _FullScreenMediaScreenState extends State<FullScreenMediaScreen> {
     _likesCount = widget.initialLikes;
     _commentsCount = widget.initialComments;
     if (widget.postId != null && widget.platform != null) {
-      _fetchPostDetails(); // updates likes (and comments if needed)
-      _fetchCommentCount(); // fetches actual comments and sums them (including replies)
+      _fetchPostDetails();
+      _fetchCommentCount();
     }
   }
 
   Future<void> _fetchPostDetails() async {
-    setState(() => _isLoadingDetails = true);
     try {
       final insights = await _metaService.getPostInsights(widget.postId!);
-      if (insights != null) {
+      if (insights != null && mounted) {
         setState(() {
           _likesCount = insights.likes;
-          // Only update comments if not already set by comment fetch
-          if (_commentsCount == 0) _commentsCount = insights.comments;
         });
       }
     } catch (e) {
       debugPrint("Error fetching post details: $e");
-    } finally {
-      if (mounted) setState(() => _isLoadingDetails = false);
     }
   }
 
@@ -69,11 +63,10 @@ class _FullScreenMediaScreenState extends State<FullScreenMediaScreen> {
         platform: widget.platform,
       );
       if (mounted) {
-        // Count total comments including replies
         int total = 0;
         for (var comment in comments) {
-          total += 1; // the comment itself
-          total += comment.replies.length; // its replies
+          total += 1;
+          total += comment.replies.length;
         }
         setState(() {
           _commentsCount = total;
@@ -201,24 +194,65 @@ class _FullScreenMediaScreenState extends State<FullScreenMediaScreen> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                _buildActionButton(
-                  icon: Icons.favorite,
-                  color: Colors.red,
-                  count: _likesCount,
+                GestureDetector(
                   onTap: _showLikesDialog,
+                  child: Column(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withOpacity(0.5),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          widget.platform == SocialPlatform.facebook
+                              ? Icons.thumb_up
+                              : Icons.favorite,
+                          color: Colors.white,
+                          size: 28,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        _formatNumber(_likesCount),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
                 const SizedBox(height: 24),
-                _buildActionButton(
-                  icon: Icons.comment,
-                  color: Colors.white,
-                  count: _commentsCount,
+                GestureDetector(
                   onTap: _showCommentsSheet,
+                  child: Column(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withOpacity(0.5),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.comment,
+                          color: Colors.white,
+                          size: 28,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        _formatNumber(_commentsCount),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
                 const SizedBox(height: 24),
-                _buildActionButton(
-                  icon: Icons.share,
-                  color: Colors.white,
-                  count: null,
+                GestureDetector(
                   onTap: () {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
@@ -226,6 +260,18 @@ class _FullScreenMediaScreenState extends State<FullScreenMediaScreen> {
                       ),
                     );
                   },
+                  child: Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withOpacity(0.5),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.share,
+                      color: Colors.white,
+                      size: 28,
+                    ),
+                  ),
                 ),
               ],
             ),
@@ -234,42 +280,8 @@ class _FullScreenMediaScreenState extends State<FullScreenMediaScreen> {
       ),
     );
   }
-
-  Widget _buildActionButton({
-    required IconData icon,
-    required Color color,
-    int? count,
-    required VoidCallback onTap,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Column(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Colors.black.withOpacity(0.5),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(icon, color: color, size: 28),
-          ),
-          if (count != null)
-            Padding(
-              padding: const EdgeInsets.only(top: 4),
-              child: Text(
-                _formatNumber(count),
-                style: const TextStyle(color: Colors.white, fontSize: 12),
-              ),
-            ),
-        ],
-      ),
-    );
-  }
 }
 
-// ---------------------------------------------------------------------------
-// Comments Bottom Sheet
-// ---------------------------------------------------------------------------
 class CommentsBottomSheet extends StatefulWidget {
   final String? postId;
   final SocialPlatform? platform;
@@ -348,7 +360,6 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
     final text = _commentController.text;
     _commentController.clear();
 
-    // Optimistic UI
     final tempId = 'temp_${DateTime.now().millisecondsSinceEpoch}';
     final newComment = MetaComment(
       id: tempId,
@@ -362,7 +373,7 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
     );
     setState(() {
       _comments.insert(0, newComment);
-      _currentCommentCount++; // optimistic increment
+      _currentCommentCount++;
       widget.onCommentCountUpdated(_currentCommentCount);
     });
 
@@ -372,11 +383,9 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
         text,
         platform: widget.platform,
       );
-
       if (success && mounted) {
-        await _loadComments(); // refresh with real data
+        await _loadComments();
       } else {
-        // Rollback optimistic update
         setState(() {
           _comments.removeWhere((c) => c.id == tempId);
           _currentCommentCount--;
@@ -403,7 +412,7 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
     try {
       final success = await _metaService.replyToComment(commentId, replyText);
       if (success && mounted) {
-        _loadComments(); // reload to show new reply and update total count
+        _loadComments();
       } else if (mounted) {
         ScaffoldMessenger.of(
           context,
@@ -442,7 +451,7 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
     try {
       final success = await _metaService.deleteComment(commentId);
       if (success && mounted) {
-        await _loadComments(); // reload to reflect deletion and update count
+        await _loadComments();
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(const SnackBar(content: Text('Comment deleted')));

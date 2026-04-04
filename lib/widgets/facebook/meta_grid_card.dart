@@ -5,6 +5,7 @@ import 'package:guptik/models/facebook/meta_content_model.dart';
 import 'package:guptik/models/facebook/meta_comment_model.dart';
 import 'package:guptik/widgets/facebook/auto_reply_dialog.dart';
 import 'package:guptik/widgets/facebook/edit_post_dialog.dart';
+import 'package:guptik/widgets/facebook/likes_list_dialog.dart';
 import 'package:guptik/services/facebook/meta_service.dart';
 import 'package:guptik/screens/facebook/comments_screen.dart';
 
@@ -23,13 +24,14 @@ class _MetaGridCardState extends State<MetaGridCard> {
 
   // State for expanded sections
   bool _showComments = false;
-  bool _showLikes = false;
 
   // Data
   List<MetaComment> _comments = [];
+  final TextEditingController _commentController = TextEditingController();
 
   // Loading states
   bool _isLoadingComments = false;
+  bool _isPostingComment = false;
 
   // Track which comments are showing reply input
   final Map<String, bool> _showReplyInput = {};
@@ -42,6 +44,7 @@ class _MetaGridCardState extends State<MetaGridCard> {
 
   @override
   void dispose() {
+    _commentController.dispose();
     super.dispose();
   }
 
@@ -165,14 +168,6 @@ class _MetaGridCardState extends State<MetaGridCard> {
     }
   }
 
-  Future<void> _toggleLikes() async {
-    if (!mounted) return;
-
-    setState(() {
-      _showLikes = !_showLikes;
-    });
-  }
-
   Future<void> _replyToComment(String commentId, String replyText) async {
     try {
       final success = await _metaService.replyToComment(commentId, replyText);
@@ -209,9 +204,7 @@ class _MetaGridCardState extends State<MetaGridCard> {
     }
   }
 
-  // NEW: Delete comment function for inline comments
   Future<void> _deleteComment(String commentId) async {
-    // Show confirmation dialog
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -235,14 +228,12 @@ class _MetaGridCardState extends State<MetaGridCard> {
 
     if (confirm != true) return;
 
-    // Show loading indicator
     setState(() => _isLoadingComments = true);
 
     try {
       final success = await _metaService.deleteComment(commentId);
 
       if (success && mounted) {
-        // Remove comment from list
         setState(() {
           _comments.removeWhere((c) => c.id == commentId);
           _isLoadingComments = false;
@@ -272,6 +263,73 @@ class _MetaGridCardState extends State<MetaGridCard> {
           backgroundColor: Colors.red,
         ),
       );
+    }
+  }
+
+  Future<void> _postComment() async {
+    if (_commentController.text.isEmpty) return;
+    final commentText = _commentController.text;
+    _commentController.clear();
+    setState(() => _isPostingComment = true);
+
+    try {
+      final success = await _metaService.postComment(
+        widget.content.id,
+        commentText,
+        platform: widget.content.platform,
+      );
+
+      if (success && mounted) {
+        await _loadComments();
+      } else if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Failed to post comment')));
+      }
+    } catch (e) {
+      debugPrint("Error posting comment: $e");
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: ${e.toString()}')));
+      }
+    } finally {
+      if (mounted) setState(() => _isPostingComment = false);
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Show likes dialog
+  // ---------------------------------------------------------------------------
+  Future<void> _showLikesDialog() async {
+    if (widget.content.id.isEmpty) return;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => const Center(child: CircularProgressIndicator()),
+    );
+
+    try {
+      final likes = await _metaService.getPostLikes(
+        widget.content.id,
+        platform: widget.content.platform,
+      );
+      if (mounted) {
+        Navigator.pop(context);
+        showDialog(
+          context: context,
+          builder: (ctx) =>
+              LikesListDialog(likes: likes, platform: widget.content.platform),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Failed to load likes: $e')));
+      }
     }
   }
 
@@ -317,7 +375,6 @@ class _MetaGridCardState extends State<MetaGridCard> {
     );
   }
 
-  // UPDATED: Comment tile with delete option
   Widget _buildCommentTile(MetaComment comment) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
@@ -327,7 +384,6 @@ class _MetaGridCardState extends State<MetaGridCard> {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Avatar
               CircleAvatar(
                 radius: 18,
                 backgroundColor: Colors.blue[100],
@@ -340,8 +396,6 @@ class _MetaGridCardState extends State<MetaGridCard> {
                 ),
               ),
               const SizedBox(width: 10),
-
-              // Comment content
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -368,8 +422,6 @@ class _MetaGridCardState extends State<MetaGridCard> {
                     const SizedBox(height: 4),
                     Text(comment.text, style: const TextStyle(fontSize: 13)),
                     const SizedBox(height: 6),
-
-                    // Comment actions
                     Row(
                       children: [
                         Text(
@@ -396,7 +448,6 @@ class _MetaGridCardState extends State<MetaGridCard> {
                           ),
                         ),
                         const SizedBox(width: 16),
-                        // DELETE BUTTON for inline comments
                         GestureDetector(
                           onTap: () => _deleteComment(comment.id),
                           child: const Text(
@@ -410,8 +461,6 @@ class _MetaGridCardState extends State<MetaGridCard> {
                         ),
                       ],
                     ),
-
-                    // Reply input field
                     if (_showReplyInput[comment.id] == true)
                       Padding(
                         padding: const EdgeInsets.only(top: 8),
@@ -422,8 +471,6 @@ class _MetaGridCardState extends State<MetaGridCard> {
               ),
             ],
           ),
-
-          // Show replies if any
           if (comment.replies.isNotEmpty) ...[
             const SizedBox(height: 10),
             Container(
@@ -577,7 +624,6 @@ class _MetaGridCardState extends State<MetaGridCard> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                // Settings Button
                 GestureDetector(
                   onTap: () {
                     showDialog(
@@ -606,7 +652,6 @@ class _MetaGridCardState extends State<MetaGridCard> {
                   children: [
                     _buildPostMenu(),
                     const SizedBox(width: 8),
-                    // Platform Icon
                     Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
@@ -687,24 +732,27 @@ class _MetaGridCardState extends State<MetaGridCard> {
             padding: const EdgeInsets.symmetric(horizontal: 12),
             child: Row(
               children: [
-                // Likes
+                // Likes - Tappable to show dialog (no toggle)
                 GestureDetector(
-                  onTap: _toggleLikes,
+                  onTap: _showLikesDialog,
                   child: Row(
                     children: [
                       Icon(
-                        Icons.favorite,
+                        widget.content.platform == SocialPlatform.facebook
+                            ? Icons.thumb_up
+                            : Icons.favorite,
                         size: 30,
-                        color: _showLikes ? Colors.red : Colors.red[300],
+                        color:
+                            widget.content.platform == SocialPlatform.facebook
+                            ? Colors.blue[300]
+                            : Colors.red[300],
                       ),
                       const SizedBox(width: 6),
                       Text(
                         _formatNumber(widget.content.likes),
-                        style: TextStyle(
+                        style: const TextStyle(
                           fontSize: 15,
-                          fontWeight: _showLikes
-                              ? FontWeight.bold
-                              : FontWeight.w600,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
                     ],
@@ -832,6 +880,49 @@ class _MetaGridCardState extends State<MetaGridCard> {
                         return _buildCommentTile(_comments[index]);
                       },
                     ),
+
+                  // Comment Input Field
+                  Padding(
+                    padding: const EdgeInsets.only(top: 8),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            controller: _commentController,
+                            enabled: !_isPostingComment,
+                            decoration: InputDecoration(
+                              hintText: 'Write a comment...',
+                              hintStyle: const TextStyle(fontSize: 12),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(20),
+                                borderSide: BorderSide.none,
+                              ),
+                              filled: true,
+                              fillColor: Colors.grey[100],
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 8,
+                              ),
+                            ),
+                            style: const TextStyle(fontSize: 13),
+                            maxLines: null,
+                          ),
+                        ),
+                        IconButton(
+                          icon: _isPostingComment
+                              ? const SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
+                                )
+                              : const Icon(Icons.send, color: Colors.blue),
+                          onPressed: _isPostingComment ? null : _postComment,
+                        ),
+                      ],
+                    ),
+                  ),
 
                   if (_comments.length > 3)
                     Padding(

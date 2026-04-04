@@ -739,7 +739,7 @@ class MetaService {
             platform: 'facebook',
             conversationId: conversationId,
             participantId: participantId,
-            participantName: participantName ?? 'User',
+            participantName: participantName,
             participantAvatar: '',
             lastMessage: latestMsg['content'] ?? '',
             lastMessageTime:
@@ -765,54 +765,125 @@ class MetaService {
   // ---------------------------------------------------------------------------
   // 6. SEND INSTAGRAM MESSAGE - WITH STORAGE
   // ---------------------------------------------------------------------------
-  Future<bool> sendInstagramMessage(
-    String participantId,
-    String message,
-  ) async {
+  Future<bool> sendInstagramMessage({
+    required String recipientId,
+    required String message,
+  }) async {
     final creds = await _getCredentials();
     final String? accessToken =
         creds['facebook_page_access_token'] ??
         creds['facebook_user_access_token'];
+    final userId = Supabase.instance.client.auth.currentUser?.id;
 
-    if (accessToken == null) return false;
+    if (accessToken == null || userId == null) {
+      debugPrint("❌ Missing access token or user ID");
+      return false;
+    }
+
+    final trimmedRecipientId = recipientId.trim();
+    debugPrint(
+      "🔍 Looking up Instagram conversation for recipient: '$trimmedRecipientId' (userId: $userId)",
+    );
+
+    // Look up correct conversation ID
+    var conversationId = await _storageService.getConversationIdBySender(
+      'instagram',
+      trimmedRecipientId,
+      userId,
+    );
+
+    if (conversationId == null) {
+      debugPrint(
+        "⚠️ No conversation found for recipient $trimmedRecipientId. Creating a new one.",
+      );
+      // Use same UUID generation as webhook
+      conversationId = _stringToUuid(trimmedRecipientId);
+      await _storageService.saveConversation(
+        platform: 'instagram',
+        conversationId: conversationId,
+        participantId: trimmedRecipientId,
+        participantName: '',
+        participantAvatar: '',
+        lastMessage: null,
+        lastMessageTime: null,
+        unreadCount: 0,
+        userId: userId,
+      );
+      debugPrint(
+        "✅ Created new Instagram conversation with ID: $conversationId",
+      );
+    }
+
+    debugPrint(
+      "🔍 Sending Instagram message to recipient: $trimmedRecipientId (conversation: $conversationId)",
+    );
+
+    final sendUrl = Uri.parse(
+      'https://graph.facebook.com/$_graphApiVersion/me/messages',
+    );
+    final payload = {
+      'recipient': {'id': trimmedRecipientId},
+      'message': {'text': message},
+      'access_token': accessToken,
+    };
 
     try {
-      final sendUrl = Uri.parse(
-        'https://graph.facebook.com/$_graphApiVersion/me/messages',
-      );
-
       final response = await http.post(
         sendUrl,
         headers: {'Content-Type': 'application/json'},
-        body: json.encode({
-          'recipient': {'id': participantId},
-          'message': {'text': message},
-          'access_token': accessToken,
-        }),
+        body: json.encode(payload),
       );
+      debugPrint("📨 Send response: ${response.statusCode} - ${response.body}");
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         final messageId =
             data['message_id'] ??
             DateTime.now().millisecondsSinceEpoch.toString();
+        final timestamp = DateTime.now().toIso8601String();
 
-        // Save outgoing message to Supabase
-        await _storageService.saveMessage(
-          platform: 'instagram',
-          conversationId: participantId, // This is the conversation ID
-          messageId: messageId,
-          content: message,
-          messageType: 'text',
-          direction: 'outgoing',
-          timestamp: DateTime.now().toIso8601String(),
-        );
+        debugPrint("✅ Instagram message sent successfully");
+
+        // Save message and conversation asynchronously (fire and forget)
+        // Don't wait for this to complete - the API success is what matters
+        _storageService
+            .saveMessage(
+              platform: 'instagram',
+              conversationId: conversationId,
+              messageId: messageId,
+              content: message,
+              messageType: 'text',
+              direction: 'outgoing',
+              timestamp: timestamp,
+            )
+            .catchError((e) {
+              debugPrint("⚠️ Error saving Instagram message to database: $e");
+            });
+
+        _storageService
+            .saveConversation(
+              platform: 'instagram',
+              conversationId: conversationId,
+              participantId: trimmedRecipientId,
+              participantName: '',
+              lastMessage: message,
+              lastMessageTime: timestamp,
+              unreadCount: 0,
+              userId: userId,
+            )
+            .catchError((e) {
+              debugPrint(
+                "⚠️ Error updating Instagram conversation in database: $e",
+              );
+            });
 
         return true;
+      } else {
+        debugPrint("❌ API error: ${response.body}");
+        return false;
       }
-      return false;
     } catch (e) {
-      debugPrint("❌ Send Exception: $e");
+      debugPrint("❌ Exception: $e");
       return false;
     }
   }
@@ -864,28 +935,41 @@ class MetaService {
             DateTime.now().millisecondsSinceEpoch.toString();
         final timestamp = DateTime.now().toIso8601String();
 
-        await _storageService.saveMessage(
-          platform: 'facebook',
-          conversationId: conversationId,
-          messageId: messageId,
-          content: message,
-          messageType: 'text',
-          direction: 'outgoing',
-          timestamp: timestamp,
-        );
+        debugPrint("✅ Facebook message sent successfully");
 
-        await _storageService.saveConversation(
-          platform: 'facebook',
-          conversationId: conversationId,
-          participantId: recipientId, // recipientId is the PSID
-          participantName: '', // not needed here
-          lastMessage: message,
-          lastMessageTime: timestamp,
-          unreadCount: 0,
-          userId: userId,
-        );
+        // Save message and conversation asynchronously (fire and forget)
+        // Don't wait for this to complete - the API success is what matters
+        _storageService
+            .saveMessage(
+              platform: 'facebook',
+              conversationId: conversationId,
+              messageId: messageId,
+              content: message,
+              messageType: 'text',
+              direction: 'outgoing',
+              timestamp: timestamp,
+            )
+            .catchError((e) {
+              debugPrint("⚠️ Error saving Facebook message to database: $e");
+            });
 
-        debugPrint("✅ Message sent and stored successfully");
+        _storageService
+            .saveConversation(
+              platform: 'facebook',
+              conversationId: conversationId,
+              participantId: recipientId, // recipientId is the PSID
+              participantName: '', // not needed here
+              lastMessage: message,
+              lastMessageTime: timestamp,
+              unreadCount: 0,
+              userId: userId,
+            )
+            .catchError((e) {
+              debugPrint(
+                "⚠️ Error updating Facebook conversation in database: $e",
+              );
+            });
+
         return true;
       } else {
         debugPrint("❌ Graph API error: ${response.body}");
@@ -896,9 +980,195 @@ class MetaService {
       return false;
     }
   }
-
   // ---------------------------------------------------------------------------
-  // 10. HELPERS
+  // 8. SEND MEDIA MESSAGE (Image, Video, Document)
+  // ---------------------------------------------------------------------------
+  Future<bool> sendMediaMessage({
+    required SocialPlatform platform,
+    required String recipientId,
+    required File mediaFile,
+    required String conversationId, // ignored; we look up the correct one
+    required String mediaType,
+    String? caption,
+    String? fileName,
+    String? mimeType,
+  }) async {
+    final creds = await _getCredentials();
+    final String? accessToken =
+        creds['facebook_page_access_token'] ??
+        creds['facebook_user_access_token'];
+    final String? pageId = platform == SocialPlatform.facebook
+        ? creds['facebook_account_id']
+        : null;
+    final userId = Supabase.instance.client.auth.currentUser?.id;
+
+    if (accessToken == null || userId == null) {
+      debugPrint("❌ Missing access token or user ID");
+      return false;
+    }
+
+    final trimmedRecipientId = recipientId.trim();
+    debugPrint(
+      "🔍 [MEDIA] Looking up conversation for recipient: '$trimmedRecipientId' (userId: $userId)",
+    );
+
+    // Look up the correct conversation ID
+    final correctConversationId = await _storageService
+        .getConversationIdBySender(
+          platform == SocialPlatform.facebook ? 'facebook' : 'instagram',
+          trimmedRecipientId,
+          userId,
+        );
+    if (correctConversationId == null) {
+      debugPrint(
+        "❌ No conversation found for recipient $trimmedRecipientId. Cannot send media.",
+      );
+      return false;
+    }
+    debugPrint("✅ Found conversation ID: $correctConversationId");
+
+    try {
+      // Upload file to your service
+      final fileUrl = await _uploadToMyService(mediaFile);
+      if (fileUrl.isEmpty) {
+        debugPrint("❌ Failed to upload media – URL is empty");
+        return false;
+      }
+      debugPrint("📤 Uploaded file URL: $fileUrl");
+
+      // Build attachment payload
+      Map<String, dynamic> attachmentPayload;
+      if (mediaType == 'image') {
+        attachmentPayload = {
+          'type': 'image',
+          'payload': {'url': fileUrl},
+        };
+      } else if (mediaType == 'video') {
+        attachmentPayload = {
+          'type': 'video',
+          'payload': {'url': fileUrl},
+        };
+      } else if (mediaType == 'document') {
+        final docName = fileName ?? mediaFile.path.split('/').last;
+        attachmentPayload = {
+          'type': 'file',
+          'payload': {'url': fileUrl, 'filename': docName},
+        };
+      } else {
+        debugPrint("❌ Unsupported media type: $mediaType");
+        return false;
+      }
+
+      final payload = {
+        'recipient': {'id': trimmedRecipientId},
+        'message': {'attachment': attachmentPayload},
+        'access_token': accessToken,
+      };
+
+      Uri url;
+      if (platform == SocialPlatform.facebook) {
+        if (pageId == null) {
+          debugPrint("❌ Facebook page ID missing");
+          return false;
+        }
+        url = Uri.parse(
+          'https://graph.facebook.com/$_graphApiVersion/$pageId/messages',
+        );
+        payload['messaging_type'] = 'RESPONSE';
+      } else {
+        url = Uri.parse(
+          'https://graph.facebook.com/$_graphApiVersion/me/messages',
+        );
+      }
+
+      debugPrint("📤 Sending media to: $url");
+      debugPrint("📤 Payload: $payload");
+
+      final response = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode(payload),
+      );
+
+      debugPrint("📨 Send attachment response status: ${response.statusCode}");
+      debugPrint("📨 Send attachment response body: ${response.body}");
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        final messageId =
+            data['message_id'] ??
+            DateTime.now().millisecondsSinceEpoch.toString();
+        final timestamp = DateTime.now().toIso8601String();
+
+        debugPrint("✅ Media message sent successfully");
+
+        // Prepare media info
+        final mediaInfo = {
+          'url': fileUrl,
+          'type': mediaType,
+          'caption': caption,
+          if (mediaType == 'document')
+            'filename': fileName ?? mediaFile.path.split('/').last,
+          if (mediaType == 'document')
+            'mime_type': mimeType ?? 'application/octet-stream',
+        };
+
+        // Save message and conversation asynchronously (fire and forget)
+        // Don't wait for this to complete - the API success is what matters
+        _storageService
+            .saveMessage(
+              platform: platform == SocialPlatform.facebook
+                  ? 'facebook'
+                  : 'instagram',
+              conversationId: correctConversationId,
+              messageId: messageId,
+              content: fileUrl,
+              messageType: mediaType,
+              direction: 'outgoing',
+              timestamp: timestamp,
+              mediaInfo: mediaInfo,
+            )
+            .catchError((e) {
+              debugPrint("⚠️ Error saving media message to database: $e");
+            });
+
+        // Update conversation last message
+        final displayMessage = caption != null && caption.isNotEmpty
+            ? '📸 $caption'
+            : mediaType == 'image'
+            ? '📸 Photo'
+            : mediaType == 'video'
+            ? '🎥 Video'
+            : '📄 Document';
+        _storageService
+            .saveConversation(
+              platform: platform == SocialPlatform.facebook
+                  ? 'facebook'
+                  : 'instagram',
+              conversationId: correctConversationId,
+              participantId: trimmedRecipientId,
+              participantName: '',
+              lastMessage: displayMessage,
+              lastMessageTime: timestamp,
+              unreadCount: 0,
+              userId: userId,
+            )
+            .catchError((e) {
+              debugPrint("⚠️ Error updating conversation after media send: $e");
+            });
+
+        return true;
+      } else {
+        debugPrint("❌ Graph API error: ${response.body}");
+        return false;
+      }
+    } catch (e) {
+      debugPrint("❌ Exception in sendMediaMessage: $e");
+      return false;
+    }
+  } // ---------------------------------------------------------------------------
+
+  // 9. HELPERS
   // ---------------------------------------------------------------------------
   DateTime? _parseIsoTime(String? isoTime) {
     if (isoTime == null) return null;
@@ -927,7 +1197,7 @@ class MetaService {
   }
 
   // ---------------------------------------------------------------------------
-  // 11. DELETE POST
+  // 10. DELETE POST
   // ---------------------------------------------------------------------------
   Future<bool> deletePost(String postId, SocialPlatform platform) async {
     final creds = await _getCredentials();
@@ -958,7 +1228,7 @@ class MetaService {
   }
 
   // ---------------------------------------------------------------------------
-  // 12. EDIT POST
+  // 11. EDIT POST
   // ---------------------------------------------------------------------------
   Future<bool> editPost(
     String postId,
@@ -1024,7 +1294,7 @@ class MetaService {
   }
 
   // ---------------------------------------------------------------------------
-  // 13. GET POST COMMENTS
+  // 12. GET POST COMMENTS
   // ---------------------------------------------------------------------------
   Future<List<MetaComment>> getPostComments(
     String postId, {
@@ -1151,7 +1421,7 @@ class MetaService {
   }
 
   // ---------------------------------------------------------------------------
-  // 14. REPLY TO COMMENT
+  // 13. REPLY TO COMMENT
   // ---------------------------------------------------------------------------
   Future<bool> replyToComment(String commentId, String replyText) async {
     final creds = await _getCredentials();
@@ -1192,7 +1462,7 @@ class MetaService {
   }
 
   // ---------------------------------------------------------------------------
-  // 15. DELETE COMMENT
+  // 14. DELETE COMMENT
   // ---------------------------------------------------------------------------
   Future<bool> deleteComment(String commentId) async {
     final creds = await _getCredentials();
@@ -1223,7 +1493,7 @@ class MetaService {
   }
 
   // ---------------------------------------------------------------------------
-  // 28. POST COMMENT
+  // 15. POST COMMENT
   // ---------------------------------------------------------------------------
   Future<bool> postComment(
     String postId,

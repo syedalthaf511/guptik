@@ -112,11 +112,12 @@ class _ContentScreenState extends State<ContentScreen> {
       color: Colors.grey[50],
       child: Column(
         children: [
-          // Platform & Filter Bar
+          // Platform & Filter Bar – natural height, no extra constraints
           Container(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             color: Colors.white,
             child: Column(
+              mainAxisSize: MainAxisSize.min,
               children: [
                 // Platform Chips
                 Row(
@@ -126,9 +127,8 @@ class _ContentScreenState extends State<ContentScreen> {
                     _buildPlatformChip('Instagram', SocialPlatform.instagram),
                   ],
                 ),
-                const SizedBox(height: 12),
-
-                // Filter Chips
+                const SizedBox(height: 8),
+                // Filter Chips – scrollable horizontally
                 SingleChildScrollView(
                   scrollDirection: Axis.horizontal,
                   child: Row(

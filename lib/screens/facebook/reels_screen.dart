@@ -151,6 +151,7 @@ class _ReelsScreenState extends State<ReelsScreen> {
                             ReelPlayerWidget(
                               reelId: reelId,
                               thumbnailUrl: reel.thumbnail,
+                              videoUrl: reel.videoUrl,
                             ),
                             if (!isPlaying)
                               Positioned(

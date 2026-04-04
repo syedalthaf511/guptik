@@ -25,6 +25,43 @@ class MessageStorageService {
     }
   }
 
+  Future<String?> getConversationIdBySender(
+    String platform,
+    String senderId,
+    String userId,
+  ) async {
+    try {
+      final tableName = platform == 'facebook'
+          ? 'fb_conversations'
+          : 'ig_conversations';
+      final trimmedSenderId = senderId.trim();
+
+      // First, try exact match (for future trimmed entries)
+      final exact = await _supabase
+          .from(tableName)
+          .select('id')
+          .eq('user_id', userId)
+          .eq('sender_id', trimmedSenderId)
+          .maybeSingle();
+      if (exact != null) return exact['id'] as String?;
+
+      // If not found, fetch all for the user and compare trimmed values
+      final all = await _supabase
+          .from(tableName)
+          .select('id, sender_id')
+          .eq('user_id', userId);
+      for (var row in all) {
+        if (row['sender_id']?.toString().trim() == trimmedSenderId) {
+          return row['id'] as String;
+        }
+      }
+      return null;
+    } catch (e) {
+      debugPrint("Error getting conversation ID by sender: $e");
+      return null;
+    }
+  }
+
   // ---------------------------------------------------------------------------
   // Conversation Management
   // ---------------------------------------------------------------------------
@@ -46,7 +83,7 @@ class MessageStorageService {
           'id': conversationId,
           'user_id': userId,
           'sender_id': participantId, // store the PSID here
-          'sender_username': participantUsername ?? participantName,
+          'sender_username': participantUsername ?? "sender_$participantId",
           'sender_avatar': participantAvatar,
           'last_message': lastMessage,
           'last_message_time': lastMessageTime,
@@ -75,7 +112,7 @@ class MessageStorageService {
         final data = {
           'id': conversationId, // UUID for Instagram
           'user_id': userId,
-          'sender_id': participantId,
+          'sender_id': participantId.trim(),
           'last_message': lastMessage,
           'last_message_time': lastMessageTime,
           'is_unread': unreadCount > 0,
@@ -216,11 +253,13 @@ class MessageStorageService {
       final tableName = platform == 'facebook'
           ? 'fb_conversations'
           : 'ig_conversations';
+      debugPrint("🔍 Fetching $tableName for user: $userId");
       final response = await _supabase
           .from(tableName)
           .select()
           .eq('user_id', userId)
-          .order('updated_at', ascending: false);
+          .order('last_message_time', ascending: false);
+      debugPrint("📊 Raw response from $tableName: $response");
       return List<Map<String, dynamic>>.from(response);
     } catch (e) {
       debugPrint("❌ Error getting user conversations: $e");

@@ -1,8 +1,11 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:guptik/models/facebook/meta_chat_model.dart';
 import 'package:guptik/models/facebook/meta_content_model.dart';
 import 'package:guptik/services/facebook/meta_service.dart';
 import 'package:guptik/services/facebook/message_storage_service.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class ChatDetailScreen extends StatefulWidget {
@@ -99,7 +102,6 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     setState(() => _isLoading = true);
 
     try {
-      // Load only from Supabase – no API fallback
       final storedMessages = await _storageService.getMessages(
         widget.conversation.platform == SocialPlatform.facebook
             ? 'facebook'
@@ -135,7 +137,6 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
         setState(() => _isLoading = false);
         _scrollToBottom();
       } else {
-        // No messages in Supabase – show empty state
         setState(() => _isLoading = false);
       }
     } catch (e) {
@@ -167,6 +168,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
       'is_from_me': true,
       'created_time': DateTime.now().toIso8601String(),
       'is_sending': true,
+      'message_type': 'text',
     };
 
     setState(() {
@@ -179,11 +181,10 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
       bool success;
       if (widget.conversation.platform == SocialPlatform.instagram) {
         success = await _metaService.sendInstagramMessage(
-          widget.conversation.participantId,
-          messageText,
+          recipientId: widget.conversation.participantId,
+          message: messageText,
         );
       } else {
-        // For Facebook, use the new sendMessage with recipientId (participantId)
         success = await _metaService.sendMessage(
           conversationId: widget.conversation.id,
           recipientId: widget.conversation.participantId,
@@ -195,7 +196,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
         setState(() {
           _messages.removeWhere((msg) => msg['is_sending'] == true);
         });
-        await _loadMessages(); // reload to show stored outgoing message
+        await _loadMessages();
       } else if (mounted) {
         setState(() {
           _messages.removeWhere((msg) => msg['is_sending'] == true);
@@ -218,6 +219,187 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
         _messages.removeWhere((msg) => msg['is_sending'] == true);
       });
       if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: ${e.toString()}')));
+      }
+    } finally {
+      if (mounted) setState(() => _isSending = false);
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Attachment Handling
+  // ---------------------------------------------------------------------------
+  void _showAttachmentOptions() {
+    showModalBottomSheet(
+      context: context,
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.photo_library),
+              title: const Text('Choose Image from Gallery'),
+              onTap: () async {
+                Navigator.pop(ctx);
+                final picker = ImagePicker();
+                final picked = await picker.pickImage(
+                  source: ImageSource.gallery,
+                );
+                if (picked != null && mounted) {
+                  _showCaptionDialog(File(picked.path), 'image');
+                }
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.camera_alt),
+              title: const Text('Take a Photo'),
+              onTap: () async {
+                Navigator.pop(ctx);
+                final picker = ImagePicker();
+                final picked = await picker.pickImage(
+                  source: ImageSource.camera,
+                );
+                if (picked != null && mounted) {
+                  _showCaptionDialog(File(picked.path), 'image');
+                }
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.videocam),
+              title: const Text('Choose Video'),
+              onTap: () async {
+                Navigator.pop(ctx);
+                final picker = ImagePicker();
+                final picked = await picker.pickVideo(
+                  source: ImageSource.gallery,
+                );
+                if (picked != null && mounted) {
+                  _showCaptionDialog(File(picked.path), 'video');
+                }
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.insert_drive_file),
+              title: const Text('Choose Document'),
+              onTap: () async {
+                Navigator.pop(ctx);
+                final result = await FilePicker.platform.pickFiles(
+                  type: FileType.any,
+                );
+                if (result != null && mounted) {
+                  final file = File(result.files.single.path!);
+                  _showCaptionDialog(
+                    file,
+                    'document',
+                    fileName: result.files.single.name,
+                  );
+                }
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _showCaptionDialog(
+    File file,
+    String mediaType, {
+    String? fileName,
+  }) async {
+    final captionController = TextEditingController();
+    final caption = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Add Caption (Optional)'),
+        content: TextField(
+          controller: captionController,
+          maxLines: 3,
+          decoration: const InputDecoration(
+            hintText: 'Write a caption...',
+            border: OutlineInputBorder(),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, null),
+            child: const Text('Skip'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, captionController.text),
+            child: const Text('Send'),
+          ),
+        ],
+      ),
+    );
+
+    if (mounted && caption != null) {
+      _sendMediaMessage(
+        file,
+        mediaType,
+        caption.isNotEmpty ? caption : null,
+        fileName: fileName,
+      );
+    }
+  }
+
+  Future<void> _sendMediaMessage(
+    File mediaFile,
+    String mediaType,
+    String? caption, {
+    String? fileName,
+  }) async {
+    // Optimistic UI
+    final tempMessage = {
+      'message': mediaType == 'image'
+          ? '📸 Sending image...'
+          : (mediaType == 'video'
+                ? '🎥 Sending video...'
+                : '📄 Sending document...'),
+      'is_from_me': true,
+      'created_time': DateTime.now().toIso8601String(),
+      'is_sending': true,
+      'message_type': mediaType,
+      'caption': caption,
+    };
+    setState(() {
+      _messages.add(tempMessage);
+      _isSending = true;
+    });
+    _scrollToBottom();
+
+    try {
+      final success = await _metaService.sendMediaMessage(
+        platform: widget.conversation.platform,
+        recipientId: widget.conversation.participantId,
+        mediaFile: mediaFile,
+        conversationId: widget.conversation.supabaseId,
+        mediaType: mediaType,
+        caption: caption,
+        fileName: fileName,
+        // mimeType can be auto-detected by upload service; not required here
+      );
+
+      if (success && mounted) {
+        setState(() {
+          _messages.removeWhere((msg) => msg['is_sending'] == true);
+        });
+        await _loadMessages();
+      } else if (mounted) {
+        setState(() {
+          _messages.removeWhere((msg) => msg['is_sending'] == true);
+        });
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Failed to send $mediaType')));
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _messages.removeWhere((msg) => msg['is_sending'] == true);
+        });
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text('Error: ${e.toString()}')));
@@ -341,12 +523,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                             itemBuilder: (context, index) {
                               final msg = _messages[index];
                               final isSending = msg['is_sending'] == true;
-                              return _buildMessageBubble(
-                                msg['message'] ?? '',
-                                msg['is_from_me'] ?? false,
-                                msg['created_time'] ?? '',
-                                isSending,
-                              );
+                              return _buildMessageBubble(msg, isSending);
                             },
                           ),
                   ),
@@ -368,6 +545,10 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
       ),
       child: Row(
         children: [
+          IconButton(
+            icon: Icon(Icons.attach_file, color: Colors.grey[600]),
+            onPressed: _isSending ? null : _showAttachmentOptions,
+          ),
           Expanded(
             child: TextField(
               controller: _textController,
@@ -419,12 +600,124 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     );
   }
 
-  Widget _buildMessageBubble(
-    String text,
-    bool isMe,
-    String time,
-    bool isSending,
-  ) {
+  Widget _buildMessageBubble(Map<String, dynamic> msg, bool isSending) {
+    final isMe = msg['is_from_me'] ?? false;
+    final messageType = msg['message_type'] ?? 'text';
+    final content = msg['message'] ?? '';
+    final caption = msg['caption'];
+    final mediaInfo = msg['media_info'] ?? {};
+
+    Widget contentWidget;
+    if (messageType == 'image') {
+      contentWidget = Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: Image.network(
+              content,
+              width: 200,
+              height: 200,
+              fit: BoxFit.cover,
+              errorBuilder: (_, __, ___) => Container(
+                width: 200,
+                height: 200,
+                color: Colors.grey[300],
+                child: const Icon(Icons.broken_image),
+              ),
+            ),
+          ),
+          if (caption != null && caption.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: Text(
+                caption,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: isMe ? Colors.white70 : Colors.black87,
+                ),
+              ),
+            ),
+        ],
+      );
+    } else if (messageType == 'video') {
+      contentWidget = Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 200,
+            height: 200,
+            color: Colors.grey[800],
+            child: const Center(
+              child: Icon(
+                Icons.play_circle_filled,
+                size: 48,
+                color: Colors.white,
+              ),
+            ),
+          ),
+          if (caption != null && caption.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: Text(
+                caption,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: isMe ? Colors.white70 : Colors.black87,
+                ),
+              ),
+            ),
+        ],
+      );
+    } else if (messageType == 'document') {
+      final fileName = mediaInfo['filename'] ?? 'Document';
+      contentWidget = Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 200,
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.grey[200],
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.insert_drive_file),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    fileName,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (caption != null && caption.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: Text(
+                caption,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: isMe ? Colors.white70 : Colors.black87,
+                ),
+              ),
+            ),
+        ],
+      );
+    } else {
+      contentWidget = Text(
+        content,
+        style: TextStyle(
+          color: isMe ? Colors.white : Colors.black87,
+          fontSize: 14,
+        ),
+      );
+    }
+
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
@@ -471,13 +764,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  Text(
-                    text,
-                    style: TextStyle(
-                      color: isMe ? Colors.white : Colors.black87,
-                      fontSize: 14,
-                    ),
-                  ),
+                  contentWidget,
                   if (isSending)
                     Padding(
                       padding: const EdgeInsets.only(top: 4),

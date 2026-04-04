@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:guptik/models/facebook/meta_chat_model.dart';
@@ -19,6 +20,8 @@ class _InboxScreenState extends State<InboxScreen> {
   bool _isLoading = true;
   String _searchQuery = '';
   RealtimeChannel? _realtimeChannel;
+  Timer? _debounceTimer;
+  static const Duration _debounceDuration = Duration(milliseconds: 500);
 
   @override
   void initState() {
@@ -30,7 +33,13 @@ class _InboxScreenState extends State<InboxScreen> {
   @override
   void dispose() {
     _realtimeChannel?.unsubscribe();
+    _debounceTimer?.cancel();
     super.dispose();
+  }
+
+  void _debouncedLoadInbox() {
+    _debounceTimer?.cancel();
+    _debounceTimer = Timer(_debounceDuration, _loadInbox);
   }
 
   void _subscribeToConversationUpdates() {
@@ -40,7 +49,7 @@ class _InboxScreenState extends State<InboxScreen> {
     _realtimeChannel = Supabase.instance.client
         .channel('inbox-updates-$userId')
         .onPostgresChanges(
-          event: PostgresChangeEvent.all,
+          event: PostgresChangeEvent.insert,
           schema: 'public',
           table: 'fb_conversations',
           filter: PostgresChangeFilter(
@@ -48,10 +57,27 @@ class _InboxScreenState extends State<InboxScreen> {
             column: 'user_id',
             value: userId,
           ),
-          callback: (_) => _loadInbox(),
+          callback: (_) {
+            debugPrint("📝 [FB] New Facebook conversation detected");
+            _debouncedLoadInbox();
+          },
         )
         .onPostgresChanges(
-          event: PostgresChangeEvent.all,
+          event: PostgresChangeEvent.update,
+          schema: 'public',
+          table: 'fb_conversations',
+          filter: PostgresChangeFilter(
+            type: PostgresChangeFilterType.eq,
+            column: 'user_id',
+            value: userId,
+          ),
+          callback: (_) {
+            debugPrint("🔄 [FB] Facebook conversation updated");
+            _debouncedLoadInbox();
+          },
+        )
+        .onPostgresChanges(
+          event: PostgresChangeEvent.insert,
           schema: 'public',
           table: 'ig_conversations',
           filter: PostgresChangeFilter(
@@ -59,7 +85,24 @@ class _InboxScreenState extends State<InboxScreen> {
             column: 'user_id',
             value: userId,
           ),
-          callback: (_) => _loadInbox(),
+          callback: (_) {
+            debugPrint("📝 [IG] New Instagram conversation detected");
+            _debouncedLoadInbox();
+          },
+        )
+        .onPostgresChanges(
+          event: PostgresChangeEvent.update,
+          schema: 'public',
+          table: 'ig_conversations',
+          filter: PostgresChangeFilter(
+            type: PostgresChangeFilterType.eq,
+            column: 'user_id',
+            value: userId,
+          ),
+          callback: (_) {
+            debugPrint("🔄 [IG] Instagram conversation updated");
+            _debouncedLoadInbox();
+          },
         )
         .subscribe();
   }
@@ -95,24 +138,65 @@ class _InboxScreenState extends State<InboxScreen> {
       backgroundColor: Colors.grey[50],
       body: Column(
         children: [
+          // Compact header to avoid overflow in landscape
           Container(
-            padding: const EdgeInsets.all(16),
-            color: Colors.white,
-            child: TextField(
-              onChanged: (value) {
-                setState(() => _searchQuery = value);
-              },
-              decoration: InputDecoration(
-                hintText: 'Search conversations...',
-                prefixIcon: const Icon(Icons.search, color: Colors.grey),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide.none,
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.grey.withValues(alpha: 0.08),
+                  blurRadius: 4,
+                  offset: const Offset(0, 1),
                 ),
-                filled: true,
-                fillColor: Colors.grey[100],
-                contentPadding: const EdgeInsets.symmetric(horizontal: 16),
-              ),
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'Messages',
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.black87,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                TextField(
+                  onChanged: (value) {
+                    setState(() => _searchQuery = value);
+                  },
+                  decoration: InputDecoration(
+                    hintText: 'Search conversations...',
+                    hintStyle: TextStyle(color: Colors.grey.shade500),
+                    prefixIcon: Icon(Icons.search, color: Colors.grey.shade600),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: Colors.grey.shade200),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: Colors.grey.shade200),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(
+                        color: Color(0xFF1877F2),
+                        width: 2,
+                      ),
+                    ),
+                    filled: true,
+                    fillColor: Colors.grey.shade50,
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 8,
+                    ),
+                  ),
+                  style: const TextStyle(fontSize: 15),
+                ),
+              ],
             ),
           ),
           Expanded(
@@ -175,132 +259,199 @@ class _InboxScreenState extends State<InboxScreen> {
   }
 
   Widget _buildChatCard(MetaChat chat) {
-    return GestureDetector(
-      onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => ChatDetailScreen(conversation: chat),
-          ),
-        );
-      },
+    return Material(
+      color: Colors.transparent,
       child: Container(
-        padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: chat.isUnread ? const Color(0xFF1877F2) : Colors.grey[200]!,
-            width: chat.isUnread ? 2 : 1,
+            color: chat.isUnread ? Colors.transparent : Colors.grey.shade200,
+            width: 1,
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.grey.withValues(alpha: 0.05),
-              blurRadius: 10,
+              color: chat.isUnread
+                  ? (chat.platform == SocialPlatform.facebook
+                            ? const Color(0xFF1877F2)
+                            : const Color(0xFFE1306C))
+                        .withValues(alpha: 0.15)
+                  : Colors.grey.withValues(alpha: 0.08),
+              blurRadius: chat.isUnread ? 12 : 8,
               offset: const Offset(0, 2),
             ),
           ],
         ),
-        child: Row(
-          children: [
-            Stack(
+        child: InkWell(
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => ChatDetailScreen(conversation: chat),
+              ),
+            );
+          },
+          borderRadius: BorderRadius.circular(16),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            child: Row(
               children: [
-                CircleAvatar(
-                  radius: 30,
-                  backgroundColor: chat.platform == SocialPlatform.facebook
-                      ? Colors.blue[50]
-                      : Colors.pink[50],
-                  child: Text(
-                    chat.senderName.isNotEmpty
-                        ? chat.senderName[0].toUpperCase()
-                        : '?',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: chat.platform == SocialPlatform.facebook
-                          ? const Color(0xFF1877F2)
-                          : const Color(0xFFE1306C),
-                    ),
-                  ),
-                ),
-                Positioned(
-                  bottom: 0,
-                  right: 0,
-                  child: Container(
-                    padding: const EdgeInsets.all(4),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      shape: BoxShape.circle,
-                      border: Border.all(color: Colors.grey.shade200),
-                    ),
-                    child: FaIcon(
-                      chat.platform == SocialPlatform.facebook
-                          ? FontAwesomeIcons.facebook
-                          : FontAwesomeIcons.instagram,
-                      size: 12,
-                      color: chat.platform == SocialPlatform.facebook
-                          ? const Color(0xFF1877F2)
-                          : const Color(0xFFE1306C),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Expanded(
-                        child: Text(
-                          chat.senderName,
-                          style: TextStyle(
-                            fontWeight: chat.isUnread
-                                ? FontWeight.bold
-                                : FontWeight.w600,
-                            fontSize: 16,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
+                Stack(
+                  children: [
+                    Container(
+                      width: 64,
+                      height: 64,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        gradient: LinearGradient(
+                          colors: chat.platform == SocialPlatform.facebook
+                              ? [
+                                  const Color(0xFF1877F2),
+                                  const Color(0xFF0A66C2),
+                                ]
+                              : [
+                                  const Color(0xFFE1306C),
+                                  const Color(0xFFC13584),
+                                ],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
                         ),
                       ),
-                      const SizedBox(width: 8),
-                      Text(
-                        chat.time,
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: chat.isUnread
+                      child: Center(
+                        child: Text(
+                          chat.senderName.isNotEmpty
+                              ? chat.senderName[0].toUpperCase()
+                              : '?',
+                          style: const TextStyle(
+                            fontSize: 22,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ),
+                    Positioned(
+                      bottom: 0,
+                      right: 0,
+                      child: Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: chat.platform == SocialPlatform.facebook
+                                ? const Color(0xFF1877F2)
+                                : const Color(0xFFE1306C),
+                            width: 2,
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.grey.withValues(alpha: 0.2),
+                              blurRadius: 4,
+                            ),
+                          ],
+                        ),
+                        child: FaIcon(
+                          chat.platform == SocialPlatform.facebook
+                              ? FontAwesomeIcons.facebook
+                              : FontAwesomeIcons.instagram,
+                          size: 14,
+                          color: chat.platform == SocialPlatform.facebook
                               ? const Color(0xFF1877F2)
-                              : Colors.grey,
+                              : const Color(0xFFE1306C),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Expanded(
+                            child: Text(
+                              chat.senderName,
+                              style: TextStyle(
+                                fontWeight: chat.isUnread
+                                    ? FontWeight.w700
+                                    : FontWeight.w600,
+                                fontSize: 16,
+                                color: Colors.black87,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Text(
+                            chat.time,
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: chat.isUnread
+                                  ? (chat.platform == SocialPlatform.facebook
+                                        ? const Color(0xFF1877F2)
+                                        : const Color(0xFFE1306C))
+                                  : Colors.grey.shade500,
+                              fontWeight: chat.isUnread
+                                  ? FontWeight.w600
+                                  : FontWeight.w400,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        chat.lastMessage,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: chat.isUnread
+                              ? Colors.black54
+                              : Colors.grey.shade600,
+                          fontSize: 14,
+                          fontWeight: chat.isUnread
+                              ? FontWeight.w500
+                              : FontWeight.w400,
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 8),
-                  Text(
-                    chat.lastMessage,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: chat.isUnread ? Colors.black87 : Colors.grey[600],
+                ),
+                if (chat.isUnread) ...[
+                  const SizedBox(width: 12),
+                  Container(
+                    width: 12,
+                    height: 12,
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: chat.platform == SocialPlatform.facebook
+                            ? [const Color(0xFF1877F2), const Color(0xFF0A66C2)]
+                            : [
+                                const Color(0xFFE1306C),
+                                const Color(0xFFC13584),
+                              ],
+                      ),
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color:
+                              (chat.platform == SocialPlatform.facebook
+                                      ? const Color(0xFF1877F2)
+                                      : const Color(0xFFE1306C))
+                                  .withValues(alpha: 0.3),
+                          blurRadius: 4,
+                        ),
+                      ],
                     ),
                   ),
                 ],
-              ),
+              ],
             ),
-            if (chat.isUnread)
-              Container(
-                width: 10,
-                height: 10,
-                decoration: const BoxDecoration(
-                  color: Color(0xFF1877F2),
-                  shape: BoxShape.circle,
-                ),
-              ),
-          ],
+          ),
         ),
       ),
     );

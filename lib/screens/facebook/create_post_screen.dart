@@ -25,7 +25,6 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
   @override
   void initState() {
     super.initState();
-    // Listen to caption text changes to update button state
     _captionController.addListener(() {
       setState(() {});
     });
@@ -58,14 +57,16 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
     if (_selectedPlatform == SocialPlatform.instagram &&
         _selectedImage == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Instagram posts require an image.")),
+        const SnackBar(
+          content: Text("Instagram posts require an image. Please select one."),
+          duration: Duration(seconds: 3),
+        ),
       );
       return;
     }
 
     setState(() => _isUploading = true);
 
-    // Call the Service
     bool success = await _metaService.uploadPost(
       _selectedPlatform,
       _selectedImage,
@@ -75,16 +76,19 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
     if (mounted) {
       setState(() => _isUploading = false);
       if (success) {
-        Navigator.pop(context); // Close screen
+        Navigator.pop(context);
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(const SnackBar(content: Text("Posted successfully!")));
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("Upload failed. Check console for details."),
-          ),
-        );
+        String errorMsg =
+            _selectedPlatform == SocialPlatform.instagram &&
+                _selectedImage == null
+            ? "Instagram requires an image to post."
+            : "Upload failed. Check console for details.";
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(errorMsg)));
       }
     }
   }
@@ -207,7 +211,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
             ),
             const SizedBox(height: 20),
 
-            // Image Picker Area (Optional)
+            // Image Picker Area (Optional for Facebook, Required for Instagram)
             GestureDetector(
               onTap: _pickImage,
               child: Container(
@@ -245,19 +249,45 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                           ),
                         ],
                       )
-                    : const Column(
+                    : Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Icon(Icons.add_a_photo, size: 50, color: Colors.grey),
-                          SizedBox(height: 10),
+                          const SizedBox(height: 10),
                           Text(
-                            "Add Photo (Optional)",
+                            _selectedPlatform == SocialPlatform.instagram
+                                ? "Photo Required for Instagram"
+                                : "Add Photo (Optional for Facebook)",
                             style: TextStyle(color: Colors.grey, fontSize: 16),
                           ),
                         ],
                       ),
               ),
             ),
+            if (_selectedPlatform == SocialPlatform.instagram &&
+                _selectedImage == null)
+              Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.info_outline,
+                      size: 14,
+                      color: Colors.orange[700],
+                    ),
+                    const SizedBox(width: 4),
+                    Expanded(
+                      child: Text(
+                        "Instagram requires an image. Please select one to post.",
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.orange[700],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
           ],
         ),
       ),
