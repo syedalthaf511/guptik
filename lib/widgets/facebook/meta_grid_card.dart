@@ -704,7 +704,7 @@ class _MetaGridCardState extends State<MetaGridCard> {
                 child: Image.network(
                   widget.content.imageUrl!,
                   fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => Container(
+                  errorBuilder: (_, _, _) => Container(
                     color: Colors.grey[200],
                     child: const Center(
                       child: Icon(Icons.broken_image, size: 30),

@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
-// Removed unused import 'dart:math'
 
 import '../../models/home_control/switch_model.dart';
 import '../../models/home_control/switch_type.dart';
@@ -29,6 +28,7 @@ class _SwitchControlScreenState extends State<SwitchControlScreen>
   final _uuid = const Uuid();
   List<SwitchDevice> _switches = [];
   bool _isLoading = true;
+  bool _isReordering = false; // Prevents stream listener from overriding UI mid-drag
 
   late AnimationController _fanController;
 
@@ -62,7 +62,12 @@ class _SwitchControlScreenState extends State<SwitchControlScreen>
             column: 'board_id',
             value: widget.boardId,
           ),
-          callback: (payload) => _loadSwitches(),
+          callback: (payload) {
+            // Ignore realtime updates if we are actively saving a reorder
+            if (!_isReordering) {
+              _loadSwitches();
+            }
+          },
         )
         .subscribe();
   }
@@ -103,10 +108,63 @@ class _SwitchControlScreenState extends State<SwitchControlScreen>
           .eq('id', s.id);
     } catch (e) {
       _loadSwitches();
-      if (mounted)
+      if (mounted) {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text('Error: $e')));
+      }
+    }
+  }
+
+  // Handles drag & drop by SWAPPING the two switches
+  Future<void> _reorderSwitches(int oldIndex, int newIndex) async {
+    if (oldIndex == newIndex) return; // Do nothing if dropped in the same spot
+
+    setState(() {
+      _isReordering = true;
+
+      // 1. Get the two items being swapped
+      final item1 = _switches[oldIndex];
+      final item2 = _switches[newIndex];
+
+      // 2. Save their current position numbers
+      final pos1 = item1.position;
+      final pos2 = item2.position;
+
+      // 3. Put them in each other's spots in the local list, with swapped positions
+      _switches[oldIndex] = item2.copyWith(position: pos1);
+      _switches[newIndex] = item1.copyWith(position: pos2);
+    });
+
+    try {
+      // Get the newly updated items from the list
+      final updatedSwitch1 = _switches[oldIndex];
+      final updatedSwitch2 = _switches[newIndex];
+
+      // STEP 1: Move ONLY these two to temporary negative positions to clear the constraint
+      await Future.wait([
+        _supabase.from('hc_switches').update({'position': -(updatedSwitch1.position)}).eq('id', updatedSwitch1.id),
+        _supabase.from('hc_switches').update({'position': -(updatedSwitch2.position)}).eq('id', updatedSwitch2.id),
+      ]);
+
+      // STEP 2: Save their final swapped positive positions
+      await Future.wait([
+        _supabase.from('hc_switches').update({'position': updatedSwitch1.position}).eq('id', updatedSwitch1.id),
+        _supabase.from('hc_switches').update({'position': updatedSwitch2.position}).eq('id', updatedSwitch2.id),
+      ]);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Failed to swap positions. Check connection.')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isReordering = false;
+        });
+        _loadSwitches(); // Sync with database just to be 100% sure
+      }
     }
   }
 
@@ -125,10 +183,11 @@ class _SwitchControlScreenState extends State<SwitchControlScreen>
       });
       if (mounted) Navigator.pop(context);
     } catch (e) {
-      if (mounted)
+      if (mounted) {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text('Error: $e')));
+      }
     }
   }
 
@@ -144,10 +203,11 @@ class _SwitchControlScreenState extends State<SwitchControlScreen>
           .eq('id', s.id);
       if (mounted) Navigator.pop(context);
     } catch (e) {
-      if (mounted)
+      if (mounted) {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text('Error: $e')));
+      }
     }
   }
 
@@ -157,10 +217,11 @@ class _SwitchControlScreenState extends State<SwitchControlScreen>
       await _supabase.from('hc_switches').delete().eq('id', id);
       if (mounted) Navigator.pop(context);
     } catch (e) {
-      if (mounted)
+      if (mounted) {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text('Error: $e')));
+      }
     }
   }
 
@@ -189,8 +250,7 @@ class _SwitchControlScreenState extends State<SwitchControlScreen>
               const SizedBox(height: 16),
               DropdownButtonFormField<SwitchType>(
                 // ignore: deprecated_member_use
-                value:
-                    selectedType, // Keeping 'value' is correct for controlled inputs despite deprecation warning
+                value: selectedType, 
                 decoration: const InputDecoration(
                   labelText: 'Type',
                   border: OutlineInputBorder(),
@@ -220,8 +280,9 @@ class _SwitchControlScreenState extends State<SwitchControlScreen>
             ),
             ElevatedButton(
               onPressed: () {
-                if (nameController.text.isNotEmpty)
+                if (nameController.text.isNotEmpty) {
                   _addSwitch(nameController.text.trim(), selectedType);
+                }
               },
               child: const Text('Add'),
             ),
@@ -348,9 +409,122 @@ class _SwitchControlScreenState extends State<SwitchControlScreen>
     }
   }
 
+  // Refactored visual body of the Switch Card to reuse during Drag Feedback
+  Widget _buildSwitchCard(SwitchDevice device) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.white30),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.1),
+            blurRadius: 8,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Stack(
+        children: [
+          Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                if (device.type == SwitchType.fan && device.state)
+                  RotationTransition(
+                    turns: _fanController,
+                    child: Icon(
+                      _getIconForType(device.type),
+                      size: 40,
+                      color: Colors.white,
+                    ),
+                  )
+                else
+                  Icon(
+                    _getIconForType(device.type),
+                    size: 40,
+                    color: device.state
+                        ? Colors.yellowAccent
+                        : Colors.white54,
+                  ),
+                const SizedBox(height: 12),
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8.0,
+                  ),
+                  child: Text(
+                    device.name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Switch(
+                  value: device.state,
+                  onChanged: (val) => _toggle(device),
+                  activeTrackColor: Colors.cyanAccent,
+                ),
+              ],
+            ),
+          ),
+          Positioned(
+            top: 4,
+            right: 4,
+            child: IconButton(
+              icon: const Icon(
+                Icons.alarm,
+                color: Colors.white70,
+                size: 20,
+              ),
+              tooltip: 'Manage Timers',
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => TimerScreen(
+                      boardId: widget.boardId,
+                      boardName: widget.boardName,
+                      switches: _switches,
+                      initialSwitchId: device.id,
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+          Positioned(
+            top: 4,
+            left: 4,
+            child: IconButton(
+              icon: const Icon(
+                Icons.more_vert,
+                color: Colors.white54,
+                size: 20,
+              ),
+              tooltip: 'Options',
+              onPressed: () => _showOptionsSheet(device),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Provider.of<DynamicThemeProvider>(context);
+    
+    // Using MediaQuery to calculate exact tile dimensions for seamless dragging feedback
+    final crossAxisCount = 2;
+    final spacing = 16.0;
+    final paddingX = 16.0 * 2;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final itemWidth = (screenWidth - paddingX - (spacing * (crossAxisCount - 1))) / crossAxisCount;
+    final itemHeight = itemWidth / 1.1; // Derived from childAspectRatio
 
     return Scaffold(
       appBar: AppBar(
@@ -382,7 +556,6 @@ class _SwitchControlScreenState extends State<SwitchControlScreen>
                   if (index == _switches.length) {
                     return Card(
                       elevation: 0,
-                      // FIX: withOpacity -> withValues
                       color: Colors.white.withValues(alpha: 0.1),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(20),
@@ -412,119 +585,40 @@ class _SwitchControlScreenState extends State<SwitchControlScreen>
                     );
                   }
 
-                  // Switch Card
+                  // Switch Card wrapped in DragTarget & LongPressDraggable
                   final device = _switches[index];
 
-                  return GestureDetector(
-                    onLongPress: () => _showOptionsSheet(device),
-                    child: Container(
-                      decoration: BoxDecoration(
-                        // FIX: withOpacity -> withValues
-                        color: Colors.white.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: Colors.white30),
-                        boxShadow: [
-                          BoxShadow(
-                            // FIX: withOpacity -> withValues
-                            color: Colors.black.withValues(alpha: 0.1),
-                            blurRadius: 8,
-                            offset: const Offset(0, 4),
-                          ),
-                        ],
-                      ),
-                      child: Stack(
-                        children: [
-                          Center(
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                if (device.type == SwitchType.fan &&
-                                    device.state)
-                                  RotationTransition(
-                                    turns: _fanController,
-                                    child: Icon(
-                                      _getIconForType(device.type),
-                                      size: 40,
-                                      color: Colors.white,
-                                    ),
-                                  )
-                                else
-                                  Icon(
-                                    _getIconForType(device.type),
-                                    size: 40,
-                                    color: device.state
-                                        ? Colors.yellowAccent
-                                        : Colors.white54,
-                                  ),
-
-                                const SizedBox(height: 12),
-                                Padding(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 8.0,
-                                  ),
-                                  child: Text(
-                                    device.name,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(height: 8),
-                                Switch(
-                                  value: device.state,
-                                  onChanged: (val) => _toggle(device),
-                                  // FIX: activeColor -> activeTrackColor
-                                  activeTrackColor: Colors.cyanAccent,
-                                ),
-                              ],
+                  return DragTarget<int>(
+                    onAcceptWithDetails: (details) {
+                      final oldIndex = details.data;
+                      if (oldIndex != index) {
+                        _reorderSwitches(oldIndex, index);
+                      }
+                    },
+                    builder: (context, candidateData, rejectedData) {
+                      return LongPressDraggable<int>(
+                        data: index,
+                        // Ghost visualization held under the finger
+                        feedback: Material(
+                          type: MaterialType.transparency,
+                          child: SizedBox(
+                            width: itemWidth,
+                            height: itemHeight,
+                            child: Opacity(
+                              opacity: 0.8,
+                              child: _buildSwitchCard(device),
                             ),
                           ),
-
-                          Positioned(
-                            top: 4,
-                            right: 4,
-                            child: IconButton(
-                              icon: const Icon(
-                                Icons.alarm,
-                                color: Colors.white70,
-                                size: 20,
-                              ),
-                              tooltip: 'Manage Timers',
-                              onPressed: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => TimerScreen(
-                                      boardId: widget.boardId,
-                                      boardName: widget.boardName,
-                                      switches: _switches,
-                                      initialSwitchId: device.id,
-                                    ),
-                                  ),
-                                );
-                              },
-                            ),
-                          ),
-
-                          Positioned(
-                            top: 4,
-                            left: 4,
-                            child: IconButton(
-                              icon: const Icon(
-                                Icons.more_vert,
-                                color: Colors.white54,
-                                size: 20,
-                              ),
-                              tooltip: 'Options',
-                              onPressed: () => _showOptionsSheet(device),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
+                        ),
+                        // The faded original item left behind in the grid
+                        childWhenDragging: Opacity(
+                          opacity: 0.3,
+                          child: _buildSwitchCard(device),
+                        ),
+                        // Default non-dragging view
+                        child: _buildSwitchCard(device),
+                      );
+                    },
                   );
                 },
               ),

@@ -301,7 +301,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
         maxWidth: 1920,
       );
 
-      if (images != null && images.isNotEmpty) {
+      if (images.isNotEmpty) {
         for (final image in images) {
           await _sendMediaMessage(
             filePath: image.path,

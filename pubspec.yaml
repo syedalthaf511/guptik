@@ -14,7 +14,7 @@ dependencies:
   mobile_scanner: ^7.1.4
   permission_handler: ^12.0.1
   image_picker: ^1.1.2
-  http: ^1.1.0
+  http: ^1.6.0
   app_links: ^6.3.2
   go_router: ^17.0.1
   crypto: ^3.0.3
@@ -48,6 +48,10 @@ dependencies:
   mime: ^1.0.3
   webview_flutter: ^4.13.1
   chewie: ^1.7.4
+  flutter_secure_storage: ^10.0.0
+  emoji_picker_flutter: ^4.4.0
+  network_info_plus: ^7.0.0
+  wifi_iot: ^0.3.19+2
 
 
 dev_dependencies:

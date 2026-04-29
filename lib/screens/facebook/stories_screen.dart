@@ -3,6 +3,7 @@ import 'package:guptik/models/facebook/meta_content_model.dart';
 import 'package:guptik/models/facebook/meta_story_reel_model.dart';
 import 'package:guptik/services/facebook/meta_service.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:guptik/config/app_theme.dart';
 
 class StoriesScreen extends StatefulWidget {
   final SocialPlatform platform;
@@ -146,28 +147,55 @@ class _StoriesScreenState extends State<StoriesScreen> {
   }
 
   Future<void> _editStory(MetaStory story) async {
+    final platformColor = widget.platform == SocialPlatform.facebook
+        ? AppTheme.facebookBlue
+        : AppTheme.instagramPink;
+
     final newCaption = await showDialog<String>(
       context: context,
       builder: (ctx) {
         final controller = TextEditingController(text: story.caption);
         return AlertDialog(
-          title: const Text('Edit Caption'),
+          title: Text('Edit Caption', style: AppTheme.textTheme.titleLarge),
+          backgroundColor: AppTheme.surface,
           content: TextField(
             controller: controller,
             maxLines: 3,
-            decoration: const InputDecoration(
+            style: AppTheme.textTheme.bodyMedium,
+            decoration: InputDecoration(
               hintText: 'Edit caption...',
-              border: OutlineInputBorder(),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(AppRadius.md),
+                borderSide: BorderSide(color: AppTheme.lightGrey),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(AppRadius.md),
+                borderSide: BorderSide(color: AppTheme.lightGrey),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(AppRadius.md),
+                borderSide: BorderSide(color: platformColor, width: 2),
+              ),
+              filled: true,
+              fillColor: AppTheme.background,
+              contentPadding: const EdgeInsets.all(AppSpacing.md),
             ),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx),
-              child: const Text('Cancel'),
+              child: Text(
+                'Cancel',
+                style: TextStyle(color: AppTheme.mediumGrey),
+              ),
             ),
             ElevatedButton(
               onPressed: () => Navigator.pop(ctx, controller.text),
-              child: const Text('Update'),
+              style: ElevatedButton.styleFrom(backgroundColor: platformColor),
+              child: const Text(
+                'Update',
+                style: TextStyle(color: Colors.white),
+              ),
             ),
           ],
         );
@@ -197,16 +225,20 @@ class _StoriesScreenState extends State<StoriesScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Archive Story?'),
-        content: const Text('This story will be hidden but not deleted.'),
+        title: Text('Archive Story?', style: AppTheme.textTheme.titleLarge),
+        backgroundColor: AppTheme.surface,
+        content: Text(
+          'This story will be hidden but not deleted.',
+          style: AppTheme.textTheme.bodyMedium,
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancel'),
+            child: Text('Cancel', style: TextStyle(color: AppTheme.mediumGrey)),
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            style: TextButton.styleFrom(foregroundColor: Colors.orange),
+            style: TextButton.styleFrom(foregroundColor: AppTheme.warning),
             child: const Text('Archive'),
           ),
         ],
@@ -236,16 +268,20 @@ class _StoriesScreenState extends State<StoriesScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Delete Story?'),
-        content: const Text('This action cannot be undone.'),
+        title: Text('Delete Story?', style: AppTheme.textTheme.titleLarge),
+        backgroundColor: AppTheme.surface,
+        content: Text(
+          'This action cannot be undone.',
+          style: AppTheme.textTheme.bodyMedium,
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancel'),
+            child: Text('Cancel', style: TextStyle(color: AppTheme.mediumGrey)),
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            style: TextButton.styleFrom(foregroundColor: AppTheme.error),
             child: const Text('Delete'),
           ),
         ],
@@ -273,31 +309,52 @@ class _StoriesScreenState extends State<StoriesScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final platformColor = widget.platform == SocialPlatform.facebook
+        ? AppTheme.facebookBlue
+        : AppTheme.instagramPink;
+
     return Scaffold(
+      backgroundColor: AppTheme.background,
       appBar: AppBar(
-        title: Text('${widget.platform.name.toUpperCase()} Stories'),
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.black,
+        title: Text(
+          '${widget.platform.name.toUpperCase()} Stories',
+          style: AppTheme.textTheme.headlineSmall,
+        ),
+        backgroundColor: AppTheme.surface,
+        foregroundColor: AppTheme.dark,
         elevation: 1,
+        shadowColor: Colors.black.withValues(alpha: 0.05),
         actions: [
-          IconButton(icon: const Icon(Icons.refresh), onPressed: _loadStories),
-          IconButton(icon: const Icon(Icons.tune), onPressed: _showFilterMenu),
+          IconButton(
+            icon: Icon(Icons.refresh, color: platformColor),
+            onPressed: _loadStories,
+          ),
+          IconButton(
+            icon: Icon(Icons.tune, color: platformColor),
+            onPressed: _showFilterMenu,
+          ),
         ],
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: _postStory,
-        backgroundColor: const Color(0xFF1877F2),
-        child: const Icon(Icons.add),
+        backgroundColor: platformColor,
+        elevation: 4,
+        child: const Icon(Icons.add, color: Colors.white),
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? Center(
+              child: CircularProgressIndicator(
+                valueColor: AlwaysStoppedAnimation<Color>(platformColor),
+              ),
+            )
           : RefreshIndicator(
+              color: platformColor,
               onRefresh: _loadStories,
               child: Column(
                 children: [
                   // Search bar
                   Padding(
-                    padding: const EdgeInsets.all(12),
+                    padding: const EdgeInsets.all(AppSpacing.lg),
                     child: TextField(
                       onChanged: (value) {
                         setState(() {
@@ -307,13 +364,28 @@ class _StoriesScreenState extends State<StoriesScreen> {
                       },
                       decoration: InputDecoration(
                         hintText: 'Search stories...',
-                        prefixIcon: const Icon(Icons.search),
+                        prefixIcon: Icon(Icons.search, color: platformColor),
                         border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
+                          borderRadius: BorderRadius.circular(AppRadius.lg),
+                          borderSide: BorderSide(color: AppTheme.lightGrey),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(AppRadius.lg),
+                          borderSide: BorderSide(color: AppTheme.lightGrey),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(AppRadius.lg),
+                          borderSide: BorderSide(
+                            color: platformColor,
+                            width: 2,
+                          ),
                         ),
                         contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 12,
+                          horizontal: AppSpacing.md,
+                          vertical: AppSpacing.md,
                         ),
+                        filled: true,
+                        fillColor: AppTheme.surface,
                       ),
                     ),
                   ),
@@ -324,46 +396,49 @@ class _StoriesScreenState extends State<StoriesScreen> {
                             child: Column(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                Icon(
-                                  Icons.image_not_supported,
-                                  size: 48,
-                                  color: Colors.grey[400],
+                                Container(
+                                  width: 80,
+                                  height: 80,
+                                  decoration: BoxDecoration(
+                                    color: platformColor.withValues(alpha: 0.1),
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: Icon(
+                                    Icons.image_not_supported,
+                                    size: 40,
+                                    color: platformColor.withValues(alpha: 0.6),
+                                  ),
                                 ),
-                                const SizedBox(height: 16),
+                                const SizedBox(height: AppSpacing.lg),
                                 Text(
                                   _searchQuery.isEmpty
                                       ? 'No stories yet'
                                       : 'No matching stories',
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    color: Colors.grey[600],
-                                  ),
+                                  style: AppTheme.textTheme.titleMedium,
                                 ),
-                                const SizedBox(height: 8),
+                                const SizedBox(height: AppSpacing.md),
                                 Text(
                                   _searchQuery.isEmpty
                                       ? 'Tap + to post your first story'
                                       : 'Try a different search',
-                                  style: TextStyle(
-                                    fontSize: 13,
-                                    color: Colors.grey[500],
-                                  ),
+                                  style: AppTheme.textTheme.bodySmall,
+                                  textAlign: TextAlign.center,
                                 ),
                               ],
                             ),
                           )
                         : GridView.builder(
-                            padding: const EdgeInsets.all(12),
+                            padding: const EdgeInsets.all(AppSpacing.lg),
                             gridDelegate:
                                 const SliverGridDelegateWithFixedCrossAxisCount(
                                   crossAxisCount: 2,
-                                  crossAxisSpacing: 8,
-                                  mainAxisSpacing: 8,
+                                  crossAxisSpacing: AppSpacing.lg,
+                                  mainAxisSpacing: AppSpacing.lg,
                                 ),
                             itemCount: _filteredStories.length,
                             itemBuilder: (context, index) {
                               final story = _filteredStories[index];
-                              return _buildStoryCard(story);
+                              return _buildStoryCard(story, platformColor);
                             },
                           ),
                   ),
@@ -373,28 +448,36 @@ class _StoriesScreenState extends State<StoriesScreen> {
     );
   }
 
-  Widget _buildStoryCard(MetaStory story) {
+  Widget _buildStoryCard(MetaStory story, Color platformColor) {
     return GestureDetector(
       onLongPress: () => _showStoryMenu(story),
       child: Container(
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(12),
-          color: Colors.grey[200],
-          border: Border.all(color: Colors.grey[300]!),
+          borderRadius: BorderRadius.circular(AppRadius.lg),
+          color: AppTheme.surface,
+          border: Border.all(
+            color: platformColor.withValues(alpha: 0.2),
+            width: 1,
+          ),
+          boxShadow: AppShadows.light,
         ),
         child: Stack(
           fit: StackFit.expand,
           children: [
             // Story Image
             ClipRRect(
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(AppRadius.lg),
               child: Image.network(
                 story.mediaUrl,
                 fit: BoxFit.cover,
                 errorBuilder: (context, error, stackTrace) {
                   return Container(
-                    color: Colors.grey[300],
-                    child: Icon(Icons.image, color: Colors.grey[600], size: 32),
+                    color: AppTheme.lightGrey,
+                    child: Icon(
+                      Icons.image,
+                      color: AppTheme.mediumGrey,
+                      size: 32,
+                    ),
                   );
                 },
               ),
@@ -403,12 +486,12 @@ class _StoriesScreenState extends State<StoriesScreen> {
             // Gradient overlay
             Container(
               decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(AppRadius.lg),
                 gradient: LinearGradient(
                   begin: Alignment.bottomCenter,
                   end: Alignment.topCenter,
                   colors: [
-                    Colors.black.withValues(alpha: 0.6),
+                    Colors.black.withValues(alpha: 0.5),
                     Colors.transparent,
                   ],
                 ),
@@ -417,9 +500,9 @@ class _StoriesScreenState extends State<StoriesScreen> {
 
             // Story Info
             Positioned(
-              bottom: 8,
-              left: 8,
-              right: 8,
+              bottom: AppSpacing.md,
+              left: AppSpacing.md,
+              right: AppSpacing.md,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -436,7 +519,7 @@ class _StoriesScreenState extends State<StoriesScreen> {
                     ),
                   Text(
                     story.timeElapsed,
-                    style: const TextStyle(color: Colors.white, fontSize: 10),
+                    style: const TextStyle(color: Colors.white70, fontSize: 10),
                   ),
                 ],
               ),
@@ -444,19 +527,29 @@ class _StoriesScreenState extends State<StoriesScreen> {
 
             // Views badge
             Positioned(
-              top: 8,
-              right: 8,
+              top: AppSpacing.md,
+              right: AppSpacing.md,
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.md,
+                  vertical: AppSpacing.sm,
+                ),
                 decoration: BoxDecoration(
-                  color: Colors.black.withValues(alpha: 0.6),
-                  borderRadius: BorderRadius.circular(12),
+                  color: platformColor,
+                  borderRadius: BorderRadius.circular(AppRadius.lg),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.2),
+                      blurRadius: 4,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     const Icon(Icons.visibility, size: 12, color: Colors.white),
-                    const SizedBox(width: 4),
+                    const SizedBox(width: AppSpacing.sm),
                     Text(
                       story.views.toString(),
                       style: const TextStyle(
@@ -476,45 +569,58 @@ class _StoriesScreenState extends State<StoriesScreen> {
   }
 
   void _showStoryMenu(MetaStory story) {
+    final platformColor = widget.platform == SocialPlatform.facebook
+        ? AppTheme.facebookBlue
+        : AppTheme.instagramPink;
+
     showModalBottomSheet(
       context: context,
       builder: (ctx) => Container(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(AppSpacing.lg),
+        decoration: BoxDecoration(
+          color: AppTheme.surface,
+          borderRadius: const BorderRadius.vertical(
+            top: Radius.circular(AppRadius.xl),
+          ),
+        ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             ListTile(
-              leading: const Icon(Icons.info),
+              leading: Icon(Icons.info, color: platformColor),
               title: const Text('Story Details'),
               onTap: () {
                 Navigator.pop(ctx);
                 _showStoryDetails(story);
               },
             ),
+            Divider(color: AppTheme.lightGrey),
             ListTile(
-              leading: const Icon(Icons.edit),
+              leading: Icon(Icons.edit, color: platformColor),
               title: const Text('Edit Caption'),
               onTap: () {
                 Navigator.pop(ctx);
                 _editStory(story);
               },
             ),
+            Divider(color: AppTheme.lightGrey),
             ListTile(
-              leading: const Icon(Icons.archive, color: Colors.orange),
+              leading: const Icon(Icons.archive, color: AppTheme.warning),
               title: const Text(
                 'Archive',
-                style: TextStyle(color: Colors.orange),
+                style: TextStyle(color: AppTheme.warning),
               ),
               onTap: () {
                 Navigator.pop(ctx);
                 _archiveStory(story);
               },
             ),
+            Divider(color: AppTheme.lightGrey),
             ListTile(
-              leading: const Icon(Icons.delete, color: Colors.red),
+              leading: const Icon(Icons.delete, color: AppTheme.error),
               title: const Text(
                 'Delete Story',
-                style: TextStyle(color: Colors.red),
+                style: TextStyle(color: AppTheme.error),
               ),
               onTap: () {
                 Navigator.pop(ctx);
@@ -528,33 +634,59 @@ class _StoriesScreenState extends State<StoriesScreen> {
   }
 
   void _showStoryDetails(MetaStory story) {
+    final platformColor = widget.platform == SocialPlatform.facebook
+        ? AppTheme.facebookBlue
+        : AppTheme.instagramPink;
+
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Story Details'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildDetailRow('Views', story.views.toString()),
-            _buildDetailRow('Replies', story.replies.toString()),
-            _buildDetailRow('Engagement', '${story.views + story.replies}'),
-            _buildDetailRow('Posted', story.timeElapsed),
-            if (story.caption != null && story.caption!.isNotEmpty) ...[
-              const SizedBox(height: 12),
-              const Text(
-                'Caption',
-                style: TextStyle(fontWeight: FontWeight.w600),
+        title: Text('Story Details', style: AppTheme.textTheme.titleLarge),
+        backgroundColor: AppTheme.surface,
+        content: Container(
+          decoration: BoxDecoration(
+            border: Border(left: BorderSide(color: platformColor, width: 3)),
+          ),
+          padding: const EdgeInsets.only(left: AppSpacing.lg),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildDetailRow('Views', story.views.toString(), platformColor),
+              const SizedBox(height: AppSpacing.md),
+              _buildDetailRow(
+                'Replies',
+                story.replies.toString(),
+                platformColor,
               ),
-              const SizedBox(height: 4),
-              Text(story.caption!),
+              const SizedBox(height: AppSpacing.md),
+              _buildDetailRow(
+                'Engagement',
+                '${story.views + story.replies}',
+                platformColor,
+              ),
+              const SizedBox(height: AppSpacing.md),
+              _buildDetailRow('Posted', story.timeElapsed, platformColor),
+              if (story.caption != null && story.caption!.isNotEmpty) ...[
+                const SizedBox(height: AppSpacing.lg),
+                Text('Caption', style: AppTheme.textTheme.labelMedium),
+                const SizedBox(height: AppSpacing.md),
+                Container(
+                  padding: const EdgeInsets.all(AppSpacing.md),
+                  decoration: BoxDecoration(
+                    color: platformColor.withValues(alpha: 0.05),
+                    borderRadius: BorderRadius.circular(AppRadius.md),
+                  ),
+                  child: Text(story.caption!),
+                ),
+              ],
             ],
-          ],
+          ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Close'),
+            child: Text('Close', style: TextStyle(color: platformColor)),
           ),
         ],
       ),
@@ -562,77 +694,114 @@ class _StoriesScreenState extends State<StoriesScreen> {
   }
 
   void _showFilterMenu() {
+    final platformColor = widget.platform == SocialPlatform.facebook
+        ? AppTheme.facebookBlue
+        : AppTheme.instagramPink;
+
     showModalBottomSheet(
       context: context,
       builder: (ctx) => Container(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(AppSpacing.lg),
+        decoration: BoxDecoration(
+          color: AppTheme.surface,
+          borderRadius: const BorderRadius.vertical(
+            top: Radius.circular(AppRadius.xl),
+          ),
+        ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Sort By',
-              style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
-            ),
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 8,
-              children: ['date', 'engagement', 'views'].map((sort) {
-                return FilterChip(
-                  label: Text(sort.toUpperCase()),
-                  selected: _sortBy == sort,
-                  onSelected: (_) {
-                    Navigator.pop(ctx);
-                    setState(() {
-                      _sortBy = sort;
-                      _applyFiltersAndSort();
-                    });
-                  },
-                );
-              }).toList(),
-            ),
-            const SizedBox(height: 16),
-            const Text(
-              'Date Range',
-              style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
-            ),
-            const SizedBox(height: 8),
-            ListTile(
-              title: const Text('Last 7 Days'),
-              onTap: () {
-                Navigator.pop(ctx);
-                setState(() {
-                  _filterStartDate = DateTime.now().subtract(
-                    const Duration(days: 7),
+            Text('Sort By', style: AppTheme.textTheme.titleSmall),
+            const SizedBox(height: AppSpacing.lg),
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: ['date', 'engagement', 'views'].map((sort) {
+                  final isSelected = _sortBy == sort;
+                  return Padding(
+                    padding: const EdgeInsets.only(right: AppSpacing.md),
+                    child: FilterChip(
+                      label: Text(
+                        sort.toUpperCase(),
+                        style: TextStyle(
+                          color: isSelected ? Colors.white : platformColor,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      selected: isSelected,
+                      onSelected: (_) {
+                        Navigator.pop(ctx);
+                        setState(() {
+                          _sortBy = sort;
+                          _applyFiltersAndSort();
+                        });
+                      },
+                      backgroundColor: Colors.transparent,
+                      selectedColor: platformColor,
+                      side: BorderSide(color: platformColor, width: 1.5),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.lg,
+                        vertical: AppSpacing.md,
+                      ),
+                    ),
                   );
-                  _filterEndDate = DateTime.now();
-                  _applyFiltersAndSort();
-                });
-              },
+                }).toList(),
+              ),
             ),
-            ListTile(
-              title: const Text('Last 30 Days'),
-              onTap: () {
-                Navigator.pop(ctx);
-                setState(() {
-                  _filterStartDate = DateTime.now().subtract(
-                    const Duration(days: 30),
-                  );
-                  _filterEndDate = DateTime.now();
-                  _applyFiltersAndSort();
-                });
-              },
-            ),
-            ListTile(
-              title: const Text('All Time'),
-              onTap: () {
-                Navigator.pop(ctx);
-                setState(() {
-                  _filterStartDate = DateTime(2020); // Arbitrary past date
-                  _filterEndDate = DateTime.now();
-                  _applyFiltersAndSort();
-                });
-              },
+            const SizedBox(height: AppSpacing.xl),
+            Text('Date Range', style: AppTheme.textTheme.titleSmall),
+            const SizedBox(height: AppSpacing.lg),
+            Container(
+              decoration: BoxDecoration(
+                border: Border(top: BorderSide(color: AppTheme.lightGrey)),
+              ),
+              child: Column(
+                children: [
+                  ListTile(
+                    title: const Text('Last 7 Days'),
+                    visualDensity: VisualDensity.compact,
+                    onTap: () {
+                      Navigator.pop(ctx);
+                      setState(() {
+                        _filterStartDate = DateTime.now().subtract(
+                          const Duration(days: 7),
+                        );
+                        _filterEndDate = DateTime.now();
+                        _applyFiltersAndSort();
+                      });
+                    },
+                  ),
+                  Divider(color: AppTheme.lightGrey, height: 1),
+                  ListTile(
+                    title: const Text('Last 30 Days'),
+                    visualDensity: VisualDensity.compact,
+                    onTap: () {
+                      Navigator.pop(ctx);
+                      setState(() {
+                        _filterStartDate = DateTime.now().subtract(
+                          const Duration(days: 30),
+                        );
+                        _filterEndDate = DateTime.now();
+                        _applyFiltersAndSort();
+                      });
+                    },
+                  ),
+                  Divider(color: AppTheme.lightGrey, height: 1),
+                  ListTile(
+                    title: const Text('All Time'),
+                    visualDensity: VisualDensity.compact,
+                    onTap: () {
+                      Navigator.pop(ctx);
+                      setState(() {
+                        _filterStartDate = DateTime(2020);
+                        _filterEndDate = DateTime.now();
+                        _applyFiltersAndSort();
+                      });
+                    },
+                  ),
+                ],
+              ),
             ),
           ],
         ),
@@ -640,39 +809,63 @@ class _StoriesScreenState extends State<StoriesScreen> {
     );
   }
 
-  Widget _buildDetailRow(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(label, style: const TextStyle(color: Colors.grey)),
-          Text(value, style: const TextStyle(fontWeight: FontWeight.w600)),
-        ],
-      ),
+  Widget _buildDetailRow(String label, String value, Color color) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(label, style: TextStyle(color: AppTheme.mediumGrey, fontSize: 13)),
+        Text(
+          value,
+          style: TextStyle(fontWeight: FontWeight.w600, color: color),
+        ),
+      ],
     );
   }
 
   Widget _buildCaptionDialog(BuildContext context) {
     final controller = TextEditingController();
+    final platformColor = widget.platform == SocialPlatform.facebook
+        ? AppTheme.facebookBlue
+        : AppTheme.instagramPink;
+
     return AlertDialog(
-      title: const Text('Add Caption (Optional)'),
+      title: Text(
+        'Add Caption (Optional)',
+        style: AppTheme.textTheme.titleLarge,
+      ),
+      backgroundColor: AppTheme.surface,
       content: TextField(
         controller: controller,
         maxLines: 3,
-        decoration: const InputDecoration(
+        style: AppTheme.textTheme.bodyMedium,
+        decoration: InputDecoration(
           hintText: 'Add a caption to your story...',
-          border: OutlineInputBorder(),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(AppRadius.md),
+            borderSide: BorderSide(color: AppTheme.lightGrey),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(AppRadius.md),
+            borderSide: BorderSide(color: AppTheme.lightGrey),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(AppRadius.md),
+            borderSide: BorderSide(color: platformColor, width: 2),
+          ),
+          filled: true,
+          fillColor: AppTheme.background,
+          contentPadding: const EdgeInsets.all(AppSpacing.md),
         ),
       ),
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),
-          child: const Text('Skip'),
+          child: Text('Skip', style: TextStyle(color: AppTheme.mediumGrey)),
         ),
         ElevatedButton(
           onPressed: () => Navigator.pop(context, controller.text),
-          child: const Text('Done'),
+          style: ElevatedButton.styleFrom(backgroundColor: platformColor),
+          child: const Text('Done', style: TextStyle(color: Colors.white)),
         ),
       ],
     );

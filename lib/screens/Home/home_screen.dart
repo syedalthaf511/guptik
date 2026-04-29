@@ -6,8 +6,7 @@ import 'package:guptik/screens/dashboard/message_templates_screen.dart';
 import 'package:guptik/screens/facebook/fb_and_insta_screen.dart';
 import 'package:guptik/screens/guptik/guptik_screen.dart';
 import 'package:guptik/screens/home_control/homecontrol_screen.dart';
-import 'package:guptik/screens/security/security_screen.dart';
-import 'package:guptik/screens/trust_me/trust_me_home_screen.dart';
+import 'package:guptik/screens/trust_me/trust_me_mobile_wrapper.dart';
 import 'package:guptik/screens/vault/vaultscreen.dart';
 import 'package:guptik/services/dashboard/whatsapp_business_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -31,6 +30,10 @@ import 'package:guptik/screens/dashboard/drip_sequences_screen.dart';
 import 'package:guptik/services/dashboard/conversations_service.dart';
 import 'package:guptik/screens/dashboard/business_settings_screen.dart';
 import 'package:guptik/screens/whatsapp/main_whatsapp_screen.dart';
+
+// Ancient Gold Color Definition
+const Color _ancientGold = Color(0xFFD4AF37);
+const Color _darkBg = Color(0xFF0A0A0A);
 
 // Custom overflow-safe Row widget to prevent ALL overflow errors
 class SafeRow extends StatelessWidget {
@@ -89,7 +92,7 @@ class ResponsiveRow extends StatelessWidget {
           );
         }
 
-        return Row(crossAxisAlignment: crossAxisAlignment);
+        return Row(crossAxisAlignment: crossAxisAlignment, children: children);
       },
     );
   }
@@ -186,7 +189,6 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     _loadLiveData();
-    // Set up periodic refresh every 30 seconds
     _startPeriodicRefresh();
   }
 
@@ -217,7 +219,6 @@ class _HomeScreenState extends State<HomeScreen> {
             e.toString().contains('connection');
 
         if (isNetworkError && attemptCount < _maxRetries) {
-          // Exponential backoff: 2^attemptCount * 2 seconds
           final delaySeconds = (2 << attemptCount) * 2;
 
           setState(() {
@@ -242,7 +243,6 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _startPeriodicRefresh() {
-    // Refresh data every 30 seconds
     Future.delayed(const Duration(seconds: 30), () {
       if (mounted) {
         _loadLiveData();
@@ -256,11 +256,12 @@ class _HomeScreenState extends State<HomeScreen> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
+          backgroundColor: Colors.black,
           title: const Row(
             children: [
-              Icon(Icons.star, color: Colors.orange),
+              Icon(Icons.star, color: _ancientGold),
               SizedBox(width: 8),
-              Text('Upgrade Your Plan'),
+              Text('Upgrade Your Plan', style: TextStyle(color: _ancientGold)),
             ],
           ),
           content: Column(
@@ -269,31 +270,32 @@ class _HomeScreenState extends State<HomeScreen> {
             children: [
               const Text(
                 'Unlock premium features to grow your business faster:',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: Colors.white70),
               ),
               const SizedBox(height: 16),
-              _buildFeatureItem('?', 'Unlimited message templates'),
-              _buildFeatureItem('?', 'Advanced analytics & reports'),
-              _buildFeatureItem('?', 'Unlimited contacts & segments'),
-              _buildFeatureItem('?', 'AI-powered automation'),
-              _buildFeatureItem('?', 'Multi-device access'),
-              _buildFeatureItem('?', 'Priority customer support'),
+              _buildFeatureItem('❖', 'Unlimited message templates'),
+              _buildFeatureItem('❖', 'Advanced analytics & reports'),
+              _buildFeatureItem('❖', 'Unlimited contacts & segments'),
+              _buildFeatureItem('❖', 'AI-powered automation'),
+              _buildFeatureItem('❖', 'Multi-device access'),
+              _buildFeatureItem('❖', 'Priority customer support'),
               const SizedBox(height: 16),
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.orange.withValues(alpha: 0.1),
+                  color: _ancientGold.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: _ancientGold.withValues(alpha: 0.3)),
                 ),
                 child: const Row(
                   children: [
-                    Icon(Icons.local_offer, color: Colors.orange),
+                    Icon(Icons.local_offer, color: _ancientGold),
                     SizedBox(width: 8),
                     Expanded(
                       child: Text(
                         'Special offer: Get 30% off your first 3 months!',
                         style: TextStyle(
-                          color: Colors.orange,
+                          color: _ancientGold,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
@@ -306,7 +308,7 @@ class _HomeScreenState extends State<HomeScreen> {
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Maybe Later'),
+              child: const Text('Maybe Later', style: TextStyle(color: Colors.white54)),
             ),
             ElevatedButton(
               onPressed: () {
@@ -314,8 +316,8 @@ class _HomeScreenState extends State<HomeScreen> {
                 _handleUpgrade();
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.orange,
-                foregroundColor: Colors.white,
+                backgroundColor: _ancientGold,
+                foregroundColor: Colors.black,
               ),
               child: const Text('Upgrade Now'),
             ),
@@ -330,12 +332,12 @@ class _HomeScreenState extends State<HomeScreen> {
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
         children: [
-          Text(icon, style: const TextStyle(fontSize: 16)),
+          Text(icon, style: const TextStyle(fontSize: 16, color: _ancientGold)),
           const SizedBox(width: 12),
           Expanded(
             child: Text(
               text,
-              style: const TextStyle(fontSize: 14),
+              style: const TextStyle(fontSize: 14, color: Colors.white70),
               overflow: TextOverflow.ellipsis,
             ),
           ),
@@ -345,12 +347,12 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _handleUpgrade() {
-    // Show upgrade options or navigate to payment screen
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: const Text('Choose Your Plan'),
+          backgroundColor: Colors.black,
+          title: const Text('Choose Your Plan', style: TextStyle(color: _ancientGold)),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -392,7 +394,7 @@ class _HomeScreenState extends State<HomeScreen> {
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Cancel'),
+              child: const Text('Cancel', style: TextStyle(color: Colors.white54)),
             ),
           ],
         );
@@ -411,11 +413,11 @@ class _HomeScreenState extends State<HomeScreen> {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         border: Border.all(
-          color: isRecommended ? Colors.orange : Colors.grey[300]!,
+          color: isRecommended ? _ancientGold : Colors.grey[800]!,
           width: isRecommended ? 2 : 1,
         ),
         borderRadius: BorderRadius.circular(12),
-        color: isRecommended ? Colors.orange.withValues(alpha: 0.05) : null,
+        color: isRecommended ? _ancientGold.withValues(alpha: 0.1) : Colors.black,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -434,9 +436,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             style: TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
-                              color: isRecommended
-                                  ? Colors.orange
-                                  : Colors.black87,
+                              color: isRecommended ? _ancientGold : Colors.white,
                             ),
                             overflow: TextOverflow.ellipsis,
                           ),
@@ -449,13 +449,13 @@ class _HomeScreenState extends State<HomeScreen> {
                               vertical: 2,
                             ),
                             decoration: BoxDecoration(
-                              color: Colors.orange,
+                              color: _ancientGold,
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: const Text(
                               'RECOMMENDED',
                               style: TextStyle(
-                                color: Colors.white,
+                                color: Colors.black,
                                 fontSize: 10,
                                 fontWeight: FontWeight.bold,
                               ),
@@ -466,7 +466,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                     Text(
                       description,
-                      style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                      style: TextStyle(fontSize: 12, color: Colors.grey[500]),
                       overflow: TextOverflow.ellipsis,
                     ),
                   ],
@@ -477,7 +477,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
-                  color: isRecommended ? Colors.orange : Colors.black87,
+                  color: isRecommended ? _ancientGold : Colors.white,
                 ),
               ),
             ],
@@ -491,13 +491,13 @@ class _HomeScreenState extends State<HomeScreen> {
                   Icon(
                     Icons.check_circle,
                     size: 16,
-                    color: isRecommended ? Colors.orange : Colors.green,
+                    color: isRecommended ? _ancientGold : Colors.grey[400],
                   ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       feature,
-                      style: const TextStyle(fontSize: 12),
+                      style: const TextStyle(fontSize: 12, color: Colors.white70),
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
@@ -514,10 +514,8 @@ class _HomeScreenState extends State<HomeScreen> {
                 _selectPlan(name, price);
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: isRecommended
-                    ? Colors.orange
-                    : Colors.grey[600],
-                foregroundColor: Colors.white,
+                backgroundColor: isRecommended ? _ancientGold : Colors.grey[800],
+                foregroundColor: isRecommended ? Colors.black : Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 8),
               ),
               child: Text(
@@ -539,15 +537,13 @@ class _HomeScreenState extends State<HomeScreen> {
       SnackBar(
         content: Text(
           'Selected $planName plan ($price). Redirecting to payment...',
+          style: const TextStyle(color: Colors.black),
         ),
-        backgroundColor: Colors.orange,
+        backgroundColor: _ancientGold,
         action: SnackBarAction(
           label: 'PROCEED',
-          textColor: Colors.white,
-          onPressed: () {
-            // Here you would navigate to payment screen or open web payment
-            // Navigator.push(context, MaterialPageRoute(builder: (context) => PaymentScreen(plan: planName)));
-          },
+          textColor: Colors.black,
+          onPressed: () {},
         ),
       ),
     );
@@ -558,6 +554,11 @@ class _HomeScreenState extends State<HomeScreen> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
+          backgroundColor: Colors.black,
+          shape: RoundedRectangleBorder(
+            side: const BorderSide(color: _ancientGold, width: 1),
+            borderRadius: BorderRadius.circular(12),
+          ),
           contentPadding: EdgeInsets.zero,
           content: SizedBox(
             width: MediaQuery.of(context).size.width < 400
@@ -573,11 +574,11 @@ class _HomeScreenState extends State<HomeScreen> {
                     children: [
                       CircleAvatar(
                         radius: 24,
-                        backgroundColor: const Color(0xFF17A2B8),
+                        backgroundColor: _ancientGold,
                         child: Text(
                           _getInitials(_getUserDisplayName()),
                           style: const TextStyle(
-                            color: Colors.white,
+                            color: Colors.black,
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
                           ),
@@ -593,7 +594,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               style: const TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w600,
-                                color: Colors.black87,
+                                color: _ancientGold,
                               ),
                               overflow: TextOverflow.ellipsis,
                             ),
@@ -601,7 +602,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               _getUserEmail(),
                               style: TextStyle(
                                 fontSize: 12,
-                                color: Colors.grey[600],
+                                color: Colors.grey[400],
                               ),
                               overflow: TextOverflow.ellipsis,
                             ),
@@ -612,14 +613,14 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ),
 
-                const Divider(height: 1),
+                const Divider(height: 1, color: Colors.white24),
 
                 // Menu Items
                 _buildProfileMenuItem(Icons.person_outline, 'My Account'),
                 _buildProfileMenuItem(Icons.phone_android, 'WhatsApp Numbers'),
                 _buildProfileMenuItem(Icons.facebook, 'Facebook & Instagram'),
 
-                const Divider(height: 1),
+                const Divider(height: 1, color: Colors.white24),
 
                 _buildProfileMenuItem(Icons.api, 'API Configuration'),
                 _buildProfileMenuItem(Icons.webhook, 'Webhook Configuration'),
@@ -627,7 +628,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 _buildProfileMenuItem(Icons.card_giftcard, 'Refer and Earn'),
                 _buildProfileMenuItem(Icons.bug_report_outlined, 'Report Bug'),
 
-                const Divider(height: 1),
+                const Divider(height: 1, color: Colors.white24),
 
                 _buildProfileMenuItem(
                   Icons.logout,
@@ -660,7 +661,7 @@ class _HomeScreenState extends State<HomeScreen> {
           children: [
             Icon(
               icon,
-              color: isDestructive ? Colors.red : Colors.grey[600],
+              color: isDestructive ? Colors.redAccent : _ancientGold,
               size: 20,
             ),
             const SizedBox(width: 16),
@@ -669,7 +670,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 title,
                 style: TextStyle(
                   fontSize: 14,
-                  color: isDestructive ? Colors.red : Colors.black87,
+                  color: isDestructive ? Colors.redAccent : Colors.white70,
                   fontWeight: FontWeight.w400,
                 ),
                 overflow: TextOverflow.ellipsis,
@@ -717,39 +718,38 @@ class _HomeScreenState extends State<HomeScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Sign Out'),
+        backgroundColor: Colors.black,
+        title: const Text('Sign Out', style: TextStyle(color: _ancientGold)),
         content: const Text(
           'Are you sure you want to sign out of your account?',
+          style: TextStyle(color: Colors.white70),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
+            child: const Text('Cancel', style: TextStyle(color: Colors.white54)),
           ),
           TextButton(
             onPressed: () async {
-              // Store context before async operation
               final navigator = Navigator.of(context);
               final messenger = ScaffoldMessenger.of(context);
 
               navigator.pop();
               try {
                 await Supabase.instance.client.auth.signOut();
-                if (mounted) {
-                  navigator.pushReplacementNamed('/login');
-                }
+                if (!mounted) return;
+                navigator.pushReplacementNamed('/login');
               } catch (e) {
-                if (mounted) {
-                  messenger.showSnackBar(
-                    SnackBar(
-                      content: Text('Error signing out: $e'),
-                      backgroundColor: Colors.red,
-                    ),
-                  );
-                }
+                if (!mounted) return;
+                messenger.showSnackBar(
+                  SnackBar(
+                    content: Text('Error signing out: $e'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
               }
             },
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            style: TextButton.styleFrom(foregroundColor: Colors.redAccent),
             child: const Text('Sign Out'),
           ),
         ],
@@ -782,9 +782,9 @@ class _HomeScreenState extends State<HomeScreen> {
   int _getTotalMenuItemCount() {
     int count = 0;
     for (var section in _sections) {
-      count++; // Main section
+      count++;
       if (section.isExpanded && section.subSections != null) {
-        count += section.subSections!.length; // Sub sections
+        count += section.subSections!.length;
       }
     }
     return count;
@@ -793,26 +793,16 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildMenuItem(int flatIndex) {
     int currentIndex = 0;
 
-    for (
-      int sectionIndex = 0;
-      sectionIndex < _sections.length;
-      sectionIndex++
-    ) {
+    for (int sectionIndex = 0; sectionIndex < _sections.length; sectionIndex++) {
       final section = _sections[sectionIndex];
 
-      // Main section item
       if (currentIndex == flatIndex) {
         return _buildMainMenuItem(section, sectionIndex);
       }
       currentIndex++;
 
-      // Sub section items (if expanded)
       if (section.isExpanded && section.subSections != null) {
-        for (
-          int subIndex = 0;
-          subIndex < section.subSections!.length;
-          subIndex++
-        ) {
+        for (int subIndex = 0; subIndex < section.subSections!.length; subIndex++) {
           if (currentIndex == flatIndex) {
             return _buildSubMenuItem(
               section.subSections![subIndex],
@@ -825,13 +815,12 @@ class _HomeScreenState extends State<HomeScreen> {
       }
     }
 
-    return const SizedBox.shrink(); // Fallback
+    return const SizedBox.shrink();
   }
 
   Widget _buildMainMenuItem(DashboardSection section, int sectionIndex) {
     final isSelected = sectionIndex == _selectedIndex;
-    final hasSubSections =
-        section.subSections != null && section.subSections!.isNotEmpty;
+    final hasSubSections = section.subSections != null && section.subSections!.isNotEmpty;
 
     return Container(
       constraints: const BoxConstraints(minHeight: 44),
@@ -840,13 +829,13 @@ class _HomeScreenState extends State<HomeScreen> {
         dense: true,
         leading: Icon(
           section.icon,
-          color: isSelected ? const Color(0xFF17A2B8) : Colors.white70,
+          color: isSelected ? _ancientGold : Colors.grey[500],
           size: 20,
         ),
         title: Text(
           section.title,
           style: TextStyle(
-            color: isSelected ? const Color(0xFF17A2B8) : Colors.white70,
+            color: isSelected ? _ancientGold : Colors.grey[400],
             fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
             fontSize: 14,
           ),
@@ -855,24 +844,20 @@ class _HomeScreenState extends State<HomeScreen> {
         trailing: hasSubSections
             ? Icon(
                 section.isExpanded ? Icons.expand_less : Icons.expand_more,
-                color: isSelected ? const Color(0xFF17A2B8) : Colors.white70,
+                color: isSelected ? _ancientGold : Colors.grey[500],
                 size: 20,
               )
             : null,
         selected: isSelected,
-        selectedTileColor: Colors.white,
+        selectedTileColor: _ancientGold.withValues(alpha: 0.1),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         onTap: () {
           setState(() {
             if (hasSubSections) {
-              // For sections with subsections:
-              // 1. Toggle expansion
               section.isExpanded = !section.isExpanded;
-              // 2. Also select this section (so it stays highlighted)
               _selectedIndex = sectionIndex;
               for (int i = 0; i < _sections.length; i++) {
                 _sections[i].isSelected = i == sectionIndex;
-                // Clear sub-section selections when selecting main section
                 if (_sections[i].subSections != null) {
                   for (var subSection in _sections[i].subSections!) {
                     subSection.isSelected = false;
@@ -880,11 +865,9 @@ class _HomeScreenState extends State<HomeScreen> {
                 }
               }
             } else {
-              // For sections without subsections: just select
               _selectedIndex = sectionIndex;
               for (int i = 0; i < _sections.length; i++) {
                 _sections[i].isSelected = i == sectionIndex;
-                // Clear sub-section selections
                 if (_sections[i].subSections != null) {
                   for (var subSection in _sections[i].subSections!) {
                     subSection.isSelected = false;
@@ -894,7 +877,6 @@ class _HomeScreenState extends State<HomeScreen> {
             }
           });
 
-          // Close drawer on mobile when item is tapped
           if (MediaQuery.of(context).size.width < 768) {
             Navigator.pop(context);
           }
@@ -904,25 +886,19 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildSubMenuItem(
-    SubSection subSection,
-    int sectionIndex,
-    int subIndex,
-  ) {
+  Widget _buildSubMenuItem(SubSection subSection, int sectionIndex, int subIndex) {
     return Container(
       constraints: const BoxConstraints(minHeight: 40),
       margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
       child: ListTile(
         dense: true,
-        leading: const SizedBox(width: 20), // Indent for sub items
+        leading: const SizedBox(width: 20),
         title: Row(
           children: [
             if (subSection.icon != null) ...[
               Icon(
                 subSection.icon!,
-                color: subSection.isSelected
-                    ? const Color(0xFF17A2B8)
-                    : Colors.white60,
+                color: subSection.isSelected ? _ancientGold : Colors.grey[500],
                 size: 16,
               ),
               const SizedBox(width: 8),
@@ -931,12 +907,8 @@ class _HomeScreenState extends State<HomeScreen> {
               child: Text(
                 subSection.title,
                 style: TextStyle(
-                  color: subSection.isSelected
-                      ? const Color(0xFF17A2B8)
-                      : Colors.white60,
-                  fontWeight: subSection.isSelected
-                      ? FontWeight.w600
-                      : FontWeight.normal,
+                  color: subSection.isSelected ? _ancientGold : Colors.grey[400],
+                  fontWeight: subSection.isSelected ? FontWeight.w600 : FontWeight.normal,
                   fontSize: 13,
                 ),
                 overflow: TextOverflow.ellipsis,
@@ -945,13 +917,12 @@ class _HomeScreenState extends State<HomeScreen> {
           ],
         ),
         selected: subSection.isSelected,
-        selectedTileColor: Colors.white,
+        selectedTileColor: _ancientGold.withValues(alpha: 0.1),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         contentPadding: const EdgeInsets.only(left: 32, right: 16),
         onTap: () {
           setState(() {
-            // Clear all selections
-            _selectedIndex = -1; // No main section selected
+            _selectedIndex = -1;
             for (var section in _sections) {
               section.isSelected = false;
               if (section.subSections != null) {
@@ -960,11 +931,9 @@ class _HomeScreenState extends State<HomeScreen> {
                 }
               }
             }
-            // Select this sub section
             subSection.isSelected = true;
           });
 
-          // Close drawer on mobile when item is tapped
           if (MediaQuery.of(context).size.width < 768) {
             Navigator.pop(context);
           }
@@ -977,126 +946,120 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        // For mobile screens, use drawer instead of sidebar
         if (constraints.maxWidth < 768) {
+          // Mobile Layout
           return SafeArea(
             child: Scaffold(
+              backgroundColor: _darkBg,
               key: _scaffoldKey,
               drawer: _buildMobileDrawer(context),
-              body: Column(
-                children: [
-                  // Top Bar for Mobile
-                  Container(
-                    height: 60,
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.grey.withValues(alpha: 0.1),
-                          blurRadius: 4,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    child: Row(
-                      children: [
-                        // Hamburger menu for mobile
-                        IconButton(
-                          icon: const Icon(
-                            Icons.menu,
-                            color: Colors.grey,
-                            size: 24,
+              body: Container(
+                decoration: BoxDecoration(
+                  color: _darkBg,
+                  image: const DecorationImage(
+                    image: NetworkImage('https://www.transparenttextures.com/patterns/cubes.png'), 
+                    opacity: 0.05,
+                    repeat: ImageRepeat.repeat,
+                  ),
+                ),
+                child: Column(
+                  children: [
+                    // Top Bar for Mobile
+                    Container(
+                      height: 80,
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      decoration: BoxDecoration(
+                        color: Colors.black,
+                        border: Border(bottom: BorderSide(color: _ancientGold.withValues(alpha: 0.2))),
+                        boxShadow: [
+                          BoxShadow(
+                            color: _ancientGold.withValues(alpha: 0.1),
+                            blurRadius: 4,
+                            offset: const Offset(0, 6),
                           ),
-                          onPressed: () {
-                            _scaffoldKey.currentState?.openDrawer();
-                          },
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            _getCurrentTitle(),
-                            style: const TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.black87,
+                        ],
+                      ),
+                      child: Row(
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.menu, color: _ancientGold, size: 28),
+                            onPressed: () {
+                              _scaffoldKey.currentState?.openDrawer();
+                            },
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              _getCurrentTitle(),
+                              style: const TextStyle(
+                                fontSize: 22,
+                                fontWeight: FontWeight.w600,
+                                color: _ancientGold,
+                              ),
+                              overflow: TextOverflow.ellipsis,
                             ),
-                            overflow: TextOverflow.ellipsis,
                           ),
-                        ),
-                        Container(
-                          constraints: const BoxConstraints(maxWidth: 100),
-                          child: InkWell(
-                            onTap: _showUpgradePlanDialog,
-                            borderRadius: BorderRadius.circular(20),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 12,
-                                vertical: 6,
-                              ),
-                              decoration: BoxDecoration(
-                                color: Colors.orange,
-                                borderRadius: BorderRadius.circular(20),
-                              ),
-                              child: const Text(
-                                'Upgrade',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 11,
+                          Container(
+                            constraints: const BoxConstraints(maxWidth: 100),
+                            child: InkWell(
+                              onTap: _showUpgradePlanDialog,
+                              borderRadius: BorderRadius.circular(20),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                decoration: BoxDecoration(
+                                  color: Colors.black,
+                                  border: Border.all(color: _ancientGold),
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                child: const Text(
+                                  'Upgrade',
+                                  style: TextStyle(color: _ancientGold, fontWeight: FontWeight.w600, fontSize: 11),
                                 ),
                               ),
                             ),
                           ),
-                        ),
-                        const SizedBox(width: 8),
-                        IconButton(
-                          icon: const Icon(
-                            Icons.notifications_outlined,
-                            color: Colors.grey,
-                            size: 20,
+                          const SizedBox(width: 8),
+                          IconButton(
+                            icon: const Icon(Icons.notifications_outlined, color: _ancientGold, size: 20),
+                            onPressed: () {},
                           ),
-                          onPressed: () {},
-                        ),
-                        const SizedBox(width: 8),
-                        InkWell(
-                          onTap: _showProfileMenu,
-                          borderRadius: BorderRadius.circular(16),
-                          child: CircleAvatar(
-                            radius: 16,
-                            backgroundColor: const Color(0xFF17A2B8),
-                            child: Text(
-                              _getInitials(_getUserDisplayName()),
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 12,
-                                fontWeight: FontWeight.bold,
+                          const SizedBox(width: 8),
+                          InkWell(
+                            onTap: _showProfileMenu,
+                            borderRadius: BorderRadius.circular(16),
+                            child: CircleAvatar(
+                              radius: 16,
+                              backgroundColor: _ancientGold,
+                              child: Text(
+                                _getInitials(_getUserDisplayName()),
+                                style: const TextStyle(color: Colors.black, fontSize: 12, fontWeight: FontWeight.bold),
                               ),
                             ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
-                  ),
-
-                  // Content Area for Mobile
-                  Expanded(child: _buildCurrentContent()),
-                ],
+                    Expanded(child: _buildCurrentContent()),
+                  ],
+                ),
               ),
             ),
           );
         }
 
-        // For desktop/tablet, use sidebar layout (ORIGINAL CODE)
+        // Desktop Layout
         return Scaffold(
-          backgroundColor: Colors.grey[50],
+          backgroundColor: _darkBg,
           body: SafeArea(
             child: Row(
               children: [
-                // Sidebar (ORIGINAL CODE)
+                // Sidebar
                 Container(
                   width: 260,
-                  color: const Color(0xFF17A2B8),
+                  decoration: BoxDecoration(
+                    color: Colors.black,
+                    border: Border(right: BorderSide(color: _ancientGold.withValues(alpha: 0.2))),
+                  ),
                   child: SafeArea(
                     child: Column(
                       children: [
@@ -1105,20 +1068,12 @@ class _HomeScreenState extends State<HomeScreen> {
                           padding: const EdgeInsets.all(20),
                           child: const Row(
                             children: [
-                              Icon(
-                                Icons.chat_bubble_outline,
-                                color: Colors.white,
-                                size: 28,
-                              ),
+                              Icon(Icons.chat_bubble_outline, color: _ancientGold, size: 28),
                               SizedBox(width: 12),
                               Expanded(
                                 child: Text(
                                   'Meta Fly',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 20,
-                                    fontWeight: FontWeight.bold,
-                                  ),
+                                  style: TextStyle(color: _ancientGold, fontSize: 20, fontWeight: FontWeight.bold),
                                   overflow: TextOverflow.ellipsis,
                                 ),
                               ),
@@ -1131,7 +1086,8 @@ class _HomeScreenState extends State<HomeScreen> {
                           margin: const EdgeInsets.symmetric(horizontal: 16),
                           padding: const EdgeInsets.all(16),
                           decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.1),
+                            color: _ancientGold.withValues(alpha: 0.05),
+                            border: Border.all(color: _ancientGold.withValues(alpha: 0.3)),
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Column(
@@ -1139,26 +1095,16 @@ class _HomeScreenState extends State<HomeScreen> {
                             children: [
                               Row(
                                 children: [
-                                  CircleAvatar(
+                                  const CircleAvatar(
                                     radius: 12,
-                                    backgroundColor: Colors.orange,
-                                    child: Icon(
-                                      Icons.store,
-                                      color: Colors.white,
-                                      size: 16,
-                                    ),
+                                    backgroundColor: _ancientGold,
+                                    child: Icon(Icons.store, color: Colors.black, size: 16),
                                   ),
                                   const SizedBox(width: 8),
                                   Expanded(
                                     child: Text(
-                                      _dashboardData
-                                              ?.businessProfile
-                                              ?.displayName ??
-                                          'Business Name',
-                                      style: const TextStyle(
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.w600,
-                                      ),
+                                      _dashboardData?.businessProfile?.displayName ?? 'Business Name',
+                                      style: const TextStyle(color: _ancientGold, fontWeight: FontWeight.w600),
                                       overflow: TextOverflow.ellipsis,
                                     ),
                                   ),
@@ -1166,12 +1112,8 @@ class _HomeScreenState extends State<HomeScreen> {
                               ),
                               const SizedBox(height: 4),
                               Text(
-                                _dashboardData?.businessProfile?.phoneNumber ??
-                                    'Phone Number',
-                                style: const TextStyle(
-                                  color: Colors.white70,
-                                  fontSize: 12,
-                                ),
+                                _dashboardData?.businessProfile?.phoneNumber ?? 'Phone Number',
+                                style: TextStyle(color: _ancientGold.withValues(alpha: 0.7), fontSize: 12),
                                 overflow: TextOverflow.ellipsis,
                               ),
                             ],
@@ -1194,92 +1136,85 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ),
 
-                // Main Content (ORIGINAL CODE)
+                // Main Content
                 Expanded(
-                  child: Column(
-                    children: [
-                      // Top Bar - FIXED LINE 947 (ORIGINAL)
-                      Container(
-                        height: 60,
-                        padding: const EdgeInsets.symmetric(horizontal: 20),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.grey.withValues(alpha: 0.1),
-                              blurRadius: 4,
-                              offset: const Offset(0, 2),
-                            ),
-                          ],
-                        ),
-                        child: Row(
-                          children: [
-                            Expanded(
-                              child: Text(
-                                _getCurrentTitle(),
-                                style: const TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.black87,
-                                ),
-                                overflow: TextOverflow.ellipsis,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: _darkBg,
+                      image: const DecorationImage(
+                        image: NetworkImage('https://www.transparenttextures.com/patterns/cubes.png'), 
+                        opacity: 0.05,
+                        repeat: ImageRepeat.repeat,
+                      ),
+                    ),
+                    child: Column(
+                      children: [
+                        // Top Bar
+                        Container(
+                          height: 60,
+                          padding: const EdgeInsets.symmetric(horizontal: 20),
+                          decoration: BoxDecoration(
+                            color: Colors.black,
+                            border: Border(bottom: BorderSide(color: _ancientGold.withValues(alpha: 0.2))),
+                            boxShadow: [
+                              BoxShadow(
+                                color: _ancientGold.withValues(alpha: 0.1),
+                                blurRadius: 4,
+                                offset: const Offset(0, 2),
                               ),
-                            ),
-                            Container(
-                              constraints: const BoxConstraints(maxWidth: 100),
-                              child: InkWell(
-                                onTap: _showUpgradePlanDialog,
-                                borderRadius: BorderRadius.circular(20),
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 12,
-                                    vertical: 6,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: Colors.orange,
-                                    borderRadius: BorderRadius.circular(20),
-                                  ),
-                                  child: const Text(
-                                    'Upgrade',
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.w600,
-                                      fontSize: 11,
+                            ],
+                          ),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  _getCurrentTitle(),
+                                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: _ancientGold),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              Container(
+                                constraints: const BoxConstraints(maxWidth: 100),
+                                child: InkWell(
+                                  onTap: _showUpgradePlanDialog,
+                                  borderRadius: BorderRadius.circular(20),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                    decoration: BoxDecoration(
+                                      color: Colors.black,
+                                      border: Border.all(color: _ancientGold),
+                                      borderRadius: BorderRadius.circular(20),
+                                    ),
+                                    child: const Text(
+                                      'Upgrade',
+                                      style: TextStyle(color: _ancientGold, fontWeight: FontWeight.w600, fontSize: 11),
                                     ),
                                   ),
                                 ),
                               ),
-                            ),
-                            const SizedBox(width: 8),
-                            const Icon(
-                              Icons.notifications_outlined,
-                              color: Colors.grey,
-                              size: 20,
-                            ),
-                            const SizedBox(width: 8),
-                            InkWell(
-                              onTap: _showProfileMenu,
-                              borderRadius: BorderRadius.circular(16),
-                              child: CircleAvatar(
-                                radius: 16,
-                                backgroundColor: const Color(0xFF17A2B8),
-                                child: Text(
-                                  _getInitials(_getUserDisplayName()),
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.bold,
+                              const SizedBox(width: 8),
+                              const Icon(Icons.notifications_outlined, color: _ancientGold, size: 20),
+                              const SizedBox(width: 8),
+                              InkWell(
+                                onTap: _showProfileMenu,
+                                borderRadius: BorderRadius.circular(16),
+                                child: CircleAvatar(
+                                  radius: 16,
+                                  backgroundColor: _ancientGold,
+                                  child: Text(
+                                    _getInitials(_getUserDisplayName()),
+                                    style: const TextStyle(color: Colors.black, fontSize: 12, fontWeight: FontWeight.bold),
                                   ),
                                 ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
-                      ),
 
-                      // Content Area
-                      Expanded(child: _buildCurrentContent()),
-                    ],
+                        // Content Area
+                        Expanded(child: _buildCurrentContent()),
+                      ],
+                    ),
                   ),
                 ),
               ],
@@ -1295,27 +1230,22 @@ class _HomeScreenState extends State<HomeScreen> {
     return Drawer(
       width: 280,
       child: Container(
-        color: const Color(0xFF17A2B8),
+        color: Colors.black,
         child: Column(
           children: [
             // Drawer Header
             Container(
               padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                border: Border(bottom: BorderSide(color: _ancientGold.withValues(alpha: 0.2))),
+              ),
               child: const Row(
                 children: [
-                  Icon(
-                    Icons.chat_bubble_outline,
-                    color: Colors.white,
-                    size: 28,
-                  ),
+                  Icon(Icons.chat_bubble_outline, color: _ancientGold, size: 28),
                   SizedBox(width: 12),
                   Text(
                     'Meta Fly',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: TextStyle(color: _ancientGold, fontSize: 20, fontWeight: FontWeight.bold),
                   ),
                 ],
               ),
@@ -1323,10 +1253,11 @@ class _HomeScreenState extends State<HomeScreen> {
 
             // Business Account Info
             Container(
-              margin: const EdgeInsets.symmetric(horizontal: 16),
+              margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.1),
+                color: _ancientGold.withValues(alpha: 0.05),
+                border: Border.all(color: _ancientGold.withValues(alpha: 0.3)),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Column(
@@ -1334,20 +1265,16 @@ class _HomeScreenState extends State<HomeScreen> {
                 children: [
                   Row(
                     children: [
-                      CircleAvatar(
+                      const CircleAvatar(
                         radius: 12,
-                        backgroundColor: Colors.orange,
-                        child: Icon(Icons.store, color: Colors.white, size: 16),
+                        backgroundColor: _ancientGold,
+                        child: Icon(Icons.store, color: Colors.black, size: 16),
                       ),
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
-                          _dashboardData?.businessProfile?.displayName ??
-                              'Business Name',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w600,
-                          ),
+                          _dashboardData?.businessProfile?.displayName ?? 'Business Name',
+                          style: const TextStyle(color: _ancientGold, fontWeight: FontWeight.w600),
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
@@ -1355,16 +1282,13 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    _dashboardData?.businessProfile?.phoneNumber ??
-                        'Phone Number',
-                    style: const TextStyle(color: Colors.white70, fontSize: 12),
+                    _dashboardData?.businessProfile?.phoneNumber ?? 'Phone Number',
+                    style: TextStyle(color: _ancientGold.withValues(alpha: 0.7), fontSize: 12),
                     overflow: TextOverflow.ellipsis,
                   ),
                 ],
               ),
             ),
-
-            const SizedBox(height: 20),
 
             // Navigation Menu
             Expanded(
@@ -1382,7 +1306,6 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   String _getCurrentTitle() {
-    // Check if any sub-section is selected
     for (var section in _sections) {
       if (section.subSections != null) {
         for (var subSection in section.subSections!) {
@@ -1392,21 +1315,16 @@ class _HomeScreenState extends State<HomeScreen> {
         }
       }
     }
-
-    // Return main section title
     if (_selectedIndex >= 0 && _selectedIndex < _sections.length) {
-      // Show "Conversations" when Inbox is selected (matching the image)
       if (_sections[_selectedIndex].title == 'Inbox') {
         return 'Conversations';
       }
       return _sections[_selectedIndex].title;
     }
-
-    return 'Dashboard'; // Default
+    return 'Dashboard';
   }
 
   Widget _buildCurrentContent() {
-    // Check if any sub-section is selected
     for (var section in _sections) {
       if (section.subSections != null) {
         for (var subSection in section.subSections!) {
@@ -1416,39 +1334,24 @@ class _HomeScreenState extends State<HomeScreen> {
         }
       }
     }
-
-    // Check main section selection
     if (_selectedIndex == 0) {
       return _buildDashboardContent();
     } else if (_selectedIndex > 0 && _selectedIndex < _sections.length) {
       return _buildOtherContent();
     }
-
-    // Default to dashboard
     return _buildDashboardContent();
   }
 
-  Widget _buildSubSectionContent(
-    String subSectionTitle, [
-    String? parentSection,
-  ]) {
+  Widget _buildSubSectionContent(String subSectionTitle, [String? parentSection]) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            _getSubSectionIcon(subSectionTitle),
-            size: 64,
-            color: const Color(0xFF17A2B8),
-          ),
+          Icon(_getSubSectionIcon(subSectionTitle), size: 64, color: _ancientGold),
           const SizedBox(height: 16),
           Text(
             subSectionTitle,
-            style: const TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.w600,
-              color: Color(0xFF17A2B8),
-            ),
+            style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w600, color: _ancientGold),
           ),
           const SizedBox(height: 8),
           Text(
@@ -1460,163 +1363,56 @@ class _HomeScreenState extends State<HomeScreen> {
           ElevatedButton(
             onPressed: () {
               if (subSectionTitle == 'Message Templates') {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const MessageTemplatesScreen(),
-                  ),
-                );
+                Navigator.push(context, MaterialPageRoute(builder: (context) => const MessageTemplatesScreen()));
               } else if (subSectionTitle == 'Flows') {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const FlowsScreen()),
-                );
+                Navigator.push(context, MaterialPageRoute(builder: (context) => const FlowsScreen()));
               } else if (subSectionTitle == 'Quick Replies') {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const QuickRepliesScreen(),
-                  ),
-                );
+                Navigator.push(context, MaterialPageRoute(builder: (context) => const QuickRepliesScreen()));
               } else if (subSectionTitle == 'Contacts') {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const ContactsScreen(),
-                  ),
-                );
+                Navigator.push(context, MaterialPageRoute(builder: (context) => const ContactsScreen()));
               } else if (subSectionTitle == 'Lists') {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const ContactListsScreen(),
-                  ),
-                );
+                Navigator.push(context, MaterialPageRoute(builder: (context) => const ContactListsScreen()));
               } else if (subSectionTitle == 'Tags') {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const ContactTagsScreen(),
-                  ),
-                );
+                Navigator.push(context, MaterialPageRoute(builder: (context) => const ContactTagsScreen()));
               } else if (subSectionTitle == 'Smart Segments') {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const SmartSegmentsScreen(),
-                  ),
-                );
+                Navigator.push(context, MaterialPageRoute(builder: (context) => const SmartSegmentsScreen()));
               } else if (subSectionTitle == 'Import / Export') {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const ImportExportScreen(),
-                  ),
-                );
+                Navigator.push(context, MaterialPageRoute(builder: (context) => const ImportExportScreen()));
               } else if (subSectionTitle == 'Notifications') {
                 if (parentSection == 'Analytics & Reports') {
-                  // Analytics & Reports - Notifications
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) =>
-                          const AnalyticsNotificationsScreen(),
-                    ),
-                  );
+                  Navigator.push(context, MaterialPageRoute(builder: (context) => const AnalyticsNotificationsScreen()));
                 } else {
-                  // Regular Notifications management
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) =>
-                          const NotificationManagementScreen(),
-                    ),
-                  );
+                  Navigator.push(context, MaterialPageRoute(builder: (context) => const NotificationManagementScreen()));
                 }
               } else if (subSectionTitle == 'Add New') {
-                // This is for creating a new notification
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const NotificationManagementScreen(),
-                  ),
-                );
+                Navigator.push(context, MaterialPageRoute(builder: (context) => const NotificationManagementScreen()));
               } else if (subSectionTitle == 'Messaging') {
-                // Analytics & Reports - Messaging
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const AnalyticsMessagingScreen(),
-                  ),
-                );
+                Navigator.push(context, MaterialPageRoute(builder: (context) => const AnalyticsMessagingScreen()));
               } else if (subSectionTitle == 'Message Templates') {
-                // Analytics & Reports - Message Templates (different from Content Library)
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) =>
-                        const AnalyticsMessageTemplatesScreen(),
-                  ),
-                );
+                Navigator.push(context, MaterialPageRoute(builder: (context) => const AnalyticsMessageTemplatesScreen()));
               } else if (subSectionTitle == 'Flow Responses') {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const AnalyticsFlowResponsesScreen(),
-                  ),
-                );
+                Navigator.push(context, MaterialPageRoute(builder: (context) => const AnalyticsFlowResponsesScreen()));
               } else if (subSectionTitle == 'Bot Sessions') {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const AnalyticsBotSessionsScreen(),
-                  ),
-                );
+                Navigator.push(context, MaterialPageRoute(builder: (context) => const AnalyticsBotSessionsScreen()));
               } else if (subSectionTitle == 'Drip Sessions') {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const AnalyticsDripSessionsScreen(),
-                  ),
-                );
+                Navigator.push(context, MaterialPageRoute(builder: (context) => const AnalyticsDripSessionsScreen()));
               } else if (subSectionTitle == 'Basic') {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const BasicAutomationScreen(),
-                  ),
-                );
+                Navigator.push(context, MaterialPageRoute(builder: (context) => const BasicAutomationScreen()));
               } else if (subSectionTitle == 'Auto-replies') {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const AutoRepliesScreen(),
-                  ),
-                );
+                Navigator.push(context, MaterialPageRoute(builder: (context) => const AutoRepliesScreen()));
               } else if (subSectionTitle == 'Bots') {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const BotsScreen()),
-                );
+                Navigator.push(context, MaterialPageRoute(builder: (context) => const BotsScreen()));
               } else if (subSectionTitle == 'Drip Sequences') {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const DripSequencesScreen(),
-                  ),
-                );
+                Navigator.push(context, MaterialPageRoute(builder: (context) => const DripSequencesScreen()));
               } else {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('Opening $subSectionTitle...'),
-                    backgroundColor: const Color(0xFF17A2B8),
-                  ),
+                  SnackBar(content: Text('Opening $subSectionTitle...', style: const TextStyle(color: Colors.black)), backgroundColor: _ancientGold),
                 );
               }
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF17A2B8),
-              foregroundColor: Colors.white,
+              backgroundColor: _ancientGold,
+              foregroundColor: Colors.black,
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
             ),
             child: Text('Manage $subSectionTitle'),
@@ -1628,87 +1424,49 @@ class _HomeScreenState extends State<HomeScreen> {
 
   IconData _getSubSectionIcon(String subSectionTitle) {
     switch (subSectionTitle) {
-      case 'Message Templates':
-        return Icons.message;
-      case 'Flows':
-        return Icons.account_tree;
-      case 'Quick Replies':
-        return Icons.reply;
-      case 'Contacts':
-        return Icons.person;
-      case 'Lists':
-        return Icons.list;
-      case 'Tags':
-        return Icons.local_offer;
-      case 'Smart Segments':
-        return Icons.group;
-      case 'Import / Export':
-        return Icons.import_export;
-      case 'Notifications':
-        return Icons.notifications;
-      case 'Add New':
-        return Icons.add;
-      case 'Basic':
-        return Icons.play_arrow;
-      case 'Auto-replies':
-        return Icons.reply_all;
-      case 'Bots':
-        return Icons.smart_toy;
-      case 'Drip Sequences':
-        return Icons.water_drop;
-      case 'Messaging':
-        return Icons.message;
-      case 'Flow Responses':
-        return Icons.account_tree;
-      case 'Bot Sessions':
-        return Icons.smart_toy;
-      case 'Drip Sessions':
-        return Icons.water_drop;
-      default:
-        return Icons.description;
+      case 'Message Templates': return Icons.message;
+      case 'Flows': return Icons.account_tree;
+      case 'Quick Replies': return Icons.reply;
+      case 'Contacts': return Icons.person;
+      case 'Lists': return Icons.list;
+      case 'Tags': return Icons.local_offer;
+      case 'Smart Segments': return Icons.group;
+      case 'Import / Export': return Icons.import_export;
+      case 'Notifications': return Icons.notifications;
+      case 'Add New': return Icons.add;
+      case 'Basic': return Icons.play_arrow;
+      case 'Auto-replies': return Icons.reply_all;
+      case 'Bots': return Icons.smart_toy;
+      case 'Drip Sequences': return Icons.water_drop;
+      case 'Messaging': return Icons.message;
+      case 'Flow Responses': return Icons.account_tree;
+      case 'Bot Sessions': return Icons.smart_toy;
+      case 'Drip Sessions': return Icons.water_drop;
+      default: return Icons.description;
     }
   }
 
   String _getSubSectionDescription(String subSectionTitle) {
     switch (subSectionTitle) {
-      case 'Message Templates':
-        return 'Create and manage reusable message templates\nfor your WhatsApp Business communications.';
-      case 'Flows':
-        return 'Design automated conversation flows\nto engage with your customers effectively.';
-      case 'Quick Replies':
-        return 'Set up quick reply options to respond\nto common customer inquiries instantly.';
-      case 'Contacts':
-        return 'Manage your customer contact database and profiles.';
-      case 'Lists':
-        return 'Organize contacts into targeted lists for better communication.';
-      case 'Tags':
-        return 'Create and assign tags to categorize your contacts efficiently.';
-      case 'Smart Segments':
-        return 'Build dynamic customer segments based on behavior and attributes.';
-      case 'Import / Export':
-        return 'Import contacts from external sources or export your contact data.';
-      case 'Notifications':
-        return 'View and manage all your notification campaigns and alerts.';
-      case 'Add New':
-        return 'Create new notification campaigns to engage with your customers.';
-      case 'Basic':
-        return 'Set up basic automation rules for common business workflows.';
-      case 'Auto-replies':
-        return 'Configure automatic responses for incoming messages and inquiries.';
-      case 'Bots':
-        return 'Create intelligent chatbots to handle customer interactions automatically.';
-      case 'Drip Sequences':
-        return 'Design automated message sequences to nurture customer relationships.';
-      case 'Messaging':
-        return 'Analyze your messaging performance, delivery rates, and engagement metrics.';
-      case 'Flow Responses':
-        return 'Track and analyze how customers interact with your automated flows.';
-      case 'Bot Sessions':
-        return 'Monitor chatbot conversations and performance analytics.';
-      case 'Drip Sessions':
-        return 'Review drip campaign performance and customer engagement data.';
-      default:
-        return 'Content management feature';
+      case 'Message Templates': return 'Create and manage reusable message templates\nfor your WhatsApp Business communications.';
+      case 'Flows': return 'Design automated conversation flows\nto engage with your customers effectively.';
+      case 'Quick Replies': return 'Set up quick reply options to respond\nto common customer inquiries instantly.';
+      case 'Contacts': return 'Manage your customer contact database and profiles.';
+      case 'Lists': return 'Organize contacts into targeted lists for better communication.';
+      case 'Tags': return 'Create and assign tags to categorize your contacts efficiently.';
+      case 'Smart Segments': return 'Build dynamic customer segments based on behavior and attributes.';
+      case 'Import / Export': return 'Import contacts from external sources or export your contact data.';
+      case 'Notifications': return 'View and manage all your notification campaigns and alerts.';
+      case 'Add New': return 'Create new notification campaigns to engage with your customers.';
+      case 'Basic': return 'Set up basic automation rules for common business workflows.';
+      case 'Auto-replies': return 'Configure automatic responses for incoming messages and inquiries.';
+      case 'Bots': return 'Create intelligent chatbots to handle customer interactions automatically.';
+      case 'Drip Sequences': return 'Design automated message sequences to nurture customer relationships.';
+      case 'Messaging': return 'Analyze your messaging performance, delivery rates, and engagement metrics.';
+      case 'Flow Responses': return 'Track and analyze how customers interact with your automated flows.';
+      case 'Bot Sessions': return 'Monitor chatbot conversations and performance analytics.';
+      case 'Drip Sessions': return 'Review drip campaign performance and customer engagement data.';
+      default: return 'Content management feature';
     }
   }
 
@@ -1718,179 +1476,36 @@ class _HomeScreenState extends State<HomeScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Social Media Icons Row
+          // Top Main Container (Black Background, Ancient Gold Text/Shadows)
           Container(
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: Colors.black,
+              border: Border.all(color: _ancientGold.withValues(alpha: 0.3)),
               borderRadius: BorderRadius.circular(12),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.grey.withValues(alpha: 0.1),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
+                  color: _ancientGold.withValues(alpha: 0.15),
+                  blurRadius: 10,
+                  offset: const Offset(0, 6),
                 ),
               ],
             ),
             child: Column(
               children: [
                 const Text(
-                  'Connect with us',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.black87,
-                  ),
+                  'Quick Access',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: _ancientGold),
                 ),
                 const SizedBox(height: 8),
-                const Text(
-                  'social media platforms',
-                  style: TextStyle(fontSize: 14, color: Colors.grey),
+                Text(
+                  'Manage your ecosystem',
+                  style: TextStyle(fontSize: 14, color: _ancientGold.withValues(alpha: 0.8)),
                   textAlign: TextAlign.center,
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 24),
 
-                // FIRST ROW - WhatsApp, Facebook, Instagram
-                Row(
-                  children: [
-                    // -------------------------
-                    // 1. WhatsApp Button
-                    // -------------------------
-                    Expanded(
-                      child: InkWell(
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const Whatsapp(),
-                            ),
-                          );
-                        },
-
-                        borderRadius: BorderRadius.circular(12),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          decoration: BoxDecoration(
-                            color: Colors.green[50],
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: Colors.green[100]!),
-                          ),
-                          child: const Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              FaIcon(
-                                FontAwesomeIcons.whatsapp,
-                                color: Colors.green,
-                                size: 28,
-                              ),
-                              SizedBox(height: 8),
-                              Text(
-                                'WhatsApp',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.green,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-
-                    const SizedBox(width: 12),
-
-                    // -------------------------
-                    // 2. Combined Meta Button (Facebook & Instagram)
-                    // -------------------------
-                    Expanded(
-                      child: InkWell(
-                        onTap: () {
-                          // ONE ACTION: Opens the combined Meta/Social page
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const FbAndInstaScreen(),
-                            ),
-                          );
-                        },
-                        borderRadius: BorderRadius.circular(12),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          decoration: BoxDecoration(
-                            color: const Color(
-                              0xFFE8F0FE,
-                            ), // Light Indigo/Blue background for Meta feel
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: const Color(0xFFD2E3FC)),
-                          ),
-                          child: const Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                            children: [
-                              // FACEBOOK PART (Icon + Text)
-                              Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  FaIcon(
-                                    FontAwesomeIcons.facebook,
-                                    color: Color(0xFF1877F2),
-                                    size: 28,
-                                  ),
-                                  SizedBox(height: 8),
-                                  Text(
-                                    'Facebook',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: Color(
-                                        0xFF1877F2,
-                                      ), // Facebook Blue Text
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                ],
-                              ),
-
-                              // Small vertical line to separate them visually (Optional)
-                              SizedBox(
-                                height: 30,
-                                child: VerticalDivider(
-                                  color: Colors.grey,
-                                  thickness: 0.5,
-                                ),
-                              ),
-
-                              // INSTAGRAM PART (Icon + Text)
-                              Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  FaIcon(
-                                    FontAwesomeIcons.instagram,
-                                    color: Color(0xFFE1306C),
-                                    size: 28,
-                                  ),
-                                  SizedBox(height: 8),
-                                  Text(
-                                    'Instagram',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: Color(
-                                        0xFFE1306C,
-                                      ), // Instagram Pink Text
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 20),
-
-                // SECOND ROW - Homecontrol, Vault, Trust Me
+                // FIRST ROW - Homecontrol, Vault
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -1901,35 +1516,25 @@ class _HomeScreenState extends State<HomeScreen> {
                         onTap: () {
                           Navigator.push(
                             context,
-                            MaterialPageRoute(
-                              builder: (context) => const HomecontrolScreen(),
-                            ),
+                            MaterialPageRoute(builder: (context) => const HomecontrolScreen()),
                           );
                         },
                         child: Container(
                           margin: const EdgeInsets.symmetric(horizontal: 5),
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
-                            color: Colors.teal[50],
+                            color: Colors.black,
                             borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: Colors.teal[100]!),
+                            border: Border.all(color: _ancientGold.withValues(alpha: 0.5)),
                           ),
                           child: const Column(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              FaIcon(
-                                FontAwesomeIcons.house,
-                                color: Colors.teal,
-                                size: 28,
-                              ),
+                              FaIcon(FontAwesomeIcons.house, color: _ancientGold, size: 28),
                               SizedBox(height: 6),
                               Text(
                                 'Homecontrol',
-                                style: TextStyle(
-                                  fontSize: 10,
-                                  color: Colors.teal,
-                                  fontWeight: FontWeight.w600,
-                                ),
+                                style: TextStyle(fontSize: 10, color: _ancientGold, fontWeight: FontWeight.w600),
                                 textAlign: TextAlign.center,
                                 maxLines: 2,
                               ),
@@ -1938,9 +1543,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                       ),
                     ),
-
                     const SizedBox(width: 10),
-
                     // Vault Icon
                     Flexible(
                       fit: FlexFit.tight,
@@ -1948,85 +1551,26 @@ class _HomeScreenState extends State<HomeScreen> {
                         onTap: () {
                           Navigator.push(
                             context,
-                            MaterialPageRoute(
-                              builder: (context) => const VaultScreen(),
-                            ),
+                            MaterialPageRoute(builder: (context) => const VaultScreen()),
                           );
                         },
                         child: Container(
                           margin: const EdgeInsets.symmetric(horizontal: 5),
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
-                            color: Colors.blueGrey[50],
+                            color: Colors.black,
                             borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: Colors.blueGrey[100]!),
+                            border: Border.all(color: _ancientGold.withValues(alpha: 0.5)),
                           ),
                           child: const Column(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              FaIcon(
-                                FontAwesomeIcons.vault,
-                                color: Colors.blueGrey,
-                                size: 28,
-                              ),
+                              FaIcon(FontAwesomeIcons.vault, color: _ancientGold, size: 28),
                               SizedBox(height: 6),
                               Text(
                                 'Vault',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.blueGrey,
-                                  fontWeight: FontWeight.w600,
-                                ),
+                                style: TextStyle(fontSize: 12, color: _ancientGold, fontWeight: FontWeight.w600),
                                 textAlign: TextAlign.center,
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-
-                    const SizedBox(width: 10),
-
-                    // Trust Me Icon
-                    Flexible(
-                      fit: FlexFit.tight,
-                      child: InkWell(
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const TrustMeHomeScreen(),
-                            ),
-                          );
-                        },
-                        child: Container(
-                          margin: const EdgeInsets.symmetric(horizontal: 5),
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: const Color.fromARGB(255, 229, 197, 234),
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                              color: Color.fromARGB(255, 213, 211, 213),
-                            ),
-                          ),
-                          child: const Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              FaIcon(
-                                FontAwesomeIcons.solidHandshake,
-                                color: Color.fromARGB(255, 115, 11, 134),
-                                size: 28,
-                              ),
-                              SizedBox(height: 6),
-                              Text(
-                                'Trust Me',
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  color: Color.fromARGB(255, 136, 43, 153),
-                                  fontWeight: FontWeight.w600,
-                                ),
-                                textAlign: TextAlign.center,
-                                maxLines: 2,
                               ),
                             ],
                           ),
@@ -2035,62 +1579,48 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   ],
                 ),
-
                 const SizedBox(height: 20),
 
-                // THIRD ROW - Security, Guptik (with empty space for equal layout)
+                // SECOND ROW - Trust Me, GupTik
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    // Security Icon
+                    // Trust Me Icon
                     Flexible(
                       fit: FlexFit.tight,
                       child: InkWell(
                         onTap: () {
                           Navigator.push(
                             context,
-                            MaterialPageRoute(
-                              builder: (context) => const SecurityScreen(),
-                            ),
+                            MaterialPageRoute(builder: (context) => const TrustMeMobileWrapper()),
                           );
                         },
                         child: Container(
                           margin: const EdgeInsets.symmetric(horizontal: 5),
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
-                            color: Colors.orange[50],
+                            color: Colors.black,
                             borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                              color: const Color.fromARGB(201, 202, 215, 14),
-                            ),
+                            border: Border.all(color: _ancientGold.withValues(alpha: 0.5)),
                           ),
                           child: const Column(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              FaIcon(
-                                FontAwesomeIcons.shieldHalved,
-                                color: Color.fromARGB(201, 202, 215, 14),
-                                size: 28,
-                              ),
+                              FaIcon(FontAwesomeIcons.solidHandshake, color: _ancientGold, size: 28),
                               SizedBox(height: 6),
                               Text(
-                                'Security',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: Color.fromARGB(201, 202, 215, 14),
-                                  fontWeight: FontWeight.w600,
-                                ),
+                                'Trust Me',
+                                style: TextStyle(fontSize: 11, color: _ancientGold, fontWeight: FontWeight.w600),
                                 textAlign: TextAlign.center,
+                                maxLines: 2,
                               ),
                             ],
                           ),
                         ),
                       ),
                     ),
-
                     const SizedBox(width: 10),
-
-                    // Guptik Icon
+                    // GupTik Icon
                     Flexible(
                       fit: FlexFit.tight,
                       child: InkWell(
@@ -2098,94 +1628,169 @@ class _HomeScreenState extends State<HomeScreen> {
                           showDialog(
                             context: context,
                             barrierDismissible: false,
-                            builder: (context) => const Center(
-                              child: CircularProgressIndicator(),
-                            ),
+                            builder: (context) => const Center(child: CircularProgressIndicator(color: _ancientGold)),
                           );
 
                           try {
-                            final userId =
-                                Supabase.instance.client.auth.currentUser!.id;
-
+                            final userId = Supabase.instance.client.auth.currentUser!.id;
                             final data = await Supabase.instance.client
                                 .from('desktop_devices')
                                 .select('public_url, status')
                                 .eq('user_id', userId)
                                 .single();
 
-                            if (context.mounted) Navigator.pop(context);
+                            if (!mounted) return;
+                            Navigator.pop(context);
 
                             if (data['status'] != 'online') {
-                              if (context.mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text(
-                                      'Your desktop is currently offline. Please turn it on.',
-                                    ),
-                                  ),
-                                );
-                              }
+                              if (!mounted) return;
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('Your desktop is currently offline. Please turn it on.', style: TextStyle(color: Colors.black)), backgroundColor: _ancientGold),
+                              );
                               return;
                             }
 
-                            // --- THE FIX: ADDING HTTPS ---
                             String rawUrl = data['public_url'] ?? '';
                             if (!rawUrl.startsWith('http')) {
                               rawUrl = 'https://$rawUrl';
                             }
-                            // -----------------------------
 
-                            if (context.mounted && rawUrl.isNotEmpty) {
+                            if (rawUrl.isNotEmpty) {
+                              if (!mounted) return;
                               Navigator.push(
                                 context,
-                                MaterialPageRoute(
-                                  builder: (context) =>
-                                      GuptikScreen(tunnelUrl: rawUrl),
-                                ),
+                                MaterialPageRoute(builder: (context) => GuptikScreen(tunnelUrl: rawUrl)),
                               );
                             }
                           } catch (e) {
-                            if (context.mounted) Navigator.pop(context);
-
-                            if (context.mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text(
-                                    'Could not find your desktop device.',
-                                  ),
-                                ),
-                              );
-                            }
+                            if (!mounted) return;
+                            Navigator.pop(context);
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Could not find your desktop device.', style: TextStyle(color: Colors.black)), backgroundColor: _ancientGold),
+                            );
                           }
                         },
-
                         child: Container(
                           margin: const EdgeInsets.symmetric(horizontal: 5),
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
-                            color: const Color.fromARGB(200, 248, 249, 245),
+                            color: Colors.black,
                             borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                              color: const Color.fromARGB(200, 9, 158, 76),
-                            ),
+                            border: Border.all(color: _ancientGold.withValues(alpha: 0.5)),
                           ),
                           child: const Column(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              FaIcon(
-                                FontAwesomeIcons.personSnowboarding,
-                                color: Color.fromARGB(200, 9, 158, 76),
-                                size: 28,
-                              ),
+                              FaIcon(FontAwesomeIcons.personSnowboarding, color: _ancientGold, size: 28),
                               SizedBox(height: 6),
                               Text(
                                 'GupTik',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: Color.fromARGB(200, 9, 158, 76),
-                                  fontWeight: FontWeight.w600,
-                                ),
+                                style: TextStyle(fontSize: 12, color: _ancientGold, fontWeight: FontWeight.w600),
                                 textAlign: TextAlign.center,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                
+                const SizedBox(height: 30),
+                
+                const Text(
+                  'Connect with us',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: _ancientGold),
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  'social media platforms',
+                  style: TextStyle(fontSize: 14, color: _ancientGold),
+                  textAlign: TextAlign.center,
+                ),
+                
+                const SizedBox(height: 20),
+
+                // THIRD ROW - WhatsApp, Facebook & Instagram
+                Row(
+                  children: [
+                    // WhatsApp Button
+                    Expanded(
+                      child: InkWell(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (context) => const Whatsapp()),
+                          );
+                        },
+                        borderRadius: BorderRadius.circular(12),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          decoration: BoxDecoration(
+                            color: Colors.black,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: _ancientGold.withValues(alpha: 0.5)),
+                          ),
+                          child: const Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              FaIcon(FontAwesomeIcons.whatsapp, color: _ancientGold, size: 28),
+                              SizedBox(height: 8),
+                              Text(
+                                'WhatsApp',
+                                style: TextStyle(fontSize: 12, color: _ancientGold, fontWeight: FontWeight.w600),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    // Combined Meta Button (Facebook & Instagram)
+                    Expanded(
+                      child: InkWell(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (context) => const FbAndInstaScreen()),
+                          );
+                        },
+                        borderRadius: BorderRadius.circular(12),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          decoration: BoxDecoration(
+                            color: Colors.black,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: _ancientGold.withValues(alpha: 0.5)),
+                          ),
+                          child: const Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                            children: [
+                              Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  FaIcon(FontAwesomeIcons.facebook, color: _ancientGold, size: 28),
+                                  SizedBox(height: 8),
+                                  Text(
+                                    'Facebook',
+                                    style: TextStyle(fontSize: 12, color: _ancientGold, fontWeight: FontWeight.w600),
+                                  ),
+                                ],
+                              ),
+                              SizedBox(
+                                height: 30,
+                                child: VerticalDivider(color: _ancientGold, thickness: 0.5),
+                              ),
+                              Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  FaIcon(FontAwesomeIcons.instagram, color: _ancientGold, size: 28),
+                                  SizedBox(height: 8),
+                                  Text(
+                                    'Instagram',
+                                    style: TextStyle(fontSize: 12, color: _ancientGold, fontWeight: FontWeight.w600),
+                                  ),
+                                ],
                               ),
                             ],
                           ),
@@ -2204,21 +1809,22 @@ class _HomeScreenState extends State<HomeScreen> {
           Container(
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: Colors.black,
+              border: Border.all(color: _ancientGold.withValues(alpha: 0.3)),
               borderRadius: BorderRadius.circular(12),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.grey.withValues(alpha: 0.1),
+                  color: _ancientGold.withValues(alpha: 0.15),
                   blurRadius: 8,
                   offset: const Offset(0, 2),
                 ),
               ],
             ),
             child: _isLoading
-                ? const Center(child: CircularProgressIndicator())
+                ? const Center(child: CircularProgressIndicator(color: _ancientGold))
                 : _error != null
-                ? _buildErrorDisplay()
-                : _buildStatusGrid(),
+                    ? _buildErrorDisplay()
+                    : _buildStatusGrid(),
           ),
 
           const SizedBox(height: 40),
@@ -2228,12 +1834,12 @@ class _HomeScreenState extends State<HomeScreen> {
 
           const SizedBox(height: 20),
 
-          // API Usage Cards - FIXED: Simplified layout
+          // API Usage Cards
           _buildUsageCards(),
 
           const SizedBox(height: 24),
 
-          // Bottom Row with Plan, Contacts, and Quick Links - FIXED
+          // Bottom Row with Plan, Contacts, and Quick Links
           _buildBottomSection(),
         ],
       ),
@@ -2249,35 +1855,21 @@ class _HomeScreenState extends State<HomeScreen> {
               ResponsiveRow(
                 children: [
                   Expanded(
-                    child: _buildStatusItem(
-                      'Phone Number',
-                      _dashboardData?.phoneNumberStatus?.displayPhoneNumber ??
-                          'Loading...',
-                    ),
+                    child: _buildStatusItem('Phone Number', _dashboardData?.phoneNumberStatus?.displayPhoneNumber ?? 'Loading...'),
                   ),
                   const SizedBox(width: 16),
                   Expanded(
-                    child: _buildStatusItem(
-                      'Display Name',
-                      _dashboardData?.businessProfile?.displayName ??
-                          'Loading...',
-                    ),
+                    child: _buildStatusItem('Display Name', _dashboardData?.businessProfile?.displayName ?? 'Loading...'),
                   ),
                 ],
               ),
               const SizedBox(height: 16),
               ResponsiveRow(
                 children: [
-                  Expanded(
-                    child: _buildStatusItem('Messaging Limit', '1k/24hr'),
-                  ),
+                  Expanded(child: _buildStatusItem('Messaging Limit', '1k/24hr')),
                   const SizedBox(width: 16),
                   Expanded(
-                    child: _buildStatusItem(
-                      'Quality Rating',
-                      _dashboardData?.qualityRating?.rating ?? 'Loading...',
-                      isGreen: true,
-                    ),
+                    child: _buildStatusItem('Quality Rating', _dashboardData?.qualityRating?.rating ?? 'Loading...', isGreen: true),
                   ),
                 ],
               ),
@@ -2287,11 +1879,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   Expanded(child: _buildStatusItem('MM Lite API', '')),
                   const SizedBox(width: 16),
                   Expanded(
-                    child: _buildStatusItem(
-                      'Phone Status',
-                      _getConnectionStatus(),
-                      isGreen: _getConnectionStatus() == 'CONNECTED',
-                    ),
+                    child: _buildStatusItem('Phone Status', _getConnectionStatus(), isGreen: _getConnectionStatus() == 'CONNECTED'),
                   ),
                 ],
               ),
@@ -2300,40 +1888,17 @@ class _HomeScreenState extends State<HomeScreen> {
         } else {
           return ResponsiveRow(
             children: [
-              Expanded(
-                child: _buildStatusItem(
-                  'Phone Number',
-                  _dashboardData?.phoneNumberStatus?.displayPhoneNumber ??
-                      'Loading...',
-                ),
-              ),
+              Expanded(child: _buildStatusItem('Phone Number', _dashboardData?.phoneNumberStatus?.displayPhoneNumber ?? 'Loading...')),
               const SizedBox(width: 16),
-              Expanded(
-                child: _buildStatusItem(
-                  'Display Name',
-                  _dashboardData?.businessProfile?.displayName ?? 'Loading...',
-                ),
-              ),
+              Expanded(child: _buildStatusItem('Display Name', _dashboardData?.businessProfile?.displayName ?? 'Loading...')),
               const SizedBox(width: 16),
               Expanded(child: _buildStatusItem('Messaging Limit', '1k/24hr')),
               const SizedBox(width: 16),
               Expanded(child: _buildStatusItem('MM Lite API', '')),
               const SizedBox(width: 16),
-              Expanded(
-                child: _buildStatusItem(
-                  'Quality Rating',
-                  _dashboardData?.qualityRating?.rating ?? 'Loading...',
-                  isGreen: true,
-                ),
-              ),
+              Expanded(child: _buildStatusItem('Quality Rating', _dashboardData?.qualityRating?.rating ?? 'Loading...', isGreen: true)),
               const SizedBox(width: 16),
-              Expanded(
-                child: _buildStatusItem(
-                  'Phone Status',
-                  _getConnectionStatus(),
-                  isGreen: _getConnectionStatus() == 'CONNECTED',
-                ),
-              ),
+              Expanded(child: _buildStatusItem('Phone Status', _getConnectionStatus(), isGreen: _getConnectionStatus() == 'CONNECTED')),
             ],
           );
         }
@@ -2341,30 +1906,60 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  Widget _buildStatusItem(String label, String value, {bool isGreen = false}) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: TextStyle(fontSize: 12, color: Colors.grey[400], fontWeight: FontWeight.w500),
+        ),
+        const SizedBox(height: 4),
+        Row(
+          children: [
+            if (isGreen && value.isNotEmpty)
+              Container(
+                width: 8,
+                height: 8,
+                decoration: const BoxDecoration(color: Colors.green, shape: BoxShape.circle),
+              ),
+            if (isGreen && value.isNotEmpty) const SizedBox(width: 6),
+            Expanded(
+              child: Text(
+                value,
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: isGreen ? Colors.green : _ancientGold,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
   Widget _buildUsageHeader() {
     return Row(
       children: [
-        const Icon(Icons.code, color: Colors.grey, size: 20),
+        const Icon(Icons.code, color: _ancientGold, size: 20),
         const SizedBox(width: 8),
         const Expanded(
           child: Text(
             'WhatsApp API Usage',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w600,
-              color: Colors.black87,
-            ),
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: _ancientGold),
             overflow: TextOverflow.ellipsis,
           ),
         ),
         const SizedBox(width: 8),
-        const Icon(Icons.info_outline, color: Colors.grey, size: 16),
+        const Icon(Icons.info_outline, color: _ancientGold, size: 16),
         const SizedBox(width: 8),
         if (_isLoading)
           const SizedBox(
             width: 16,
             height: 16,
-            child: CircularProgressIndicator(strokeWidth: 2),
+            child: CircularProgressIndicator(strokeWidth: 2, color: _ancientGold),
           )
         else
           Row(
@@ -2373,23 +1968,13 @@ class _HomeScreenState extends State<HomeScreen> {
               Container(
                 width: 8,
                 height: 8,
-                decoration: const BoxDecoration(
-                  color: Colors.green,
-                  shape: BoxShape.circle,
-                ),
+                decoration: const BoxDecoration(color: Colors.green, shape: BoxShape.circle),
               ),
               const SizedBox(width: 4),
-              const Text(
-                'Live',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Colors.green,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
+              const Text('Live', style: TextStyle(fontSize: 12, color: Colors.green, fontWeight: FontWeight.w600)),
               const SizedBox(width: 8),
               IconButton(
-                icon: const Icon(Icons.refresh, color: Colors.grey, size: 18),
+                icon: const Icon(Icons.refresh, color: _ancientGold, size: 18),
                 onPressed: _loadLiveData,
                 tooltip: 'Refresh Data',
                 padding: const EdgeInsets.all(4),
@@ -2429,11 +2014,12 @@ class _HomeScreenState extends State<HomeScreen> {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Colors.black,
+        border: Border.all(color: _ancientGold.withValues(alpha: 0.3)),
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withValues(alpha: 0.1),
+            color: _ancientGold.withValues(alpha: 0.15),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -2447,16 +2033,12 @@ class _HomeScreenState extends State<HomeScreen> {
               Expanded(
                 child: Text(
                   'Message Delivery Stats',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.black87,
-                  ),
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: _ancientGold),
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
               SizedBox(width: 8),
-              Icon(Icons.info_outline, color: Colors.grey, size: 16),
+              Icon(Icons.info_outline, color: _ancientGold, size: 16),
             ],
           ),
           const SizedBox(height: 20),
@@ -2465,77 +2047,25 @@ class _HomeScreenState extends State<HomeScreen> {
               if (constraints.maxWidth < 400) {
                 return Column(
                   children: [
-                    _buildStatColumn(
-                      _dashboardData?.messageAnalytics?.marketing.toString() ??
-                          '0',
-                      'Marketing',
-                    ),
+                    _buildStatColumn(_dashboardData?.messageAnalytics?.marketing.toString() ?? '0', 'Marketing'),
                     const SizedBox(height: 16),
-                    _buildStatColumn(
-                      _dashboardData?.messageAnalytics?.authentication
-                              .toString() ??
-                          '0',
-                      'Auth',
-                    ),
+                    _buildStatColumn(_dashboardData?.messageAnalytics?.authentication.toString() ?? '0', 'Auth'),
                     const SizedBox(height: 16),
-                    _buildStatColumn(
-                      _dashboardData?.messageAnalytics?.service.toString() ??
-                          '0',
-                      'Service',
-                    ),
+                    _buildStatColumn(_dashboardData?.messageAnalytics?.service.toString() ?? '0', 'Service'),
                     const SizedBox(height: 16),
-                    _buildStatColumn(
-                      _dashboardData?.messageAnalytics?.utility.toString() ??
-                          '0',
-                      'Utility',
-                    ),
+                    _buildStatColumn(_dashboardData?.messageAnalytics?.utility.toString() ?? '0', 'Utility'),
                     const SizedBox(height: 16),
-                    _buildStatColumn(
-                      _dashboardData?.messageAnalytics?.total.toString() ?? '0',
-                      'Total',
-                    ),
+                    _buildStatColumn(_dashboardData?.messageAnalytics?.total.toString() ?? '0', 'Total'),
                   ],
                 );
               } else {
                 return ResponsiveRow(
                   children: [
-                    Expanded(
-                      child: _buildStatColumn(
-                        _dashboardData?.messageAnalytics?.marketing
-                                .toString() ??
-                            '0',
-                        'Marketing',
-                      ),
-                    ),
-                    Expanded(
-                      child: _buildStatColumn(
-                        _dashboardData?.messageAnalytics?.authentication
-                                .toString() ??
-                            '0',
-                        'Auth',
-                      ),
-                    ),
-                    Expanded(
-                      child: _buildStatColumn(
-                        _dashboardData?.messageAnalytics?.service.toString() ??
-                            '0',
-                        'Service',
-                      ),
-                    ),
-                    Expanded(
-                      child: _buildStatColumn(
-                        _dashboardData?.messageAnalytics?.utility.toString() ??
-                            '0',
-                        'Utility',
-                      ),
-                    ),
-                    Expanded(
-                      child: _buildStatColumn(
-                        _dashboardData?.messageAnalytics?.total.toString() ??
-                            '0',
-                        'Total',
-                      ),
-                    ),
+                    Expanded(child: _buildStatColumn(_dashboardData?.messageAnalytics?.marketing.toString() ?? '0', 'Marketing')),
+                    Expanded(child: _buildStatColumn(_dashboardData?.messageAnalytics?.authentication.toString() ?? '0', 'Auth')),
+                    Expanded(child: _buildStatColumn(_dashboardData?.messageAnalytics?.service.toString() ?? '0', 'Service')),
+                    Expanded(child: _buildStatColumn(_dashboardData?.messageAnalytics?.utility.toString() ?? '0', 'Utility')),
+                    Expanded(child: _buildStatColumn(_dashboardData?.messageAnalytics?.total.toString() ?? '0', 'Total')),
                   ],
                 );
               }
@@ -2550,11 +2080,12 @@ class _HomeScreenState extends State<HomeScreen> {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Colors.black,
+        border: Border.all(color: _ancientGold.withValues(alpha: 0.3)),
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withValues(alpha: 0.1),
+            color: _ancientGold.withValues(alpha: 0.15),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -2568,34 +2099,20 @@ class _HomeScreenState extends State<HomeScreen> {
               Expanded(
                 child: Text(
                   'Messages',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.black87,
-                  ),
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: _ancientGold),
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
               SizedBox(width: 8),
-              Icon(Icons.info_outline, color: Colors.grey, size: 16),
+              Icon(Icons.info_outline, color: _ancientGold, size: 16),
             ],
           ),
           const SizedBox(height: 20),
           ResponsiveRow(
             children: [
-              Expanded(
-                child: _buildStatColumn(
-                  _dashboardData?.messageAnalytics?.sent.toString() ?? '0',
-                  'Sent',
-                ),
-              ),
+              Expanded(child: _buildStatColumn(_dashboardData?.messageAnalytics?.sent.toString() ?? '0', 'Sent')),
               const SizedBox(width: 16),
-              Expanded(
-                child: _buildStatColumn(
-                  _dashboardData?.messageAnalytics?.delivered.toString() ?? '0',
-                  'Delivered',
-                ),
-              ),
+              Expanded(child: _buildStatColumn(_dashboardData?.messageAnalytics?.delivered.toString() ?? '0', 'Delivered')),
             ],
           ),
         ],
@@ -2635,11 +2152,12 @@ class _HomeScreenState extends State<HomeScreen> {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Colors.black,
+        border: Border.all(color: _ancientGold.withValues(alpha: 0.3)),
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withValues(alpha: 0.1),
+            color: _ancientGold.withValues(alpha: 0.15),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -2648,18 +2166,14 @@ class _HomeScreenState extends State<HomeScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
+          const Row(
             children: [
-              const Icon(Icons.credit_card, color: Colors.grey, size: 20),
-              const SizedBox(width: 8),
-              const Expanded(
+              Icon(Icons.credit_card, color: _ancientGold, size: 20),
+              SizedBox(width: 8),
+              Expanded(
                 child: Text(
                   'Meta Fly Plan: Free',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.black87,
-                  ),
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: _ancientGold),
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
@@ -2681,11 +2195,12 @@ class _HomeScreenState extends State<HomeScreen> {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Colors.black,
+        border: Border.all(color: _ancientGold.withValues(alpha: 0.3)),
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withValues(alpha: 0.1),
+            color: _ancientGold.withValues(alpha: 0.15),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -2694,18 +2209,14 @@ class _HomeScreenState extends State<HomeScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
+          const Row(
             children: [
-              const Icon(Icons.contacts, color: Colors.grey, size: 20),
-              const SizedBox(width: 8),
-              const Expanded(
+              Icon(Icons.contacts, color: _ancientGold, size: 20),
+              SizedBox(width: 8),
+              Expanded(
                 child: Text(
                   'Contacts',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.black87,
-                  ),
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: _ancientGold),
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
@@ -2717,29 +2228,15 @@ class _HomeScreenState extends State<HomeScreen> {
             child: Row(
               children: [
                 Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 4,
-                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
-                    color: Colors.blue.withValues(alpha: 0.1),
+                    color: _ancientGold.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(4),
                   ),
-                  child: const Text(
-                    '1',
-                    style: TextStyle(
-                      color: Colors.blue,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
+                  child: const Text('1', style: TextStyle(color: _ancientGold, fontWeight: FontWeight.w600)),
                 ),
                 const SizedBox(width: 8),
-                const Expanded(
-                  child: Text(
-                    'Contacts',
-                    style: TextStyle(color: Colors.black54),
-                  ),
-                ),
+                Text('Contacts', style: TextStyle(color: _ancientGold.withValues(alpha: 0.7))),
               ],
             ),
           ),
@@ -2752,11 +2249,12 @@ class _HomeScreenState extends State<HomeScreen> {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Colors.black,
+        border: Border.all(color: _ancientGold.withValues(alpha: 0.3)),
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withValues(alpha: 0.1),
+            color: _ancientGold.withValues(alpha: 0.15),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -2765,31 +2263,23 @@ class _HomeScreenState extends State<HomeScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
+          const Row(
             children: [
-              const Icon(Icons.link, color: Colors.grey, size: 20),
-              const SizedBox(width: 8),
-              const Expanded(
+              Icon(Icons.link, color: _ancientGold, size: 20),
+              SizedBox(width: 8),
+              Expanded(
                 child: Text(
                   'Quick Links',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.black87,
-                  ),
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: _ancientGold),
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
             ],
           ),
           const SizedBox(height: 16),
-          _buildQuickLink(Icons.chat, 'Follow us on WhatsApp', Colors.green),
-          _buildQuickLink(
-            Icons.facebook,
-            'Join our Facebook group',
-            Colors.blue,
-          ),
-          _buildQuickLink(Icons.star, 'Review us on TrustPilot', Colors.orange),
+          _buildQuickLink(Icons.chat, 'Follow us on WhatsApp', _ancientGold),
+          _buildQuickLink(Icons.facebook, 'Join our Facebook group', _ancientGold),
+          _buildQuickLink(Icons.star, 'Review us on TrustPilot', _ancientGold),
         ],
       ),
     );
@@ -2806,25 +2296,17 @@ class _HomeScreenState extends State<HomeScreen> {
             const SizedBox(height: 16),
             Text(
               _error!,
-              style: TextStyle(
-                color: Colors.red[600],
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-              ),
+              style: TextStyle(color: Colors.red[600], fontSize: 14, fontWeight: FontWeight.w500),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 16),
             ElevatedButton.icon(
               onPressed: () => _loadLiveData(),
-              icon: const Icon(Icons.refresh),
-              label: const Text('Retry'),
+              icon: const Icon(Icons.refresh, color: Colors.black),
+              label: const Text('Retry', style: TextStyle(color: Colors.black)),
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF17A2B8),
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 24,
-                  vertical: 12,
-                ),
+                backgroundColor: _ancientGold,
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
               ),
             ),
           ],
@@ -2846,20 +2328,12 @@ class _HomeScreenState extends State<HomeScreen> {
       children: [
         Text(
           value,
-          style: const TextStyle(
-            fontSize: 28,
-            fontWeight: FontWeight.bold,
-            color: Colors.black87,
-          ),
+          style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: _ancientGold),
         ),
         const SizedBox(height: 4),
         Text(
           label,
-          style: const TextStyle(
-            fontSize: 14,
-            color: Colors.grey,
-            fontWeight: FontWeight.w500,
-          ),
+          style: TextStyle(fontSize: 14, color: Colors.grey[400], fontWeight: FontWeight.w500),
         ),
       ],
     );
@@ -2875,7 +2349,7 @@ class _HomeScreenState extends State<HomeScreen> {
             flex: 2,
             child: Text(
               label,
-              style: const TextStyle(fontSize: 14, color: Colors.grey),
+              style: TextStyle(fontSize: 14, color: Colors.grey[400]),
               overflow: TextOverflow.ellipsis,
             ),
           ),
@@ -2884,11 +2358,7 @@ class _HomeScreenState extends State<HomeScreen> {
             flex: 1,
             child: Text(
               value,
-              style: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: Colors.black87,
-              ),
+              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: _ancientGold),
               textAlign: TextAlign.end,
               overflow: TextOverflow.ellipsis,
             ),
@@ -2902,9 +2372,7 @@ class _HomeScreenState extends State<HomeScreen> {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: InkWell(
-        onTap: () {
-          // Handle quick link tap
-        },
+        onTap: () {},
         child: Row(
           children: [
             Icon(icon, color: color, size: 16),
@@ -2912,184 +2380,33 @@ class _HomeScreenState extends State<HomeScreen> {
             Expanded(
               child: Text(
                 label,
-                style: TextStyle(
-                  fontSize: 14,
-                  color: color,
-                  decoration: TextDecoration.underline,
-                ),
+                style: TextStyle(fontSize: 14, color: color, decoration: TextDecoration.underline),
                 overflow: TextOverflow.ellipsis,
               ),
             ),
-            const Icon(Icons.open_in_new, color: Colors.grey, size: 14),
+            Icon(Icons.open_in_new, color: Colors.grey[500], size: 14),
           ],
         ),
       ),
-    );
-  }
-
-  Widget _buildOnboardingStep(
-    int step,
-    String title,
-    String description,
-    IconData icon,
-    bool isCompleted,
-  ) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withValues(alpha: 0.1),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: isCompleted ? Colors.green : Colors.grey[300],
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Icon(
-                  isCompleted ? Icons.check : icon,
-                  color: isCompleted ? Colors.white : Colors.grey[600],
-                  size: 24,
-                ),
-              ),
-              const Spacer(),
-              if (isCompleted)
-                const Icon(Icons.check_circle, color: Colors.green, size: 20),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Text(
-            'STEP $step',
-            style: const TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.bold,
-              color: Colors.grey,
-              letterSpacing: 1,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            title,
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-              color: Colors.black87,
-            ),
-            overflow: TextOverflow.ellipsis,
-          ),
-          const SizedBox(height: 8),
-          Text(
-            description,
-            style: const TextStyle(
-              fontSize: 14,
-              color: Colors.grey,
-              height: 1.4,
-            ),
-            overflow: TextOverflow.ellipsis,
-            maxLines: 2,
-          ),
-          const SizedBox(height: 16),
-          TextButton(
-            onPressed: () {},
-            child: const Text(
-              'Learn more.',
-              style: TextStyle(
-                color: Color(0xFF17A2B8),
-                fontWeight: FontWeight.w600,
-                fontSize: 14,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildStatusItem(String label, String value, {bool isGreen = false}) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: const TextStyle(
-            fontSize: 12,
-            color: Colors.grey,
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-        const SizedBox(height: 4),
-        Row(
-          children: [
-            if (isGreen && value.isNotEmpty)
-              Container(
-                width: 8,
-                height: 8,
-                decoration: const BoxDecoration(
-                  color: Colors.green,
-                  shape: BoxShape.circle,
-                ),
-              ),
-            if (isGreen && value.isNotEmpty) const SizedBox(width: 6),
-            Expanded(
-              child: Text(
-                value,
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: isGreen ? Colors.green : Colors.black87,
-                ),
-              ),
-            ),
-          ],
-        ),
-      ],
     );
   }
 
   Widget _buildOtherContent() {
-    // Check if Inbox is selected
-    if (_selectedIndex >= 0 &&
-        _selectedIndex < _sections.length &&
-        _sections[_selectedIndex].title == 'Inbox') {
+    if (_selectedIndex >= 0 && _selectedIndex < _sections.length && _sections[_selectedIndex].title == 'Inbox') {
       return _buildInboxContent();
     }
-
-    // Default content for other sections
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            _sections[_selectedIndex].icon,
-            size: 64,
-            color: Colors.grey[400],
-          ),
+          Icon(_sections[_selectedIndex].icon, size: 64, color: Colors.grey[600]),
           const SizedBox(height: 16),
           Text(
             _sections[_selectedIndex].title,
-            style: const TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.w600,
-              color: Colors.grey,
-            ),
+            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600, color: _ancientGold),
           ),
           const SizedBox(height: 8),
-          const Text(
-            'Content coming soon...',
-            style: TextStyle(fontSize: 16, color: Colors.grey),
-          ),
+          Text('Content coming soon...', style: TextStyle(fontSize: 16, color: Colors.grey[500])),
         ],
       ),
     );
@@ -3099,9 +2416,6 @@ class _HomeScreenState extends State<HomeScreen> {
     return InboxContentWidget(conversationsService: _conversationsService);
   }
 }
-
-// REST OF THE CODE REMAINS THE SAME AS YOUR PREVIOUS CODE
-// (DashboardSection, SubSection, InboxContentWidget, etc.)
 
 class DashboardSection {
   final IconData icon;
@@ -3129,7 +2443,7 @@ class SubSection {
   SubSection({required this.title, this.icon, this.isSelected = false});
 }
 
-// Inbox Content Widget - Shows inbox interface within main dashboard area
+// Inbox Content Widget - Updated to Dark/Ancient Gold Theme
 class InboxContentWidget extends StatefulWidget {
   final ConversationsService conversationsService;
 
@@ -3162,13 +2476,9 @@ class _InboxContentWidgetState extends State<InboxContentWidget> {
     setState(() => isLoading = true);
 
     try {
-      String? filterParam = selectedFilter == 'All'
-          ? null
-          : selectedFilter.toLowerCase();
+      String? filterParam = selectedFilter == 'All' ? null : selectedFilter.toLowerCase();
       final loadedConversations = searchQuery.isEmpty
-          ? await widget.conversationsService.getConversations(
-              filter: filterParam,
-            )
+          ? await widget.conversationsService.getConversations(filter: filterParam)
           : await widget.conversationsService.searchConversations(searchQuery);
 
       setState(() {
@@ -3178,9 +2488,7 @@ class _InboxContentWidgetState extends State<InboxContentWidget> {
     } catch (e) {
       setState(() => isLoading = false);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error loading conversations: $e')),
-        );
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error loading conversations: $e', style: const TextStyle(color: Colors.black)), backgroundColor: _ancientGold));
       }
     }
   }
@@ -3192,36 +2500,30 @@ class _InboxContentWidgetState extends State<InboxContentWidget> {
     });
 
     try {
-      final messages = await widget.conversationsService
-          .getConversationMessages(conversation.id);
+      final messages = await widget.conversationsService.getConversationMessages(conversation.id);
       setState(() {
         selectedConversationMessages = messages;
       });
 
-      // Mark as read
       if (conversation.isUnread) {
         await widget.conversationsService.markAsRead(conversation.id);
-        _loadConversations(); // Refresh conversations to update read status
+        _loadConversations();
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Error loading messages: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error loading messages: $e', style: const TextStyle(color: Colors.black)), backgroundColor: _ancientGold));
       }
     }
   }
 
   Future<void> _sendMessage() async {
-    if (_messageController.text.trim().isEmpty ||
-        selectedConversation == null) {
+    if (_messageController.text.trim().isEmpty || selectedConversation == null) {
       return;
     }
 
     final messageText = _messageController.text.trim();
     _messageController.clear();
 
-    // Add message to UI immediately
     final newMessage = Message(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
       conversationId: selectedConversation!.id,
@@ -3236,18 +2538,14 @@ class _InboxContentWidgetState extends State<InboxContentWidget> {
       selectedConversationMessages.add(newMessage);
     });
 
-    // Send via API
     final success = await widget.conversationsService.sendMessage(
       phoneNumber: selectedConversation!.phoneNumber,
       message: messageText,
     );
 
     if (success) {
-      // Update message status to delivered
       setState(() {
-        final index = selectedConversationMessages.indexWhere(
-          (m) => m.id == newMessage.id,
-        );
+        final index = selectedConversationMessages.indexWhere((m) => m.id == newMessage.id);
         if (index != -1) {
           selectedConversationMessages[index] = Message(
             id: newMessage.id,
@@ -3261,11 +2559,8 @@ class _InboxContentWidgetState extends State<InboxContentWidget> {
         }
       });
     } else {
-      // Update message status to failed
       setState(() {
-        final index = selectedConversationMessages.indexWhere(
-          (m) => m.id == newMessage.id,
-        );
+        final index = selectedConversationMessages.indexWhere((m) => m.id == newMessage.id);
         if (index != -1) {
           selectedConversationMessages[index] = Message(
             id: newMessage.id,
@@ -3286,30 +2581,20 @@ class _InboxContentWidgetState extends State<InboxContentWidget> {
     return LayoutBuilder(
       builder: (context, constraints) {
         if (constraints.maxWidth < 1024) {
-          // Stack layout for medium screens
           return Stack(
             children: [
-              // Conversations list (hidden when conversation is selected)
               if (selectedConversation == null || constraints.maxWidth > 600)
                 Positioned.fill(
                   child: Container(
                     padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
+                    decoration: BoxDecoration(color: Colors.black, borderRadius: BorderRadius.circular(12), border: Border.all(color: _ancientGold.withValues(alpha: 0.3))),
                     child: _buildConversationList(),
                   ),
                 ),
-
-              // Conversation view (slides in)
               if (selectedConversation != null)
                 Positioned.fill(
                   child: Container(
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
+                    decoration: BoxDecoration(color: Colors.black, borderRadius: BorderRadius.circular(12), border: Border.all(color: _ancientGold.withValues(alpha: 0.3))),
                     child: _buildConversationView(),
                   ),
                 ),
@@ -3317,37 +2602,24 @@ class _InboxContentWidgetState extends State<InboxContentWidget> {
           );
         }
 
-        // Desktop layout (original side-by-side)
         return Container(
           padding: const EdgeInsets.all(12),
           child: Row(
             children: [
-              // Left sidebar with constraints
               Expanded(
                 flex: 1,
                 child: Container(
                   constraints: const BoxConstraints(maxWidth: 320),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
+                  decoration: BoxDecoration(color: Colors.black, borderRadius: BorderRadius.circular(12), border: Border.all(color: _ancientGold.withValues(alpha: 0.3))),
                   child: _buildConversationList(),
                 ),
               ),
-
               const SizedBox(width: 12),
-
-              // Main conversation area
               Expanded(
                 flex: 2,
                 child: Container(
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: selectedConversation == null
-                      ? _buildSelectConversationState()
-                      : _buildConversationView(),
+                  decoration: BoxDecoration(color: Colors.black, borderRadius: BorderRadius.circular(12), border: Border.all(color: _ancientGold.withValues(alpha: 0.3))),
+                  child: selectedConversation == null ? _buildSelectConversationState() : _buildConversationView(),
                 ),
               ),
             ],
@@ -3360,59 +2632,36 @@ class _InboxContentWidgetState extends State<InboxContentWidget> {
   Widget _buildConversationList() {
     return Column(
       children: [
-        // Conversations Header with Settings
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: const BorderRadius.only(
-              topLeft: Radius.circular(12),
-              topRight: Radius.circular(12),
-            ),
-            border: Border(bottom: BorderSide(color: Colors.grey[200]!)),
+            color: Colors.black,
+            borderRadius: const BorderRadius.only(topLeft: Radius.circular(12), topRight: Radius.circular(12)),
+            border: Border(bottom: BorderSide(color: _ancientGold.withValues(alpha: 0.2))),
           ),
           child: Row(
             children: [
               const Expanded(
-                child: Text(
-                  'Conversations',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.black,
-                  ),
-                  overflow: TextOverflow.ellipsis,
-                ),
+                child: Text('Conversations', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: _ancientGold), overflow: TextOverflow.ellipsis),
               ),
               IconButton(
-                icon: const Icon(
-                  Icons.comment_outlined,
-                  color: Colors.grey,
-                  size: 18,
-                ),
-                onPressed: () {
-                  // Handle new conversation
-                },
+                icon: const Icon(Icons.comment_outlined, color: _ancientGold, size: 18),
+                onPressed: () {},
                 tooltip: 'New Conversation',
                 padding: const EdgeInsets.all(4),
                 constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
               ),
               IconButton(
-                icon: const Icon(Icons.settings, color: Colors.grey, size: 18),
+                icon: const Icon(Icons.settings, color: _ancientGold, size: 18),
                 onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const BusinessSettingsScreen(),
-                    ),
-                  );
+                  Navigator.push(context, MaterialPageRoute(builder: (context) => const BusinessSettingsScreen()));
                 },
                 tooltip: 'Settings',
                 padding: const EdgeInsets.all(4),
                 constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
               ),
               IconButton(
-                icon: const Icon(Icons.refresh, color: Colors.grey, size: 18),
+                icon: const Icon(Icons.refresh, color: _ancientGold, size: 18),
                 onPressed: () {
                   _loadConversations();
                 },
@@ -3424,29 +2673,26 @@ class _InboxContentWidgetState extends State<InboxContentWidget> {
           ),
         ),
 
-        // Header with search and filters
         Container(
           padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(color: Colors.grey[50]),
+          decoration: const BoxDecoration(color: Colors.black),
           child: Column(
             children: [
-              // Search bar
               Container(
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: Colors.grey[900],
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.grey[300]!),
+                  border: Border.all(color: _ancientGold.withValues(alpha: 0.3)),
                 ),
                 child: TextField(
                   controller: _searchController,
+                  style: const TextStyle(color: _ancientGold),
                   decoration: const InputDecoration(
                     hintText: 'Search contacts and messages',
-                    prefixIcon: Icon(Icons.search, color: Colors.grey),
+                    hintStyle: TextStyle(color: Colors.grey),
+                    prefixIcon: Icon(Icons.search, color: _ancientGold),
                     border: InputBorder.none,
-                    contentPadding: EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 10,
-                    ),
+                    contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                   ),
                   onChanged: (value) {
                     setState(() => searchQuery = value);
@@ -3454,61 +2700,40 @@ class _InboxContentWidgetState extends State<InboxContentWidget> {
                   },
                 ),
               ),
-
               const SizedBox(height: 8),
-
-              // Filter tabs
               Wrap(
                 spacing: 4,
                 runSpacing: 4,
-                children: filters
-                    .map(
-                      (filter) => GestureDetector(
-                        onTap: () {
-                          setState(() => selectedFilter = filter);
-                          _loadConversations();
-                        },
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 6,
-                          ),
-                          decoration: BoxDecoration(
-                            color: selectedFilter == filter
-                                ? const Color(0xFF17A2B8)
-                                : Colors.transparent,
-                            borderRadius: BorderRadius.circular(6),
-                            border: Border.all(
-                              color: selectedFilter == filter
-                                  ? const Color(0xFF17A2B8)
-                                  : Colors.grey[300]!,
-                            ),
-                          ),
-                          child: Text(
-                            filter,
-                            style: TextStyle(
-                              color: selectedFilter == filter
-                                  ? Colors.white
-                                  : Colors.grey[700],
-                              fontWeight: selectedFilter == filter
-                                  ? FontWeight.w600
-                                  : FontWeight.normal,
-                              fontSize: 11,
-                            ),
-                          ),
-                        ),
+                children: filters.map((filter) => GestureDetector(
+                  onTap: () {
+                    setState(() => selectedFilter = filter);
+                    _loadConversations();
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: selectedFilter == filter ? _ancientGold : Colors.transparent,
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(color: selectedFilter == filter ? _ancientGold : Colors.grey[800]!),
+                    ),
+                    child: Text(
+                      filter,
+                      style: TextStyle(
+                        color: selectedFilter == filter ? Colors.black : Colors.grey[400],
+                        fontWeight: selectedFilter == filter ? FontWeight.w600 : FontWeight.normal,
+                        fontSize: 11,
                       ),
-                    )
-                    .toList(),
+                    ),
+                  ),
+                )).toList(),
               ),
             ],
           ),
         ),
 
-        // Conversations list
         Expanded(
           child: isLoading
-              ? const Center(child: CircularProgressIndicator())
+              ? const Center(child: CircularProgressIndicator(color: _ancientGold))
               : conversations.isEmpty
               ? _buildEmptyState()
               : ListView.builder(
@@ -3528,20 +2753,15 @@ class _InboxContentWidgetState extends State<InboxContentWidget> {
 
     return Container(
       decoration: BoxDecoration(
-        color: isSelected
-            ? const Color(0xFF17A2B8).withValues(alpha: 0.1)
-            : Colors.white,
-        border: Border(bottom: BorderSide(color: Colors.grey[100]!)),
+        color: isSelected ? _ancientGold.withValues(alpha: 0.1) : Colors.black,
+        border: Border(bottom: BorderSide(color: _ancientGold.withValues(alpha: 0.1))),
       ),
       child: ListTile(
         leading: CircleAvatar(
-          backgroundColor: const Color(0xFF17A2B8),
+          backgroundColor: _ancientGold,
           child: Text(
             _getInitials(conversation.contactName ?? ''),
-            style: const TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.bold,
-            ),
+            style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
           ),
         ),
         title: Row(
@@ -3550,9 +2770,8 @@ class _InboxContentWidgetState extends State<InboxContentWidget> {
               child: Text(
                 conversation.contactName ?? '',
                 style: TextStyle(
-                  fontWeight: conversation.isUnread
-                      ? FontWeight.bold
-                      : FontWeight.normal,
+                  color: _ancientGold,
+                  fontWeight: conversation.isUnread ? FontWeight.bold : FontWeight.normal,
                   fontSize: 13,
                 ),
                 overflow: TextOverflow.ellipsis,
@@ -3562,10 +2781,8 @@ class _InboxContentWidgetState extends State<InboxContentWidget> {
               _formatTimestamp(conversation.timestamp),
               style: TextStyle(
                 fontSize: 10,
-                color: Colors.grey[600],
-                fontWeight: conversation.isUnread
-                    ? FontWeight.w600
-                    : FontWeight.normal,
+                color: Colors.grey[500],
+                fontWeight: conversation.isUnread ? FontWeight.w600 : FontWeight.normal,
               ),
             ),
           ],
@@ -3577,12 +2794,8 @@ class _InboxContentWidgetState extends State<InboxContentWidget> {
                 conversation.lastMessage ?? '',
                 style: TextStyle(
                   fontSize: 11,
-                  color: conversation.isUnread
-                      ? Colors.black87
-                      : Colors.grey[600],
-                  fontWeight: conversation.isUnread
-                      ? FontWeight.w500
-                      : FontWeight.normal,
+                  color: conversation.isUnread ? _ancientGold : Colors.grey[500],
+                  fontWeight: conversation.isUnread ? FontWeight.w500 : FontWeight.normal,
                 ),
                 overflow: TextOverflow.ellipsis,
               ),
@@ -3591,14 +2804,8 @@ class _InboxContentWidgetState extends State<InboxContentWidget> {
               Container(
                 margin: const EdgeInsets.only(left: 6),
                 padding: const EdgeInsets.all(3),
-                decoration: const BoxDecoration(
-                  color: Color(0xFF17A2B8),
-                  shape: BoxShape.circle,
-                ),
-                child: const Text(
-                  '?',
-                  style: TextStyle(color: Colors.white, fontSize: 6),
-                ),
+                decoration: const BoxDecoration(color: _ancientGold, shape: BoxShape.circle),
+                child: const Text('?', style: TextStyle(color: Colors.black, fontSize: 6)),
               ),
           ],
         ),
@@ -3613,12 +2820,9 @@ class _InboxContentWidgetState extends State<InboxContentWidget> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.chat_bubble_outline, size: 48, color: Colors.grey[400]),
+          Icon(Icons.chat_bubble_outline, size: 48, color: Colors.grey[700]),
           const SizedBox(height: 12),
-          Text(
-            'All conversations loaded.',
-            style: TextStyle(fontSize: 14, color: Colors.grey[600]),
-          ),
+          Text('All conversations loaded.', style: TextStyle(fontSize: 14, color: Colors.grey[500])),
         ],
       ),
     );
@@ -3629,12 +2833,9 @@ class _InboxContentWidgetState extends State<InboxContentWidget> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.chat_outlined, size: 64, color: Colors.grey[400]),
+          Icon(Icons.chat_outlined, size: 64, color: Colors.grey[700]),
           const SizedBox(height: 12),
-          Text(
-            'Select a contact to view conversation.',
-            style: TextStyle(fontSize: 16, color: Colors.grey[600]),
-          ),
+          Text('Select a contact to view conversation.', style: TextStyle(fontSize: 16, color: Colors.grey[500])),
         ],
       ),
     );
@@ -3643,27 +2844,20 @@ class _InboxContentWidgetState extends State<InboxContentWidget> {
   Widget _buildConversationView() {
     return Column(
       children: [
-        // Conversation header
         Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: const BorderRadius.only(
-              topLeft: Radius.circular(12),
-              topRight: Radius.circular(12),
-            ),
-            border: Border(bottom: BorderSide(color: Colors.grey[200]!)),
+            color: Colors.black,
+            borderRadius: const BorderRadius.only(topLeft: Radius.circular(12), topRight: Radius.circular(12)),
+            border: Border(bottom: BorderSide(color: _ancientGold.withValues(alpha: 0.2))),
           ),
           child: Row(
             children: [
               CircleAvatar(
-                backgroundColor: const Color(0xFF17A2B8),
+                backgroundColor: _ancientGold,
                 child: Text(
                   _getInitials(selectedConversation!.contactName ?? ''),
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
                 ),
               ),
               const SizedBox(width: 8),
@@ -3673,34 +2867,25 @@ class _InboxContentWidgetState extends State<InboxContentWidget> {
                   children: [
                     Text(
                       selectedConversation!.contactName ?? '',
-                      style: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                      ),
+                      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: _ancientGold),
                       overflow: TextOverflow.ellipsis,
                     ),
                     Text(
                       selectedConversation!.phoneNumber,
-                      style: TextStyle(fontSize: 11, color: Colors.grey[600]),
+                      style: TextStyle(fontSize: 11, color: Colors.grey[500]),
                       overflow: TextOverflow.ellipsis,
                     ),
                   ],
                 ),
               ),
-              IconButton(
-                icon: const Icon(Icons.more_vert, size: 20),
-                onPressed: () {
-                  // Show conversation options
-                },
-              ),
+              IconButton(icon: const Icon(Icons.more_vert, size: 20, color: _ancientGold), onPressed: () {}),
             ],
           ),
         ),
 
-        // Messages list
         Expanded(
           child: selectedConversationMessages.isEmpty
-              ? const Center(child: CircularProgressIndicator())
+              ? const Center(child: CircularProgressIndicator(color: _ancientGold))
               : ListView.builder(
                   padding: const EdgeInsets.all(12),
                   itemCount: selectedConversationMessages.length,
@@ -3711,34 +2896,30 @@ class _InboxContentWidgetState extends State<InboxContentWidget> {
                 ),
         ),
 
-        // Message input
         Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: const BorderRadius.only(
-              bottomLeft: Radius.circular(12),
-              bottomRight: Radius.circular(12),
-            ),
-            border: Border(top: BorderSide(color: Colors.grey[200]!)),
+            color: Colors.black,
+            borderRadius: const BorderRadius.only(bottomLeft: Radius.circular(12), bottomRight: Radius.circular(12)),
+            border: Border(top: BorderSide(color: _ancientGold.withValues(alpha: 0.2))),
           ),
           child: Row(
             children: [
               Expanded(
                 child: Container(
                   decoration: BoxDecoration(
-                    color: Colors.grey[100],
+                    color: Colors.grey[900],
+                    border: Border.all(color: _ancientGold.withValues(alpha: 0.3)),
                     borderRadius: BorderRadius.circular(24),
                   ),
                   child: TextField(
                     controller: _messageController,
+                    style: const TextStyle(color: _ancientGold),
                     decoration: const InputDecoration(
                       hintText: 'Type a message...',
+                      hintStyle: TextStyle(color: Colors.grey),
                       border: InputBorder.none,
-                      contentPadding: EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 10,
-                      ),
+                      contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                     ),
                     maxLines: null,
                     onSubmitted: (_) => _sendMessage(),
@@ -3750,11 +2931,8 @@ class _InboxContentWidgetState extends State<InboxContentWidget> {
                 onTap: _sendMessage,
                 child: Container(
                   padding: const EdgeInsets.all(10),
-                  decoration: const BoxDecoration(
-                    color: Color(0xFF17A2B8),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(Icons.send, color: Colors.white, size: 18),
+                  decoration: const BoxDecoration(color: _ancientGold, shape: BoxShape.circle),
+                  child: const Icon(Icons.send, color: Colors.black, size: 18),
                 ),
               ),
             ],
@@ -3772,11 +2950,10 @@ class _InboxContentWidgetState extends State<InboxContentWidget> {
       child: Container(
         margin: const EdgeInsets.symmetric(vertical: 4),
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        constraints: BoxConstraints(
-          maxWidth: MediaQuery.of(context).size.width * 0.7,
-        ),
+        constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.7),
         decoration: BoxDecoration(
-          color: isFromBusiness ? const Color(0xFF17A2B8) : Colors.grey[200],
+          color: isFromBusiness ? _ancientGold : Colors.grey[900],
+          border: Border.all(color: isFromBusiness ? Colors.transparent : _ancientGold.withValues(alpha: 0.3)),
           borderRadius: BorderRadius.only(
             topLeft: const Radius.circular(12),
             topRight: const Radius.circular(12),
@@ -3790,7 +2967,7 @@ class _InboxContentWidgetState extends State<InboxContentWidget> {
             Text(
               message.content,
               style: TextStyle(
-                color: isFromBusiness ? Colors.white : Colors.black87,
+                color: isFromBusiness ? Colors.black : _ancientGold,
                 fontSize: 13,
               ),
             ),
@@ -3801,17 +2978,13 @@ class _InboxContentWidgetState extends State<InboxContentWidget> {
                 Text(
                   _formatMessageTime(message.timestamp),
                   style: TextStyle(
-                    color: isFromBusiness ? Colors.white70 : Colors.grey[600],
+                    color: isFromBusiness ? Colors.black54 : Colors.grey[500],
                     fontSize: 10,
                   ),
                 ),
                 if (isFromBusiness) ...[
                   const SizedBox(width: 4),
-                  Icon(
-                    _getStatusIcon(message.status),
-                    size: 10,
-                    color: Colors.white70,
-                  ),
+                  Icon(_getStatusIcon(message.status), size: 10, color: Colors.black54),
                 ],
               ],
             ),
@@ -3850,14 +3023,10 @@ class _InboxContentWidgetState extends State<InboxContentWidget> {
 
   IconData _getStatusIcon(MessageStatus status) {
     switch (status) {
-      case MessageStatus.sent:
-        return Icons.check;
-      case MessageStatus.delivered:
-        return Icons.done_all;
-      case MessageStatus.read:
-        return Icons.done_all;
-      case MessageStatus.failed:
-        return Icons.error_outline;
+      case MessageStatus.sent: return Icons.check;
+      case MessageStatus.delivered: return Icons.done_all;
+      case MessageStatus.read: return Icons.done_all;
+      case MessageStatus.failed: return Icons.error_outline;
     }
   }
 

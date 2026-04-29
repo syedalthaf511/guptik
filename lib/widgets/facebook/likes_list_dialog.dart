@@ -96,7 +96,7 @@ class LikesListDialog extends StatelessWidget {
               Expanded(
                 child: ListView.separated(
                   itemCount: likes.length,
-                  separatorBuilder: (_, __) => const Divider(height: 1),
+                  separatorBuilder: (_, _) => const Divider(height: 1),
                   itemBuilder: (context, index) {
                     final like = likes[index];
                     return ListTile(

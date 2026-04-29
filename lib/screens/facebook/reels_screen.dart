@@ -3,6 +3,7 @@ import 'package:guptik/models/facebook/meta_content_model.dart';
 import 'package:guptik/models/facebook/meta_story_reel_model.dart';
 import 'package:guptik/services/facebook/meta_service.dart';
 import 'package:guptik/widgets/facebook/reel_player_widget.dart';
+import 'package:guptik/config/app_theme.dart';
 
 class ReelsScreen extends StatefulWidget {
   final SocialPlatform platform;
@@ -65,35 +66,67 @@ class _ReelsScreenState extends State<ReelsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final platformColor = widget.platform == SocialPlatform.facebook
+        ? AppTheme.facebookBlue
+        : AppTheme.instagramPink;
+
     return Scaffold(
+      backgroundColor: AppTheme.background,
       appBar: AppBar(
-        title: Text('${widget.platform.name.toUpperCase()} Reels'),
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.black,
+        title: Text(
+          '${widget.platform.name.toUpperCase()} Reels',
+          style: AppTheme.textTheme.headlineSmall,
+        ),
+        backgroundColor: AppTheme.surface,
+        foregroundColor: AppTheme.dark,
         elevation: 1,
+        shadowColor: Colors.black.withValues(alpha: 0.05),
         actions: [
-          IconButton(icon: const Icon(Icons.refresh), onPressed: _loadReels),
+          IconButton(
+            icon: Icon(Icons.refresh, color: platformColor),
+            onPressed: _loadReels,
+          ),
         ],
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? Center(
+              child: CircularProgressIndicator(
+                valueColor: AlwaysStoppedAnimation<Color>(platformColor),
+              ),
+            )
           : _reels.isEmpty
           ? Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.videocam_off, size: 64, color: Colors.grey[400]),
-                  const SizedBox(height: 16),
+                  Container(
+                    width: 80,
+                    height: 80,
+                    decoration: BoxDecoration(
+                      color: platformColor.withValues(alpha: 0.1),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      Icons.videocam_off,
+                      size: 40,
+                      color: platformColor.withValues(alpha: 0.6),
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.lg),
                   Text(
                     widget.platform == SocialPlatform.facebook
-                        ? 'No reels found for this Facebook page.\n'
-                              'Make sure your page is connected to an Instagram business account.'
-                        : 'No reels found',
+                        ? 'No Reels Found'
+                        : 'No Reels Found',
+                    style: AppTheme.textTheme.titleMedium,
+                  ),
+                  const SizedBox(height: AppSpacing.md),
+                  Text(
+                    'Create your first reel to get started',
+                    style: AppTheme.textTheme.bodySmall,
                     textAlign: TextAlign.center,
-                    style: TextStyle(fontSize: 16, color: Colors.grey[600]),
                   ),
                   if (widget.platform == SocialPlatform.facebook) ...[
-                    const SizedBox(height: 16),
+                    const SizedBox(height: AppSpacing.lg),
                     ElevatedButton(
                       onPressed: () {
                         showDialog(
@@ -112,6 +145,9 @@ class _ReelsScreenState extends State<ReelsScreen> {
                           ),
                         );
                       },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: platformColor,
+                      ),
                       child: const Text('Learn More'),
                     ),
                   ],
@@ -119,18 +155,18 @@ class _ReelsScreenState extends State<ReelsScreen> {
               ),
             )
           : ListView.builder(
-              padding: const EdgeInsets.all(8),
+              padding: const EdgeInsets.all(AppSpacing.lg),
               itemCount: _reels.length,
               itemBuilder: (context, index) {
                 final reel = _reels[index];
                 final reelId = _extractReelId(reel);
                 final bool isPlaying = _currentlyPlayingReelId == reel.id;
 
-                return Card(
-                  margin: const EdgeInsets.symmetric(vertical: 8),
-                  elevation: 2,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+                return Container(
+                  margin: const EdgeInsets.only(bottom: AppSpacing.lg),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(AppRadius.lg),
+                    boxShadow: AppShadows.light,
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -139,9 +175,9 @@ class _ReelsScreenState extends State<ReelsScreen> {
                       Container(
                         height: 400,
                         width: double.infinity,
-                        decoration: const BoxDecoration(
-                          borderRadius: BorderRadius.vertical(
-                            top: Radius.circular(12),
+                        decoration: BoxDecoration(
+                          borderRadius: const BorderRadius.vertical(
+                            top: Radius.circular(AppRadius.lg),
                           ),
                           color: Colors.black,
                         ),
@@ -155,11 +191,11 @@ class _ReelsScreenState extends State<ReelsScreen> {
                             ),
                             if (!isPlaying)
                               Positioned(
-                                bottom: 16,
-                                right: 16,
+                                bottom: AppSpacing.lg,
+                                right: AppSpacing.lg,
                                 child: Container(
                                   decoration: BoxDecoration(
-                                    color: Colors.black.withOpacity(0.6),
+                                    color: Colors.black.withValues(alpha: 0.6),
                                     shape: BoxShape.circle,
                                   ),
                                   child: IconButton(
@@ -168,9 +204,7 @@ class _ReelsScreenState extends State<ReelsScreen> {
                                       color: Colors.white,
                                       size: 28,
                                     ),
-                                    onPressed: () {
-                                      // The WebView handles play/pause automatically
-                                    },
+                                    onPressed: () {},
                                   ),
                                 ),
                               ),
@@ -178,8 +212,14 @@ class _ReelsScreenState extends State<ReelsScreen> {
                         ),
                       ),
                       // Reel Details
-                      Padding(
-                        padding: const EdgeInsets.all(12),
+                      Container(
+                        decoration: const BoxDecoration(
+                          borderRadius: BorderRadius.vertical(
+                            bottom: Radius.circular(AppRadius.lg),
+                          ),
+                          color: AppTheme.surface,
+                        ),
+                        padding: const EdgeInsets.all(AppSpacing.lg),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
@@ -189,40 +229,34 @@ class _ReelsScreenState extends State<ReelsScreen> {
                                   : reel.caption,
                               maxLines: 2,
                               overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w600,
-                              ),
+                              style: AppTheme.textTheme.titleSmall,
                             ),
-                            const SizedBox(height: 8),
+                            const SizedBox(height: AppSpacing.lg),
                             Row(
                               children: [
                                 _buildStatChip(
                                   icon: Icons.favorite,
                                   label: '${reel.likes}',
-                                  color: Colors.red,
+                                  color: AppTheme.error,
                                 ),
-                                const SizedBox(width: 8),
+                                const SizedBox(width: AppSpacing.lg),
                                 _buildStatChip(
                                   icon: Icons.comment,
                                   label: '${reel.comments}',
-                                  color: Colors.blue,
+                                  color: platformColor,
                                 ),
-                                const SizedBox(width: 8),
+                                const SizedBox(width: AppSpacing.lg),
                                 _buildStatChip(
                                   icon: Icons.remove_red_eye,
                                   label: '${reel.plays}',
-                                  color: Colors.green,
+                                  color: AppTheme.success,
                                 ),
                               ],
                             ),
-                            const SizedBox(height: 8),
+                            const SizedBox(height: AppSpacing.md),
                             Text(
                               reel.timeElapsed,
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: Colors.grey[600],
-                              ),
+                              style: AppTheme.textTheme.bodySmall,
                             ),
                           ],
                         ),
@@ -241,21 +275,24 @@ class _ReelsScreenState extends State<ReelsScreen> {
     required Color color,
   }) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.md,
+        vertical: AppSpacing.sm,
+      ),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(6),
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(AppRadius.md),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(icon, size: 14, color: color),
-          const SizedBox(width: 4),
+          const SizedBox(width: AppSpacing.sm),
           Text(
             label,
             style: TextStyle(
               fontSize: 12,
-              fontWeight: FontWeight.w600,
+              fontWeight: FontWeight.w700,
               color: color,
             ),
           ),

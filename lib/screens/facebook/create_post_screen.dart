@@ -1,8 +1,9 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:guptik/models/facebook/meta_content_model.dart'; // For SocialPlatform enum
+import 'package:guptik/models/facebook/meta_content_model.dart';
 import 'package:guptik/services/facebook/meta_service.dart';
+import 'package:guptik/config/app_theme.dart';
 
 class CreatePostScreen extends StatefulWidget {
   const CreatePostScreen({super.key});
@@ -95,153 +96,222 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final platformColor = _selectedPlatform == SocialPlatform.facebook
+        ? AppTheme.facebookBlue
+        : AppTheme.instagramPink;
+
     return Scaffold(
-      backgroundColor: Colors.grey[50],
+      backgroundColor: AppTheme.background,
       appBar: AppBar(
-        title: Text(
-          "Create New Post",
-          style: TextStyle(
-            color: Colors.grey[900],
-            fontWeight: FontWeight.w700,
-            fontSize: 20,
-            letterSpacing: 0.3,
-          ),
-        ),
-        backgroundColor: Colors.white,
-        elevation: 2,
-        shadowColor: Colors.grey.withValues(alpha: 0.1),
-        iconTheme: IconThemeData(color: Colors.grey[800]),
+        title: Text("Create Post", style: AppTheme.textTheme.headlineSmall),
+        backgroundColor: AppTheme.surface,
+        elevation: 1,
+        shadowColor: Colors.black.withValues(alpha: 0.05),
+        iconTheme: const IconThemeData(color: AppTheme.dark),
         actions: [
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            child: TextButton(
-              onPressed: (_canPost && !_isUploading) ? _handlePost : null,
-              style: TextButton.styleFrom(
-                backgroundColor: (_canPost && !_isUploading)
-                    ? const Color(0xFF1877F2)
-                    : Colors.grey[300],
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(22),
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+            child: Center(
+              child: ElevatedButton(
+                onPressed: (_canPost && !_isUploading) ? _handlePost : null,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: (_canPost && !_isUploading)
+                      ? platformColor
+                      : AppTheme.lightGrey,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(AppRadius.lg),
+                  ),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.xxl,
+                    vertical: AppSpacing.md,
+                  ),
+                  elevation: 0,
                 ),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 28,
-                  vertical: 10,
-                ),
+                child: _isUploading
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            Colors.white,
+                          ),
+                        ),
+                      )
+                    : Text(
+                        "Post",
+                        style: TextStyle(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 14,
+                          color: (_canPost && !_isUploading)
+                              ? Colors.white
+                              : AppTheme.mediumGrey,
+                        ),
+                      ),
               ),
-              child: _isUploading
-                  ? const SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                      ),
-                    )
-                  : Text(
-                      "Post",
-                      style: TextStyle(
-                        fontWeight: FontWeight.w700,
-                        fontSize: 15,
-                        color: (_canPost && !_isUploading)
-                            ? Colors.white
-                            : Colors.grey[600],
-                        letterSpacing: 0.4,
-                      ),
-                    ),
             ),
           ),
         ],
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(AppSpacing.lg),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Platform Selector
-            Row(
-              children: [
-                const Text(
-                  "Post to: ",
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+            // Platform Selector Card
+            Container(
+              padding: const EdgeInsets.all(AppSpacing.lg),
+              decoration: BoxDecoration(
+                color: AppTheme.surface,
+                borderRadius: BorderRadius.circular(AppRadius.lg),
+                border: Border.all(
+                  color: AppTheme.lightGrey.withValues(alpha: 0.3),
                 ),
-                const SizedBox(width: 10),
-                ChoiceChip(
-                  label: const Text("Facebook"),
-                  selected: _selectedPlatform == SocialPlatform.facebook,
-                  onSelected: (val) => setState(
-                    () => _selectedPlatform = SocialPlatform.facebook,
+                boxShadow: AppShadows.light,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text("Select Platform", style: AppTheme.textTheme.titleSmall),
+                  const SizedBox(height: AppSpacing.lg),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _buildPlatformButton(
+                          "Facebook",
+                          AppTheme.facebookBlue,
+                          _selectedPlatform == SocialPlatform.facebook,
+                          () => setState(
+                            () => _selectedPlatform = SocialPlatform.facebook,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: AppSpacing.lg),
+                      Expanded(
+                        child: _buildPlatformButton(
+                          "Instagram",
+                          AppTheme.instagramPink,
+                          _selectedPlatform == SocialPlatform.instagram,
+                          () => setState(
+                            () => _selectedPlatform = SocialPlatform.instagram,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                  selectedColor: Colors.blue.withValues(alpha: 0.2),
-                  labelStyle: TextStyle(
-                    color: _selectedPlatform == SocialPlatform.facebook
-                        ? Colors.blue
-                        : Colors.black,
-                  ),
-                ),
-                const SizedBox(width: 10),
-                ChoiceChip(
-                  label: const Text("Instagram"),
-                  selected: _selectedPlatform == SocialPlatform.instagram,
-                  onSelected: (val) => setState(
-                    () => _selectedPlatform = SocialPlatform.instagram,
-                  ),
-                  selectedColor: Colors.pink.withValues(alpha: 0.2),
-                  labelStyle: TextStyle(
-                    color: _selectedPlatform == SocialPlatform.instagram
-                        ? Colors.pink
-                        : Colors.black,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 20),
-
-            // Caption Input
-            TextField(
-              controller: _captionController,
-              maxLines: 4,
-              decoration: InputDecoration(
-                hintText: "What's on your mind?",
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                filled: true,
-                fillColor: Colors.grey[50],
+                ],
               ),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: AppSpacing.lg),
 
-            // Image Picker Area (Optional for Facebook, Required for Instagram)
+            // Caption Input Card
+            Container(
+              padding: const EdgeInsets.all(AppSpacing.lg),
+              decoration: BoxDecoration(
+                color: AppTheme.surface,
+                borderRadius: BorderRadius.circular(AppRadius.lg),
+                border: Border.all(
+                  color: AppTheme.lightGrey.withValues(alpha: 0.3),
+                ),
+                boxShadow: AppShadows.light,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text("Write Caption", style: AppTheme.textTheme.titleSmall),
+                  const SizedBox(height: AppSpacing.lg),
+                  TextField(
+                    controller: _captionController,
+                    maxLines: 4,
+                    style: AppTheme.textTheme.bodyMedium,
+                    decoration: InputDecoration(
+                      hintText: "What's on your mind?",
+                      hintStyle: AppTheme.textTheme.bodySmall,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(AppRadius.lg),
+                        borderSide: const BorderSide(color: AppTheme.lightGrey),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(AppRadius.lg),
+                        borderSide: const BorderSide(color: AppTheme.lightGrey),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(AppRadius.lg),
+                        borderSide: BorderSide(color: platformColor, width: 2),
+                      ),
+                      filled: true,
+                      fillColor: AppTheme.lightGreyBg,
+                      contentPadding: const EdgeInsets.all(AppSpacing.lg),
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.md),
+                  Text(
+                    "${_captionController.text.length}/2200",
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: _captionController.text.length > 2000
+                          ? AppTheme.warning
+                          : AppTheme.mediumGrey,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: AppSpacing.lg),
+
+            // Image Upload Card
             GestureDetector(
               onTap: _pickImage,
               child: Container(
-                height: 300,
+                height: 280,
                 width: double.infinity,
                 decoration: BoxDecoration(
-                  color: Colors.grey[200],
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.grey[300]!),
+                  color: AppTheme.surface,
+                  borderRadius: BorderRadius.circular(AppRadius.lg),
+                  border: Border.all(
+                    color: platformColor.withValues(alpha: 0.3),
+                    width: 2,
+                  ),
+                  boxShadow: AppShadows.light,
                 ),
                 child: _selectedImage != null
                     ? Stack(
                         fit: StackFit.expand,
                         children: [
                           ClipRRect(
-                            borderRadius: BorderRadius.circular(12),
+                            borderRadius: BorderRadius.circular(AppRadius.lg),
                             child: Image.file(
                               _selectedImage!,
                               fit: BoxFit.cover,
                             ),
                           ),
+                          Container(
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                begin: Alignment.topCenter,
+                                end: Alignment.bottomCenter,
+                                colors: [
+                                  Colors.transparent,
+                                  Colors.black.withValues(alpha: 0.3),
+                                ],
+                              ),
+                            ),
+                          ),
                           Positioned(
-                            top: 8,
-                            right: 8,
-                            child: CircleAvatar(
-                              backgroundColor: Colors.black54,
+                            top: AppSpacing.lg,
+                            right: AppSpacing.lg,
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: Colors.black54,
+                                borderRadius: BorderRadius.circular(
+                                  AppRadius.lg,
+                                ),
+                              ),
                               child: IconButton(
                                 icon: const Icon(
                                   Icons.edit,
                                   color: Colors.white,
+                                  size: 20,
                                 ),
                                 onPressed: _pickImage,
                               ),
@@ -252,42 +322,117 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                     : Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(Icons.add_a_photo, size: 50, color: Colors.grey),
-                          const SizedBox(height: 10),
+                          Icon(
+                            Icons.add_a_photo,
+                            size: 48,
+                            color: platformColor.withValues(alpha: 0.6),
+                          ),
+                          const SizedBox(height: AppSpacing.lg),
                           Text(
                             _selectedPlatform == SocialPlatform.instagram
-                                ? "Photo Required for Instagram"
-                                : "Add Photo (Optional for Facebook)",
-                            style: TextStyle(color: Colors.grey, fontSize: 16),
+                                ? "Photo Required"
+                                : "Add Photo",
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                              color: AppTheme.dark,
+                            ),
+                          ),
+                          const SizedBox(height: AppSpacing.sm),
+                          Text(
+                            _selectedPlatform == SocialPlatform.instagram
+                                ? "Tap to add a photo for Instagram"
+                                : "Tap to add a photo (optional)",
+                            style: AppTheme.textTheme.bodySmall,
                           ),
                         ],
                       ),
               ),
             ),
+
+            // Warning for Instagram
             if (_selectedPlatform == SocialPlatform.instagram &&
                 _selectedImage == null)
               Padding(
-                padding: const EdgeInsets.only(top: 8),
-                child: Row(
-                  children: [
-                    Icon(
-                      Icons.info_outline,
-                      size: 14,
-                      color: Colors.orange[700],
+                padding: const EdgeInsets.only(top: AppSpacing.lg),
+                child: Container(
+                  padding: const EdgeInsets.all(AppSpacing.lg),
+                  decoration: BoxDecoration(
+                    color: AppTheme.warning.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(AppRadius.lg),
+                    border: Border.all(
+                      color: AppTheme.warning.withValues(alpha: 0.3),
                     ),
-                    const SizedBox(width: 4),
-                    Expanded(
-                      child: Text(
-                        "Instagram requires an image. Please select one to post.",
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.orange[700],
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.info_outline,
+                        size: 18,
+                        color: AppTheme.warning,
+                      ),
+                      const SizedBox(width: AppSpacing.lg),
+                      Expanded(
+                        child: Text(
+                          "Instagram requires at least one photo to post.",
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: AppTheme.warning,
+                            fontWeight: FontWeight.w500,
+                          ),
                         ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
+
+            const SizedBox(height: AppSpacing.xxxl),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPlatformButton(
+    String label,
+    Color color,
+    bool isSelected,
+    VoidCallback onTap,
+  ) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(
+          vertical: AppSpacing.lg,
+          horizontal: AppSpacing.lg,
+        ),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? color.withValues(alpha: 0.1)
+              : AppTheme.background,
+          border: Border.all(
+            color: isSelected ? color : AppTheme.lightGrey,
+            width: isSelected ? 2 : 1,
+          ),
+          borderRadius: BorderRadius.circular(AppRadius.lg),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              isSelected ? Icons.check_circle : Icons.circle_outlined,
+              color: isSelected ? color : AppTheme.mediumGrey,
+              size: 20,
+            ),
+            const SizedBox(width: AppSpacing.md),
+            Text(
+              label,
+              style: TextStyle(
+                fontWeight: FontWeight.w600,
+                color: isSelected ? color : AppTheme.dark,
+              ),
+            ),
           ],
         ),
       ),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:guptik/config/app_theme.dart';
 import 'content_screen.dart';
 import 'inbox_screen.dart';
 import 'analytics_dashboard_screen.dart';
@@ -20,7 +21,6 @@ class FbAndInstaScreen extends StatefulWidget {
 class _FbAndInstaScreenState extends State<FbAndInstaScreen> {
   final MetaService _metaService = MetaService();
   int _currentIndex = 0;
-  final ScrollController _scrollController = ScrollController();
 
   // User profile data
   String? _userAvatarUrl;
@@ -35,13 +35,14 @@ class _FbAndInstaScreenState extends State<FbAndInstaScreen> {
   String? _instagramAccountPicture;
   bool _isLoadingPageNames = true;
 
+  // Platform selection state
+  SocialPlatform _selectedPlatform = SocialPlatform.facebook;
+
   // Real data variables
   int _fbFollowers = 0;
   int _igFollowers = 0;
   double _engagementRate = 0.0;
   bool _isLoadingStats = true;
-
-  final List<Widget> _screens = [const ContentScreen(), const InboxScreen()];
 
   @override
   void initState() {
@@ -137,26 +138,34 @@ class _FbAndInstaScreenState extends State<FbAndInstaScreen> {
   void _showQuickActionsMenu() {
     showModalBottomSheet(
       context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.xl)),
       ),
       builder: (context) => Container(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(AppSpacing.lg),
+        decoration: BoxDecoration(
+          color: AppTheme.surface,
+          borderRadius: BorderRadius.vertical(
+            top: Radius.circular(AppRadius.xl),
+          ),
+        ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text(
+            Text(
               'Quick Actions',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              style: AppTheme.textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.w700,
+              ),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: AppSpacing.lg),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
                 _buildQuickActionButton(
                   icon: FontAwesomeIcons.facebook,
                   label: 'FB Analytics',
-                  color: const Color(0xFF1877F2),
+                  color: AppTheme.facebookBlue,
                   onTap: () {
                     Navigator.pop(context);
                     Navigator.push(
@@ -172,7 +181,7 @@ class _FbAndInstaScreenState extends State<FbAndInstaScreen> {
                 _buildQuickActionButton(
                   icon: FontAwesomeIcons.instagram,
                   label: 'IG Analytics',
-                  color: const Color(0xFFE1306C),
+                  color: AppTheme.instagramPink,
                   onTap: () {
                     Navigator.pop(context);
                     Navigator.push(
@@ -240,12 +249,18 @@ class _FbAndInstaScreenState extends State<FbAndInstaScreen> {
             height: 48,
             decoration: BoxDecoration(
               color: color.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(AppRadius.md),
+              border: Border.all(color: color.withValues(alpha: 0.2)),
             ),
-            child: Icon(icon, color: color, size: 24),
+            child: Icon(icon, color: color, size: 22),
           ),
-          const SizedBox(height: 6),
-          Text(label, style: TextStyle(fontSize: 11, color: Colors.grey[700])),
+          const SizedBox(height: AppSpacing.sm),
+          Text(
+            label,
+            style: AppTheme.textTheme.labelSmall?.copyWith(
+              color: AppTheme.mediumGrey,
+            ),
+          ),
         ],
       ),
     );
@@ -254,443 +269,520 @@ class _FbAndInstaScreenState extends State<FbAndInstaScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: NestedScrollView(
-        controller: _scrollController,
-        headerSliverBuilder: (context, innerBoxIsScrolled) {
-          return [
-            SliverAppBar(
-              expandedHeight: 280,
-              floating: false,
-              pinned: true,
-              backgroundColor: Colors.white,
-              elevation: 0,
-              automaticallyImplyLeading: false, // Removes duplicate back button
-              flexibleSpace: FlexibleSpaceBar(
-                background: Container(
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [Colors.white, Colors.grey[50]!],
-                    ),
-                  ),
-                  child: SafeArea(
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(20, 8, 20, 8),
-                      child: Column(
-                        children: [
-                          // Top Row: Back + Profile + Create Post
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              // Back button + Profile Row
-                              Row(
-                                children: [
-                                  IconButton(
-                                    icon: const Icon(
-                                      Icons.arrow_back,
-                                      color: Colors.black,
-                                    ),
-                                    onPressed: () {
-                                      Navigator.pop(context);
-                                    },
-                                    padding: EdgeInsets.zero,
-                                    constraints: const BoxConstraints(),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Container(
-                                    decoration: BoxDecoration(
-                                      shape: BoxShape.circle,
-                                      border: Border.all(
-                                        color: const Color(0xFF1877F2),
-                                        width: 2,
-                                      ),
-                                    ),
-                                    child: CircleAvatar(
-                                      radius: 28,
-                                      backgroundImage: _userAvatarUrl != null
-                                          ? NetworkImage(_userAvatarUrl!)
-                                          : null,
-                                      backgroundColor: Colors.grey[200],
-                                      child: _userAvatarUrl == null
-                                          ? _isLoadingUser
-                                                ? const SizedBox(
-                                                    width: 24,
-                                                    height: 24,
-                                                    child:
-                                                        CircularProgressIndicator(
-                                                          strokeWidth: 2,
-                                                        ),
-                                                  )
-                                                : Text(
-                                                    _userName?.isNotEmpty ==
-                                                            true
-                                                        ? _userName![0]
-                                                              .toUpperCase()
-                                                        : 'U',
-                                                    style: const TextStyle(
-                                                      fontSize: 20,
-                                                      fontWeight:
-                                                          FontWeight.bold,
-                                                      color: Colors.grey,
-                                                    ),
-                                                  )
-                                          : null,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 12),
-                                  Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        'Welcome back,',
-                                        style: TextStyle(
-                                          fontSize: 13,
-                                          color: Colors.grey[600],
-                                        ),
-                                      ),
-                                      Text(
-                                        _userName ?? 'User',
-                                        style: const TextStyle(
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.w700,
-                                        ),
-                                      ),
-                                      if (_userEmail != null)
-                                        Text(
-                                          _userEmail!,
-                                          style: TextStyle(
-                                            fontSize: 11,
-                                            color: Colors.grey[500],
-                                          ),
-                                        ),
-                                    ],
-                                  ),
-                                ],
+      body: Column(
+        children: [
+          // FIXED HEADER - Does not scroll
+          Container(
+            decoration: BoxDecoration(
+              color: AppTheme.surface,
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [AppTheme.surface, AppTheme.background],
+              ),
+            ),
+            child: SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(
+                  AppSpacing.lg,
+                  AppSpacing.sm,
+                  AppSpacing.lg,
+                  AppSpacing.md,
+                ),
+                child: Column(
+                  children: [
+                    // Top Row: Back + Profile + Create Post
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        // Back button + Profile Row
+                        Row(
+                          children: [
+                            IconButton(
+                              icon: Icon(
+                                Icons.arrow_back,
+                                color: AppTheme.dark,
                               ),
+                              onPressed: () {
+                                Navigator.pop(context);
+                              },
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(),
+                            ),
+                            const SizedBox(width: AppSpacing.md),
+                            Container(
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                  color: AppTheme.facebookBlue,
+                                  width: 2,
+                                ),
+                              ),
+                              child: CircleAvatar(
+                                radius: 28,
+                                backgroundImage: _userAvatarUrl != null
+                                    ? NetworkImage(_userAvatarUrl!)
+                                    : null,
+                                backgroundColor: AppTheme.lightGrey,
+                                child: _userAvatarUrl == null
+                                    ? _isLoadingUser
+                                          ? SizedBox(
+                                              width: 24,
+                                              height: 24,
+                                              child: CircularProgressIndicator(
+                                                strokeWidth: 2,
+                                                valueColor:
+                                                    AlwaysStoppedAnimation<
+                                                      Color
+                                                    >(AppTheme.facebookBlue),
+                                              ),
+                                            )
+                                          : Text(
+                                              _userName?.isNotEmpty == true
+                                                  ? _userName![0].toUpperCase()
+                                                  : 'U',
+                                              style: AppTheme
+                                                  .textTheme
+                                                  .headlineMedium
+                                                  ?.copyWith(
+                                                    fontWeight: FontWeight.bold,
+                                                    color: AppTheme.mediumGrey,
+                                                  ),
+                                            )
+                                    : null,
+                              ),
+                            ),
+                            const SizedBox(width: AppSpacing.md),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Welcome back,',
+                                  style: AppTheme.textTheme.labelSmall
+                                      ?.copyWith(color: AppTheme.mediumGrey),
+                                ),
+                                Text(
+                                  _userName ?? 'User',
+                                  style: AppTheme.textTheme.titleMedium
+                                      ?.copyWith(fontWeight: FontWeight.w700),
+                                ),
+                                if (_userEmail != null)
+                                  Text(
+                                    _userEmail!,
+                                    style: AppTheme.textTheme.labelSmall
+                                        ?.copyWith(color: AppTheme.lightGrey),
+                                  ),
+                              ],
+                            ),
+                          ],
+                        ),
 
-                              // Create Post Button
-                              Container(
-                                decoration: BoxDecoration(
-                                  gradient: const LinearGradient(
-                                    colors: [
-                                      Color(0xFF1877F2),
-                                      Color(0xFFE1306C),
-                                    ],
-                                  ),
-                                  borderRadius: BorderRadius.circular(14),
-                                ),
-                                child: IconButton(
-                                  icon: const Icon(
-                                    Icons.add,
-                                    color: Colors.white,
-                                    size: 24,
-                                  ),
-                                  onPressed: () {
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (context) =>
-                                            const CreatePostScreen(),
-                                      ),
-                                    );
-                                  },
-                                  tooltip: 'Create Post',
-                                  padding: const EdgeInsets.all(10),
-                                  constraints: const BoxConstraints(),
-                                ),
+                        // Create Post Button
+                        Container(
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(
+                              colors: [Color(0xFF1877F2), Color(0xFFE1306C)],
+                            ),
+                            borderRadius: BorderRadius.circular(AppRadius.md),
+                            boxShadow: [
+                              BoxShadow(
+                                color: const Color(
+                                  0xFF1877F2,
+                                ).withValues(alpha: 0.3),
+                                blurRadius: 8,
+                                offset: const Offset(0, 2),
                               ),
                             ],
                           ),
-                          const SizedBox(height: 20),
+                          child: IconButton(
+                            icon: Icon(
+                              Icons.add,
+                              color: Colors.white,
+                              size: 22,
+                            ),
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) =>
+                                      const CreatePostScreen(),
+                                ),
+                              );
+                            },
+                            tooltip: 'Create Post',
+                            padding: const EdgeInsets.all(AppSpacing.sm),
+                            constraints: const BoxConstraints(),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: AppSpacing.lg),
 
-                          // Platform Cards
-                          if (!_isLoadingPageNames)
-                            Row(
-                              children: [
-                                // Facebook Card
-                                Expanded(
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      vertical: 14,
-                                      horizontal: 12,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: const Color(
-                                        0xFF1877F2,
-                                      ).withValues(alpha: 0.08),
-                                      borderRadius: BorderRadius.circular(20),
-                                      border: Border.all(
-                                        color: const Color(
-                                          0xFF1877F2,
-                                        ).withValues(alpha: 0.25),
-                                        width: 1,
+                    // Platform Cards - Toggleable
+                    if (!_isLoadingPageNames)
+                      Row(
+                        children: [
+                          // Facebook Card
+                          Expanded(
+                            child: GestureDetector(
+                              onTap: () {
+                                setState(() {
+                                  _selectedPlatform = SocialPlatform.facebook;
+                                });
+                              },
+                              child: AnimatedContainer(
+                                duration: const Duration(milliseconds: 300),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: AppSpacing.md,
+                                  horizontal: AppSpacing.md,
+                                ),
+                                decoration: BoxDecoration(
+                                  color:
+                                      _selectedPlatform ==
+                                          SocialPlatform.facebook
+                                      ? AppTheme.facebookBlue.withValues(
+                                          alpha: 0.12,
+                                        )
+                                      : AppTheme.facebookBlue.withValues(
+                                          alpha: 0.05,
+                                        ),
+                                  borderRadius: BorderRadius.circular(
+                                    AppRadius.xl,
+                                  ),
+                                  border: Border.all(
+                                    color:
+                                        _selectedPlatform ==
+                                            SocialPlatform.facebook
+                                        ? AppTheme.facebookBlue.withValues(
+                                            alpha: 0.5,
+                                          )
+                                        : AppTheme.facebookBlue.withValues(
+                                            alpha: 0.2,
+                                          ),
+                                    width:
+                                        _selectedPlatform ==
+                                            SocialPlatform.facebook
+                                        ? 2
+                                        : 1,
+                                  ),
+                                  boxShadow:
+                                      _selectedPlatform ==
+                                          SocialPlatform.facebook
+                                      ? [
+                                          BoxShadow(
+                                            color: AppTheme.facebookBlue
+                                                .withValues(alpha: 0.2),
+                                            blurRadius: 12,
+                                            offset: const Offset(0, 4),
+                                          ),
+                                        ]
+                                      : null,
+                                ),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Container(
+                                      width: 52,
+                                      height: 52,
+                                      decoration: BoxDecoration(
+                                        shape: BoxShape.circle,
+                                        gradient: LinearGradient(
+                                          colors: [
+                                            AppTheme.facebookBlue,
+                                            AppTheme.facebookBlue.withValues(
+                                              alpha: 0.8,
+                                            ),
+                                          ],
+                                        ),
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: AppTheme.facebookBlue
+                                                .withValues(alpha: 0.3),
+                                            blurRadius: 8,
+                                            offset: const Offset(0, 2),
+                                          ),
+                                        ],
+                                      ),
+                                      child: ClipOval(
+                                        child:
+                                            _facebookPagePicture != null &&
+                                                _facebookPagePicture!.isNotEmpty
+                                            ? Image.network(
+                                                _facebookPagePicture!,
+                                                fit: BoxFit.cover,
+                                                errorBuilder: (_, _, _) =>
+                                                    const Center(
+                                                      child: FaIcon(
+                                                        FontAwesomeIcons
+                                                            .facebook,
+                                                        size: 24,
+                                                        color: Colors.white,
+                                                      ),
+                                                    ),
+                                              )
+                                            : const Center(
+                                                child: FaIcon(
+                                                  FontAwesomeIcons.facebook,
+                                                  size: 24,
+                                                  color: Colors.white,
+                                                ),
+                                              ),
                                       ),
                                     ),
-                                    child: Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.center,
-                                      children: [
-                                        Container(
-                                          width: 52,
-                                          height: 52,
-                                          decoration: BoxDecoration(
-                                            shape: BoxShape.circle,
-                                            gradient: LinearGradient(
-                                              colors: [
-                                                const Color(0xFF1877F2),
-                                                const Color(
-                                                  0xFF1877F2,
-                                                ).withValues(alpha: 0.8),
-                                              ],
-                                            ),
-                                            boxShadow: [
-                                              BoxShadow(
-                                                color: const Color(
-                                                  0xFF1877F2,
-                                                ).withValues(alpha: 0.3),
-                                                blurRadius: 8,
-                                                offset: const Offset(0, 2),
-                                              ),
-                                            ],
-                                          ),
-                                          child: ClipOval(
-                                            child:
-                                                _facebookPagePicture != null &&
-                                                    _facebookPagePicture!
-                                                        .isNotEmpty
-                                                ? Image.network(
-                                                    _facebookPagePicture!,
-                                                    fit: BoxFit.cover,
-                                                    errorBuilder:
-                                                        (
-                                                          _,
-                                                          __,
-                                                          ___,
-                                                        ) => const Center(
-                                                          child: FaIcon(
-                                                            FontAwesomeIcons
-                                                                .facebook,
-                                                            size: 26,
-                                                            color: Colors.white,
-                                                          ),
-                                                        ),
-                                                  )
-                                                : const Center(
-                                                    child: FaIcon(
-                                                      FontAwesomeIcons.facebook,
-                                                      size: 26,
-                                                      color: Colors.white,
-                                                    ),
-                                                  ),
-                                          ),
-                                        ),
-                                        const SizedBox(width: 14),
-                                        Flexible(
-                                          child: Column(
-                                            crossAxisAlignment:
-                                                CrossAxisAlignment.start,
-                                            mainAxisSize: MainAxisSize.min,
-                                            children: [
-                                              const Text(
-                                                'Facebook',
-                                                style: TextStyle(
-                                                  fontSize: 12,
-                                                  color: Colors.grey,
+                                    const SizedBox(width: AppSpacing.md),
+                                    Flexible(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Text(
+                                            'Facebook',
+                                            style: AppTheme.textTheme.labelSmall
+                                                ?.copyWith(
+                                                  color: AppTheme.mediumGrey,
                                                 ),
-                                              ),
-                                              Text(
-                                                _facebookPageName ??
-                                                    'Not connected',
-                                                style: const TextStyle(
-                                                  fontSize: 15,
+                                          ),
+                                          Text(
+                                            _facebookPageName ??
+                                                'Not connected',
+                                            style: AppTheme.textTheme.bodyLarge
+                                                ?.copyWith(
                                                   fontWeight: FontWeight.w700,
-                                                  color: Color(0xFF1877F2),
+                                                  color:
+                                                      _selectedPlatform ==
+                                                          SocialPlatform
+                                                              .facebook
+                                                      ? AppTheme.facebookBlue
+                                                      : AppTheme.mediumGrey,
                                                 ),
-                                                maxLines: 1,
-                                                overflow: TextOverflow.ellipsis,
-                                              ),
-                                            ],
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
                                           ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(width: 12),
-                                // Instagram Card
-                                Expanded(
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      vertical: 14,
-                                      horizontal: 12,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: const Color(
-                                        0xFFE1306C,
-                                      ).withValues(alpha: 0.08),
-                                      borderRadius: BorderRadius.circular(20),
-                                      border: Border.all(
-                                        color: const Color(
-                                          0xFFE1306C,
-                                        ).withValues(alpha: 0.25),
-                                        width: 1,
+                                        ],
                                       ),
                                     ),
-                                    child: Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.center,
-                                      children: [
-                                        Container(
-                                          width: 52,
-                                          height: 52,
-                                          decoration: BoxDecoration(
-                                            shape: BoxShape.circle,
-                                            gradient: LinearGradient(
-                                              colors: [
-                                                const Color(0xFFE1306C),
-                                                const Color(
-                                                  0xFFE1306C,
-                                                ).withValues(alpha: 0.8),
-                                              ],
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: AppSpacing.md),
+                          // Instagram Card
+                          Expanded(
+                            child: GestureDetector(
+                              onTap: () {
+                                setState(() {
+                                  _selectedPlatform = SocialPlatform.instagram;
+                                });
+                              },
+                              child: AnimatedContainer(
+                                duration: const Duration(milliseconds: 300),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: AppSpacing.md,
+                                  horizontal: AppSpacing.md,
+                                ),
+                                decoration: BoxDecoration(
+                                  color:
+                                      _selectedPlatform ==
+                                          SocialPlatform.instagram
+                                      ? AppTheme.instagramPink.withValues(
+                                          alpha: 0.12,
+                                        )
+                                      : AppTheme.instagramPink.withValues(
+                                          alpha: 0.05,
+                                        ),
+                                  borderRadius: BorderRadius.circular(
+                                    AppRadius.xl,
+                                  ),
+                                  border: Border.all(
+                                    color:
+                                        _selectedPlatform ==
+                                            SocialPlatform.instagram
+                                        ? AppTheme.instagramPink.withValues(
+                                            alpha: 0.5,
+                                          )
+                                        : AppTheme.instagramPink.withValues(
+                                            alpha: 0.2,
+                                          ),
+                                    width:
+                                        _selectedPlatform ==
+                                            SocialPlatform.instagram
+                                        ? 2
+                                        : 1,
+                                  ),
+                                  boxShadow:
+                                      _selectedPlatform ==
+                                          SocialPlatform.instagram
+                                      ? [
+                                          BoxShadow(
+                                            color: AppTheme.instagramPink
+                                                .withValues(alpha: 0.2),
+                                            blurRadius: 12,
+                                            offset: const Offset(0, 4),
+                                          ),
+                                        ]
+                                      : null,
+                                ),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Container(
+                                      width: 52,
+                                      height: 52,
+                                      decoration: BoxDecoration(
+                                        shape: BoxShape.circle,
+                                        gradient: LinearGradient(
+                                          colors: [
+                                            AppTheme.instagramPink,
+                                            AppTheme.instagramPink.withValues(
+                                              alpha: 0.8,
                                             ),
-                                            boxShadow: [
-                                              BoxShadow(
-                                                color: const Color(
-                                                  0xFFE1306C,
-                                                ).withValues(alpha: 0.3),
-                                                blurRadius: 8,
-                                                offset: const Offset(0, 2),
-                                              ),
-                                            ],
+                                          ],
+                                        ),
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: AppTheme.instagramPink
+                                                .withValues(alpha: 0.3),
+                                            blurRadius: 8,
+                                            offset: const Offset(0, 2),
                                           ),
-                                          child: ClipOval(
-                                            child:
-                                                _instagramAccountPicture !=
-                                                        null &&
-                                                    _instagramAccountPicture!
-                                                        .isNotEmpty
-                                                ? Image.network(
-                                                    _instagramAccountPicture!,
-                                                    fit: BoxFit.cover,
-                                                    errorBuilder:
-                                                        (
-                                                          _,
-                                                          __,
-                                                          ___,
-                                                        ) => const Center(
-                                                          child: FaIcon(
-                                                            FontAwesomeIcons
-                                                                .instagram,
-                                                            size: 26,
-                                                            color: Colors.white,
-                                                          ),
-                                                        ),
-                                                  )
-                                                : const Center(
-                                                    child: FaIcon(
-                                                      FontAwesomeIcons
-                                                          .instagram,
-                                                      size: 26,
-                                                      color: Colors.white,
+                                        ],
+                                      ),
+                                      child: ClipOval(
+                                        child:
+                                            _instagramAccountPicture != null &&
+                                                _instagramAccountPicture!
+                                                    .isNotEmpty
+                                            ? Image.network(
+                                                _instagramAccountPicture!,
+                                                fit: BoxFit.cover,
+                                                errorBuilder: (_, _, _) =>
+                                                    const Center(
+                                                      child: FaIcon(
+                                                        FontAwesomeIcons
+                                                            .instagram,
+                                                        size: 24,
+                                                        color: Colors.white,
+                                                      ),
                                                     ),
-                                                  ),
-                                          ),
-                                        ),
-                                        const SizedBox(width: 14),
-                                        Flexible(
-                                          child: Column(
-                                            crossAxisAlignment:
-                                                CrossAxisAlignment.start,
-                                            mainAxisSize: MainAxisSize.min,
-                                            children: [
-                                              const Text(
-                                                'Instagram',
-                                                style: TextStyle(
-                                                  fontSize: 12,
-                                                  color: Colors.grey,
+                                              )
+                                            : const Center(
+                                                child: FaIcon(
+                                                  FontAwesomeIcons.instagram,
+                                                  size: 24,
+                                                  color: Colors.white,
                                                 ),
                                               ),
-                                              Text(
-                                                _instagramAccountName ??
-                                                    'Not connected',
-                                                style: const TextStyle(
-                                                  fontSize: 15,
-                                                  fontWeight: FontWeight.w700,
-                                                  color: Color(0xFFE1306C),
-                                                ),
-                                                maxLines: 1,
-                                                overflow: TextOverflow.ellipsis,
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                      ],
+                                      ),
                                     ),
-                                  ),
+                                    const SizedBox(width: AppSpacing.md),
+                                    Flexible(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Text(
+                                            'Instagram',
+                                            style: AppTheme.textTheme.labelSmall
+                                                ?.copyWith(
+                                                  color: AppTheme.mediumGrey,
+                                                ),
+                                          ),
+                                          Text(
+                                            _instagramAccountName ??
+                                                'Not connected',
+                                            style: AppTheme.textTheme.bodyLarge
+                                                ?.copyWith(
+                                                  fontWeight: FontWeight.w700,
+                                                  color:
+                                                      _selectedPlatform ==
+                                                          SocialPlatform
+                                                              .instagram
+                                                      ? AppTheme.instagramPink
+                                                      : AppTheme.mediumGrey,
+                                                ),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
                                 ),
-                              ],
+                              ),
                             ),
-                          const SizedBox(height: 12),
-                          // Stats Row
-                          if (_isLoadingStats)
-                            const Center(child: CircularProgressIndicator())
-                          else
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                              children: [
-                                Expanded(
-                                  child: _buildStatCard(
-                                    'Facebook',
-                                    _formatNumber(_fbFollowers),
-                                    const Color(0xFF1877F2),
-                                    FontAwesomeIcons.facebook,
-                                  ),
-                                ),
-                                const SizedBox(width: 8),
-                                Expanded(
-                                  child: _buildStatCard(
-                                    'Instagram',
-                                    _formatNumber(_igFollowers),
-                                    const Color(0xFFE1306C),
-                                    FontAwesomeIcons.instagram,
-                                  ),
-                                ),
-                                const SizedBox(width: 8),
-                                Expanded(
-                                  child: _buildStatCard(
-                                    'Engagement',
-                                    '${_engagementRate.toStringAsFixed(1)}%',
-                                    const Color(0xFF31A24C),
-                                    Icons.trending_up,
-                                  ),
-                                ),
-                              ],
-                            ),
+                          ),
                         ],
                       ),
-                    ),
-                  ),
+                    const SizedBox(height: AppSpacing.md),
+                    // Stats Row
+                    if (_isLoadingStats)
+                      Center(
+                        child: CircularProgressIndicator(
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            AppTheme.primaryTeal,
+                          ),
+                        ),
+                      )
+                    else
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        children: [
+                          Expanded(
+                            child: _buildStatCard(
+                              'Facebook',
+                              _formatNumber(_fbFollowers),
+                              AppTheme.facebookBlue,
+                              FontAwesomeIcons.facebook,
+                            ),
+                          ),
+                          const SizedBox(width: AppSpacing.sm),
+                          Expanded(
+                            child: _buildStatCard(
+                              'Instagram',
+                              _formatNumber(_igFollowers),
+                              AppTheme.instagramPink,
+                              FontAwesomeIcons.instagram,
+                            ),
+                          ),
+                          const SizedBox(width: AppSpacing.sm),
+                          Expanded(
+                            child: _buildStatCard(
+                              'Engagement',
+                              '${_engagementRate.toStringAsFixed(1)}%',
+                              AppTheme.success,
+                              Icons.trending_up,
+                            ),
+                          ),
+                        ],
+                      ),
+                  ],
                 ),
               ),
             ),
-          ];
-        },
-        body: _screens[_currentIndex],
+          ),
+
+          // SCROLLABLE CONTENT AREA
+          Expanded(
+            child: _currentIndex == 0
+                ? ContentScreen(platform: _selectedPlatform)
+                : InboxScreen(platform: _selectedPlatform),
+          ),
+        ],
       ),
 
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: const BorderRadius.only(
-            topLeft: Radius.circular(25),
-            topRight: Radius.circular(25),
+          color: AppTheme.surface,
+          borderRadius: BorderRadius.only(
+            topLeft: Radius.circular(AppRadius.xl),
+            topRight: Radius.circular(AppRadius.xl),
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.grey.withValues(alpha: 0.1),
+              color: AppTheme.dark.withValues(alpha: 0.1),
               blurRadius: 15,
               offset: const Offset(0, -3),
             ),
@@ -706,22 +798,21 @@ class _FbAndInstaScreenState extends State<FbAndInstaScreen> {
           type: BottomNavigationBarType.fixed,
           backgroundColor: Colors.transparent,
           elevation: 0,
-          selectedItemColor: const Color(0xFF1877F2),
-          unselectedItemColor: Colors.grey,
-          selectedLabelStyle: const TextStyle(
+          selectedItemColor: AppTheme.facebookBlue,
+          unselectedItemColor: AppTheme.mediumGrey,
+          selectedLabelStyle: AppTheme.textTheme.labelSmall?.copyWith(
             fontWeight: FontWeight.w600,
-            fontSize: 13,
           ),
-          unselectedLabelStyle: const TextStyle(fontSize: 12),
+          unselectedLabelStyle: AppTheme.textTheme.labelSmall,
           items: const [
             BottomNavigationBarItem(
-              icon: Icon(Icons.grid_view_outlined, size: 26),
-              activeIcon: Icon(Icons.grid_view, size: 26),
+              icon: Icon(Icons.grid_view_outlined, size: 24),
+              activeIcon: Icon(Icons.grid_view, size: 24),
               label: 'Content',
             ),
             BottomNavigationBarItem(
-              icon: Icon(Icons.chat_bubble_outline, size: 26),
-              activeIcon: Icon(Icons.chat_bubble, size: 26),
+              icon: Icon(Icons.chat_bubble_outline, size: 24),
+              activeIcon: Icon(Icons.chat_bubble, size: 24),
               label: 'Inbox',
             ),
           ],
@@ -730,10 +821,10 @@ class _FbAndInstaScreenState extends State<FbAndInstaScreen> {
 
       floatingActionButton: FloatingActionButton(
         onPressed: _showQuickActionsMenu,
-        backgroundColor: const Color(0xFF1877F2),
-        mini: false,
-        child: const Icon(Icons.menu, size: 28),
+        backgroundColor: AppTheme.facebookBlue,
+        elevation: 8,
         tooltip: 'Quick Actions',
+        child: const Icon(Icons.menu, size: 26),
       ),
     );
   }
@@ -745,10 +836,13 @@ class _FbAndInstaScreenState extends State<FbAndInstaScreen> {
     IconData icon,
   ) {
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 6),
+      padding: const EdgeInsets.symmetric(
+        vertical: AppSpacing.sm,
+        horizontal: AppSpacing.sm,
+      ),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppRadius.md),
         border: Border.all(color: color.withValues(alpha: 0.15), width: 0.5),
       ),
       child: Column(
@@ -758,12 +852,11 @@ class _FbAndInstaScreenState extends State<FbAndInstaScreen> {
             mainAxisAlignment: MainAxisAlignment.center,
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(icon, size: 14, color: color),
-              const SizedBox(width: 4),
+              Icon(icon, size: 12, color: color),
+              const SizedBox(width: AppSpacing.xs),
               Text(
                 value,
-                style: TextStyle(
-                  fontSize: 14,
+                style: AppTheme.textTheme.labelLarge?.copyWith(
                   fontWeight: FontWeight.bold,
                   color: color,
                 ),
@@ -772,12 +865,11 @@ class _FbAndInstaScreenState extends State<FbAndInstaScreen> {
               ),
             ],
           ),
-          const SizedBox(height: 2),
+          const SizedBox(height: AppSpacing.xs),
           Text(
             label,
-            style: TextStyle(
-              fontSize: 9,
-              color: Colors.grey[600],
+            style: AppTheme.textTheme.labelSmall?.copyWith(
+              color: AppTheme.mediumGrey,
               fontWeight: FontWeight.w500,
             ),
             maxLines: 1,

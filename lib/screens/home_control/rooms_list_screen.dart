@@ -44,7 +44,6 @@ class _RoomListScreenState extends State<RoomListScreen> {
       }
 
       // Load rooms from the specific home with their associated boards
-      // Note: We select 'hc_boards' which is the table name for the relation
       final response = await _supabase
           .from('hc_rooms')
           .select('*, hc_boards(*)')
@@ -531,45 +530,44 @@ class _RoomListScreenState extends State<RoomListScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // We use Consumer here to get the theme settings
-    // Crucially, we also grab the 'themeProvider' instance itself to pass it down
     return Consumer<DynamicThemeProvider>(
       builder: (context, themeProvider, child) {
         final isBasicTheme = themeProvider.backgroundType == 'basic';
         final isDark = themeProvider.isDarkMode;
 
         return Scaffold(
-          backgroundColor: Colors.transparent,
+          backgroundColor: const Color.fromRGBO(6, 23, 43, 1),
           appBar: AppBar(
             title: Text(
               widget.homeName,
-              style: TextStyle(
-                color: isBasicTheme ? null : Colors.white,
+              style: const TextStyle(
+                color: Colors.white,
                 fontWeight: FontWeight.bold,
               ),
             ),
-            backgroundColor: Colors.transparent,
+            backgroundColor: const Color.fromRGBO(6, 23, 43, 1),
             elevation: 0,
             iconTheme: IconThemeData(color: isBasicTheme ? null : Colors.white),
             actions: [
               IconButton(
-                icon: Icon(
+                icon: const Icon(
                   Icons.developer_board_off,
-                  color: isBasicTheme ? null : Colors.white,
+                  color: Colors.white,
                 ),
+                tooltip: 'View Unassigned Boards',
                 onPressed: () {
-                  // FIX: Use the 'themeProvider' instance directly from the Consumer
-                  // This avoids any 'ProviderNotFoundException' from context lookups
+                  // UNASSIGNED BOARDS NAVIGATION: Uses null for roomId
                   Navigator.push(
                     context,
                     PageRouteBuilder(
                       pageBuilder: (context, animation, secondaryAnimation) {
                         return ChangeNotifierProvider.value(
-                          value: themeProvider, // <--- DIRECT PASS
+                          value: themeProvider,
                           child: DynamicBackgroundWidget(
                             child: BoardListScreen(
-                              homeName: widget.homeName,
+                              homeName: '${widget.homeName} (Unassigned)',
                               homeId: widget.homeId,
+                              roomId: null, // <-- Explicitly null here
                             ),
                           ),
                         );
@@ -584,7 +582,6 @@ class _RoomListScreenState extends State<RoomListScreen> {
                     ),
                   );
                 },
-                tooltip: 'View Unassigned Boards',
               ),
             ],
           ),
@@ -641,12 +638,12 @@ class _RoomListScreenState extends State<RoomListScreen> {
                   ),
                   itemCount: _rooms.length,
                   itemBuilder: (context, index) {
-                    final room = _rooms[index];
+                    final room = _rooms[index]; // <-- Room is defined here!
                     return Hero(
                       tag: 'room-${room.id}',
                       child: Card(
                         elevation: 8,
-                        shadowColor: Colors.black.withValues(alpha: 0.3),
+                        shadowColor: const Color.fromARGB(255, 14, 15, 12).withValues(alpha: 0.3),
                         clipBehavior: Clip.hardEdge,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(16),
@@ -656,8 +653,8 @@ class _RoomListScreenState extends State<RoomListScreen> {
                             gradient: LinearGradient(
                               colors: isDark
                                   ? [
-                                      Colors.grey[800]!.withValues(alpha: 0.9),
-                                      Colors.grey[900]!.withValues(alpha: 0.9),
+                                      Colors.blue[300]!.withValues(alpha: 0.9),
+                                      Colors.purple[300]!.withValues(alpha: 0.9),
                                     ]
                                   : [
                                       Colors.white.withValues(alpha: 0.9),
@@ -670,19 +667,19 @@ class _RoomListScreenState extends State<RoomListScreen> {
                           child: InkWell(
                             borderRadius: BorderRadius.circular(16),
                             onTap: () {
-                              // FIX: Use the 'themeProvider' instance directly from the Consumer
+                              // SPECIFIC ROOM NAVIGATION: Uses room.name and room.id
                               Navigator.push(
                                 context,
                                 PageRouteBuilder(
                                   pageBuilder:
                                       (context, animation, secondaryAnimation) {
                                         return ChangeNotifierProvider.value(
-                                          value:
-                                              themeProvider, // <--- DIRECT PASS
+                                          value: themeProvider,
                                           child: DynamicBackgroundWidget(
                                             child: BoardListScreen(
-                                              homeName: widget.homeName,
+                                              homeName: room.name, // <-- Uses room name
                                               homeId: widget.homeId,
+                                              roomId: room.id, // <-- Uses room ID
                                             ),
                                           ),
                                         );

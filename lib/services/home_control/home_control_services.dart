@@ -91,6 +91,7 @@ class HomeControlService {
     required String boardId,
     required String homeId,
     String? customName,
+    String? roomId,
   }) async {
     final user = _supabase.auth.currentUser;
     if (user == null) throw Exception('User not authenticated');
@@ -105,6 +106,7 @@ class HomeControlService {
       await _supabase.from('hc_boards').insert({
         'id': boardId,
         'home_id': homeId,
+        'room_id': roomId,
         'owner_id': user.id,
         'name': customName ?? 'Smart Switch $boardId',
         'status': 'online',
@@ -130,6 +132,7 @@ class HomeControlService {
           .from('hc_boards')
           .update({
             'home_id': homeId,
+            'room_id': roomId ?? boardResponse['room_id'],
             'owner_id': user.id,
             'name': customName ?? boardResponse['name'],
             'status': 'online',

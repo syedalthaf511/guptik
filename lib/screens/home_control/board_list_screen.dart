@@ -2,18 +2,21 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../models/home_control/board_model.dart';
-import '../../services/home_control/home_control_services.dart';
 import '../../providers/home_control/dynamic_theme_provider.dart';
 import '../../widgets/home_control/home_control_widgets.dart';
 import 'switch_control_screen.dart';
+import 'add_board_scan_screen.dart'; // <-- NEW IMPORT FOR THE SCANNER
 
 class BoardListScreen extends StatefulWidget {
   final String homeId;
   final String homeName;
+  final String? roomId;
+
   const BoardListScreen({
     super.key,
     required this.homeId,
     required this.homeName,
+    this.roomId,
   });
 
   @override
@@ -32,10 +35,22 @@ class _BoardListScreenState extends State<BoardListScreen> {
   }
 
   Future<void> _loadBoards() async {
-    final res = await _supabase
+    // Base query for the home
+    var query = _supabase
         .from('hc_boards')
         .select('*, hc_switches(*)')
         .eq('home_id', widget.homeId);
+
+    // Filter by room, or look for unassigned boards
+    if (widget.roomId != null) {
+      query = query.eq('room_id', widget.roomId!);
+    } else {
+      // Use isFilter for newer Supabase SDK versions
+      query = query.isFilter('room_id', null); 
+    }
+
+    final res = await query;
+    
     if (mounted) {
       setState(() {
         _boards = (res as List).map((e) => Board.fromJson(e)).toList();
@@ -44,45 +59,24 @@ class _BoardListScreenState extends State<BoardListScreen> {
     }
   }
 
-  void _showAddBoardDialog() {
-    final idController = TextEditingController();
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Add Board'),
-        content: TextField(
-          controller: idController,
-          decoration: const InputDecoration(
-            hintText: 'Board ID (e.g. BOARD_001)',
+  // Navigate to the new Scanner Screen
+  void _openScannerScreen() {
+    final theme = Provider.of<DynamicThemeProvider>(context, listen: false);
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => ChangeNotifierProvider.value(
+          value: theme,
+          child: AddBoardScanScreen(
+            homeId: widget.homeId,
+            roomId: widget.roomId,
           ),
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              if (idController.text.isNotEmpty) {
-                Navigator.pop(context);
-                try {
-                  await HomeControlService().validateAndClaimBoard(
-                    boardId: idController.text.trim(),
-                    homeId: widget.homeId,
-                  );
-                  _loadBoards();
-                } catch (e) {
-                  ScaffoldMessenger.of(
-                    context,
-                  ).showSnackBar(SnackBar(content: Text('Error: $e')));
-                }
-              }
-            },
-            child: const Text('Claim'),
-          ),
-        ],
       ),
-    );
+    ).then((_) {
+      // Refresh the board list when we return from the scanner
+      _loadBoards(); 
+    });
   }
 
   @override
@@ -101,8 +95,15 @@ class _BoardListScreenState extends State<BoardListScreen> {
       body: AnimatedSkyBackground(
         isDarkMode: theme.isDarkMode,
         child: _isLoading
-            ? const Center(child: CircularProgressIndicator())
-            : ListView.builder(
+            ? const Center(child: CircularProgressIndicator(color: Colors.white))
+            : _boards.isEmpty 
+              ? const Center(
+                  child: Text(
+                    'No boards here yet.',
+                    style: TextStyle(color: Colors.white70, fontSize: 18),
+                  )
+                )
+              : ListView.builder(
                 padding: const EdgeInsets.fromLTRB(16, 100, 16, 16),
                 itemCount: _boards.length,
                 itemBuilder: (context, index) {
@@ -148,10 +149,11 @@ class _BoardListScreenState extends State<BoardListScreen> {
                 },
               ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _showAddBoardDialog,
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: _openScannerScreen,
         backgroundColor: Colors.white.withValues(alpha: 0.2),
-        child: const Icon(Icons.add, color: Colors.white),
+        icon: const Icon(Icons.radar, color: Colors.white),
+        label: const Text('Scan Nearby', style: TextStyle(color: Colors.white)),
       ),
     );
   }

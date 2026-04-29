@@ -3,6 +3,7 @@ import 'package:guptik/models/facebook/meta_comment_model.dart';
 import 'package:guptik/models/facebook/meta_content_model.dart';
 import 'package:guptik/services/facebook/meta_service.dart';
 import 'package:guptik/widgets/facebook/likes_list_dialog.dart';
+import 'package:guptik/config/app_theme.dart';
 
 class FullScreenMediaScreen extends StatefulWidget {
   final String imageUrl;
@@ -138,6 +139,10 @@ class _FullScreenMediaScreenState extends State<FullScreenMediaScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final platformColor = widget.platform == SocialPlatform.facebook
+        ? AppTheme.facebookBlue
+        : AppTheme.instagramPink;
+
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(
@@ -162,7 +167,7 @@ class _FullScreenMediaScreenState extends State<FullScreenMediaScreen> {
               child: Image.network(
                 widget.imageUrl,
                 fit: BoxFit.contain,
-                errorBuilder: (ctx, _, __) =>
+                errorBuilder: (ctx, _, _) =>
                     const Icon(Icons.broken_image, color: Colors.white),
               ),
             ),
@@ -173,12 +178,16 @@ class _FullScreenMediaScreenState extends State<FullScreenMediaScreen> {
               left: 20,
               child: Container(
                 padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 6,
+                  horizontal: AppSpacing.lg,
+                  vertical: AppSpacing.md,
                 ),
                 decoration: BoxDecoration(
-                  color: Colors.black.withOpacity(0.6),
-                  borderRadius: BorderRadius.circular(20),
+                  color: Colors.black.withValues(alpha: 0.7),
+                  borderRadius: BorderRadius.circular(AppRadius.xl),
+                  border: Border.all(
+                    color: platformColor.withValues(alpha: 0.3),
+                    width: 1,
+                  ),
                 ),
                 child: Text(
                   widget.caption,
@@ -199,10 +208,16 @@ class _FullScreenMediaScreenState extends State<FullScreenMediaScreen> {
                   child: Column(
                     children: [
                       Container(
-                        padding: const EdgeInsets.all(12),
+                        padding: const EdgeInsets.all(AppSpacing.lg),
                         decoration: BoxDecoration(
-                          color: Colors.black.withOpacity(0.5),
+                          color: platformColor,
                           shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: platformColor.withValues(alpha: 0.3),
+                              blurRadius: 8,
+                            ),
+                          ],
                         ),
                         child: Icon(
                           widget.platform == SocialPlatform.facebook
@@ -212,12 +227,13 @@ class _FullScreenMediaScreenState extends State<FullScreenMediaScreen> {
                           size: 28,
                         ),
                       ),
-                      const SizedBox(height: 4),
+                      const SizedBox(height: AppSpacing.md),
                       Text(
                         _formatNumber(_likesCount),
                         style: const TextStyle(
                           color: Colors.white,
                           fontSize: 12,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
                     ],
@@ -229,10 +245,16 @@ class _FullScreenMediaScreenState extends State<FullScreenMediaScreen> {
                   child: Column(
                     children: [
                       Container(
-                        padding: const EdgeInsets.all(12),
+                        padding: const EdgeInsets.all(AppSpacing.lg),
                         decoration: BoxDecoration(
-                          color: Colors.black.withOpacity(0.5),
+                          color: platformColor,
                           shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: platformColor.withValues(alpha: 0.3),
+                              blurRadius: 8,
+                            ),
+                          ],
                         ),
                         child: const Icon(
                           Icons.comment,
@@ -240,12 +262,13 @@ class _FullScreenMediaScreenState extends State<FullScreenMediaScreen> {
                           size: 28,
                         ),
                       ),
-                      const SizedBox(height: 4),
+                      const SizedBox(height: AppSpacing.md),
                       Text(
                         _formatNumber(_commentsCount),
                         style: const TextStyle(
                           color: Colors.white,
                           fontSize: 12,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
                     ],
@@ -260,17 +283,36 @@ class _FullScreenMediaScreenState extends State<FullScreenMediaScreen> {
                       ),
                     );
                   },
-                  child: Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Colors.black.withOpacity(0.5),
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(
-                      Icons.share,
-                      color: Colors.white,
-                      size: 28,
-                    ),
+                  child: Column(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(AppSpacing.lg),
+                        decoration: BoxDecoration(
+                          color: platformColor,
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: platformColor.withValues(alpha: 0.3),
+                              blurRadius: 8,
+                            ),
+                          ],
+                        ),
+                        child: const Icon(
+                          Icons.share,
+                          color: Colors.white,
+                          size: 28,
+                        ),
+                      ),
+                      const SizedBox(height: AppSpacing.md),
+                      const Text(
+                        'Share',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ],
@@ -432,16 +474,20 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Delete Comment'),
-        content: const Text('Are you sure you want to delete this comment?'),
+        title: Text('Delete Comment', style: AppTheme.textTheme.titleLarge),
+        backgroundColor: AppTheme.surface,
+        content: Text(
+          'Are you sure you want to delete this comment?',
+          style: AppTheme.textTheme.bodyMedium,
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancel'),
+            child: Text('Cancel', style: TextStyle(color: AppTheme.mediumGrey)),
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            style: TextButton.styleFrom(foregroundColor: AppTheme.error),
             child: const Text('Delete'),
           ),
         ],
@@ -452,51 +498,57 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
       final success = await _metaService.deleteComment(commentId);
       if (success && mounted) {
         await _loadComments();
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Comment deleted')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('Comment deleted'),
+            backgroundColor: AppTheme.success,
+          ),
+        );
       } else if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Failed to delete comment')),
+          SnackBar(
+            content: const Text('Failed to delete comment'),
+            backgroundColor: AppTheme.error,
+          ),
         );
       }
     } catch (e) {
       debugPrint("Error deleting: $e");
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Error: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e'), backgroundColor: AppTheme.error),
+        );
       }
     }
   }
 
-  Widget _buildReplyInput(String commentId) {
+  Widget _buildReplyInput(String commentId, Color platformColor) {
     if (!_replyControllers.containsKey(commentId)) {
       _replyControllers[commentId] = TextEditingController();
     }
     final controller = _replyControllers[commentId]!;
     return Padding(
-      padding: const EdgeInsets.only(top: 8),
+      padding: const EdgeInsets.only(top: AppSpacing.lg),
       child: Row(
         children: [
           Expanded(
             child: TextField(
               controller: controller,
+              style: AppTheme.textTheme.bodySmall,
               decoration: InputDecoration(
                 hintText: 'Write a reply...',
-                hintStyle: const TextStyle(fontSize: 13),
+                hintStyle: AppTheme.textTheme.bodySmall,
                 border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(20),
+                  borderRadius: BorderRadius.circular(AppRadius.xl),
                   borderSide: BorderSide.none,
                 ),
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 8,
-                ),
                 filled: true,
-                fillColor: Colors.grey[100],
+                fillColor: AppTheme.background,
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.lg,
+                  vertical: AppSpacing.md,
+                ),
               ),
-              style: const TextStyle(fontSize: 13),
               maxLines: null,
               textInputAction: TextInputAction.send,
               onSubmitted: (value) async {
@@ -508,42 +560,63 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
               },
             ),
           ),
-          IconButton(
-            icon: const Icon(Icons.send, size: 18, color: Colors.blue),
-            onPressed: () async {
-              if (controller.text.isNotEmpty) {
-                setState(() => _showReplyInput[commentId] = false);
-                await _replyToComment(commentId, controller.text);
-                controller.clear();
-              }
-            },
+          Container(
+            margin: const EdgeInsets.only(left: AppSpacing.md),
+            decoration: BoxDecoration(
+              color: platformColor.withValues(alpha: 0.1),
+              shape: BoxShape.circle,
+            ),
+            child: IconButton(
+              icon: Icon(Icons.send, size: 16, color: platformColor),
+              onPressed: () async {
+                if (controller.text.isNotEmpty) {
+                  setState(() => _showReplyInput[commentId] = false);
+                  await _replyToComment(commentId, controller.text);
+                  controller.clear();
+                }
+              },
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildCommentTile(MetaComment comment) {
+  Widget _buildCommentTile(MetaComment comment, Color platformColor) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
+      padding: const EdgeInsets.symmetric(vertical: AppSpacing.lg),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              CircleAvatar(
-                radius: 18,
-                backgroundColor: Colors.blue[100],
-                child: Text(
-                  comment.authorName.isNotEmpty ? comment.authorName[0] : '?',
-                  style: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: LinearGradient(
+                    colors: [
+                      platformColor,
+                      platformColor.withValues(alpha: 0.6),
+                    ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                ),
+                child: Center(
+                  child: Text(
+                    comment.authorName.isNotEmpty ? comment.authorName[0] : '?',
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
                   ),
                 ),
               ),
-              const SizedBox(width: 10),
+              const SizedBox(width: AppSpacing.lg),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -562,19 +635,23 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
                           comment.formattedTime,
                           style: TextStyle(
                             fontSize: 11,
-                            color: Colors.grey[600],
+                            color: AppTheme.mediumGrey,
                           ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 4),
-                    Text(comment.text, style: const TextStyle(fontSize: 13)),
-                    const SizedBox(height: 6),
+                    const SizedBox(height: AppSpacing.md),
+                    Text(comment.text, style: AppTheme.textTheme.bodySmall),
+                    const SizedBox(height: AppSpacing.lg),
                     Row(
                       children: [
                         Text(
                           '❤️ ${comment.likeCount}',
-                          style: const TextStyle(fontSize: 11),
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: platformColor,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                         const SizedBox(width: 16),
                         GestureDetector(
@@ -584,11 +661,11 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
                                   !(_showReplyInput[comment.id] ?? false);
                             });
                           },
-                          child: const Text(
+                          child: Text(
                             'Reply',
                             style: TextStyle(
                               fontSize: 11,
-                              color: Colors.blue,
+                              color: platformColor,
                               fontWeight: FontWeight.w600,
                             ),
                           ),
@@ -597,11 +674,11 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
                         if (comment.isFromPageOwner)
                           GestureDetector(
                             onTap: () => _deleteComment(comment.id),
-                            child: const Text(
+                            child: Text(
                               'Delete',
                               style: TextStyle(
                                 fontSize: 11,
-                                color: Colors.red,
+                                color: AppTheme.error,
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
@@ -609,27 +686,30 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
                       ],
                     ),
                     if (_showReplyInput[comment.id] == true)
-                      _buildReplyInput(comment.id),
+                      _buildReplyInput(comment.id, platformColor),
                   ],
                 ),
               ),
             ],
           ),
           if (comment.replies.isNotEmpty) ...[
-            const SizedBox(height: 10),
+            const SizedBox(height: AppSpacing.lg),
             Container(
               margin: const EdgeInsets.only(left: 32),
-              padding: const EdgeInsets.only(left: 10),
+              padding: const EdgeInsets.only(left: AppSpacing.lg),
               decoration: BoxDecoration(
                 border: Border(
-                  left: BorderSide(color: Colors.grey[300]!, width: 2),
+                  left: BorderSide(
+                    color: platformColor.withValues(alpha: 0.2),
+                    width: 2,
+                  ),
                 ),
               ),
               child: Column(
                 children: comment.replies.map((reply) {
                   return Padding(
-                    padding: const EdgeInsets.only(bottom: 8),
-                    child: _buildReplyTile(reply),
+                    padding: const EdgeInsets.only(bottom: AppSpacing.lg),
+                    child: _buildReplyTile(reply, platformColor),
                   );
                 }).toList(),
               ),
@@ -640,19 +720,36 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
     );
   }
 
-  Widget _buildReplyTile(MetaComment reply) {
+  Widget _buildReplyTile(MetaComment reply, Color platformColor) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        CircleAvatar(
-          radius: 14,
-          backgroundColor: Colors.grey[300],
-          child: Text(
-            reply.authorName.isNotEmpty ? reply.authorName[0] : '?',
-            style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold),
+        Container(
+          width: 32,
+          height: 32,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            gradient: LinearGradient(
+              colors: [
+                platformColor.withValues(alpha: 0.8),
+                platformColor.withValues(alpha: 0.5),
+              ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+          child: Center(
+            child: Text(
+              reply.authorName.isNotEmpty ? reply.authorName[0] : '?',
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
+            ),
           ),
         ),
-        const SizedBox(width: 8),
+        const SizedBox(width: AppSpacing.md),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -669,12 +766,12 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
                   ),
                   Text(
                     reply.formattedTime,
-                    style: TextStyle(fontSize: 10, color: Colors.grey[600]),
+                    style: TextStyle(fontSize: 10, color: AppTheme.mediumGrey),
                   ),
                 ],
               ),
-              const SizedBox(height: 2),
-              Text(reply.text, style: const TextStyle(fontSize: 12)),
+              const SizedBox(height: AppSpacing.sm),
+              Text(reply.text, style: AppTheme.textTheme.bodySmall),
             ],
           ),
         ),
@@ -684,58 +781,88 @@ class _CommentsBottomSheetState extends State<CommentsBottomSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final platformColor = widget.platform == SocialPlatform.facebook
+        ? AppTheme.facebookBlue
+        : AppTheme.instagramPink;
+
     return Container(
       height: MediaQuery.of(context).size.height * 0.8,
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(AppSpacing.lg),
+      decoration: BoxDecoration(
+        color: AppTheme.surface,
+        borderRadius: const BorderRadius.vertical(
+          top: Radius.circular(AppRadius.xl),
+        ),
+      ),
       child: Column(
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
-                'Comments',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
+              Text('Comments', style: AppTheme.textTheme.headlineSmall),
               IconButton(
-                icon: const Icon(Icons.close),
+                icon: Icon(Icons.close, color: AppTheme.dark),
                 onPressed: () => Navigator.pop(context),
               ),
             ],
           ),
-          const Divider(),
+          Divider(color: AppTheme.lightGrey, height: AppSpacing.lg),
           Row(
             children: [
               Expanded(
                 child: TextField(
                   controller: _commentController,
+                  style: AppTheme.textTheme.bodyMedium,
                   decoration: InputDecoration(
                     hintText: 'Add a comment...',
+                    hintStyle: AppTheme.textTheme.bodySmall,
                     border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(24),
+                      borderRadius: BorderRadius.circular(AppRadius.xl),
                       borderSide: BorderSide.none,
                     ),
                     filled: true,
-                    fillColor: Colors.grey[100],
+                    fillColor: AppTheme.background,
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.lg,
+                      vertical: AppSpacing.md,
+                    ),
                   ),
                 ),
               ),
-              IconButton(
-                icon: const Icon(Icons.send, color: Colors.blue),
-                onPressed: _postComment,
+              Container(
+                margin: const EdgeInsets.only(left: AppSpacing.md),
+                decoration: BoxDecoration(
+                  color: platformColor,
+                  shape: BoxShape.circle,
+                ),
+                child: IconButton(
+                  icon: const Icon(Icons.send, color: Colors.white, size: 18),
+                  onPressed: _postComment,
+                ),
               ),
             ],
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: AppSpacing.lg),
           Expanded(
             child: _isLoading
-                ? const Center(child: CircularProgressIndicator())
+                ? Center(
+                    child: CircularProgressIndicator(
+                      valueColor: AlwaysStoppedAnimation<Color>(platformColor),
+                    ),
+                  )
                 : _comments.isEmpty
-                ? const Center(child: Text('No comments yet'))
+                ? Center(
+                    child: Text(
+                      'No comments yet',
+                      style: AppTheme.textTheme.bodyMedium,
+                    ),
+                  )
                 : ListView.separated(
                     itemCount: _comments.length,
-                    separatorBuilder: (_, __) => const Divider(height: 1),
+                    separatorBuilder: (_, _) =>
+                        Divider(color: AppTheme.lightGrey, height: 1),
                     itemBuilder: (context, index) =>
-                        _buildCommentTile(_comments[index]),
+                        _buildCommentTile(_comments[index], platformColor),
                   ),
           ),
         ],

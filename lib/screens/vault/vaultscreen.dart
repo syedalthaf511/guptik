@@ -37,6 +37,9 @@ class _VaultScreenState extends State<VaultScreen> {
 
   bool _isSyncing = false;
   bool _hasUnsyncedItems = false;
+  
+  // 🚀 ADDED: Flag to kill the sync loop instantly
+  bool _cancelSync = false; 
 
   // ==========================================
   // ValueNotifiers for 100% Live Dialog Updates
@@ -44,12 +47,11 @@ class _VaultScreenState extends State<VaultScreen> {
   final ValueNotifier<int> _liveSyncedNotifier = ValueNotifier<int>(0);
   final ValueNotifier<int> _liveRemainingNotifier = ValueNotifier<int>(0);
   final ValueNotifier<String> _syncTextNotifier = ValueNotifier<String>("");
-  final ValueNotifier<double> _syncProgressNotifier = ValueNotifier<double>(
-    0.0,
-  );
-  final ValueNotifier<String> _liveDataNotifier = ValueNotifier<String>(
-    "0.00 MB",
-  );
+  final ValueNotifier<double> _syncProgressNotifier = ValueNotifier<double>(0.0);
+  final ValueNotifier<String> _liveDataNotifier = ValueNotifier<String>("0.00 MB");
+  
+  // 🚀 ADDED: Tracks if we are doing the 40-second math, or actually uploading
+  final ValueNotifier<bool> _isPreparingNotifier = ValueNotifier<bool>(true);
 
   @override
   void initState() {
@@ -66,6 +68,7 @@ class _VaultScreenState extends State<VaultScreen> {
     _syncTextNotifier.dispose();
     _syncProgressNotifier.dispose();
     _liveDataNotifier.dispose();
+    _isPreparingNotifier.dispose(); // 🚀 Clean up memory
     super.dispose();
   }
 
@@ -122,12 +125,9 @@ class _VaultScreenState extends State<VaultScreen> {
           }
 
           if (val.isNotEmpty) {
-            safeIds.add(val); // Add original string (e.g., "IMG_123.jpg")
-            // SMART MATCHING: Also add the version without the extension
+            safeIds.add(val); 
             if (val.contains('.')) {
-              safeIds.add(
-                val.substring(0, val.lastIndexOf('.')),
-              ); // e.g., "IMG_123"
+              safeIds.add(val.substring(0, val.lastIndexOf('.')));
             }
           }
         }
@@ -259,13 +259,146 @@ class _VaultScreenState extends State<VaultScreen> {
   }
 
   // ==========================================
-  // PERFECT SYNC LOGIC (SMART QUEUE STRATEGY)
+  // 🚀 FIXED: INSTANT DIALOG & STOPPABLE QUEUE
   // ==========================================
   Future<void> _handleSync() async {
     if (_isSyncing) return;
     if (_currentAlbum == null) return;
 
     setState(() => _isSyncing = true);
+    
+    // 1. Reset our flags for the new session
+    _cancelSync = false; 
+    _isPreparingNotifier.value = true; // Show the spinner mode
+    _syncTextNotifier.value = "Scanning library & checking desktop...";
+    _syncProgressNotifier.value = 0.0;
+    _liveSyncedNotifier.value = 0;
+    _liveRemainingNotifier.value = 0;
+    _liveDataNotifier.value = "0.00 MB";
+
+    // 2. 🚀 INSTANT RESPONSE: Show the dialog immediately before doing math!
+    if (mounted) {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (dialogCtx) {
+          // 🚀 ADDED: PopScope catches the Android Back Button so we can cancel!
+          return PopScope(
+            canPop: false,
+            onPopInvoked: (didPop) {
+              if (didPop) return;
+              _cancelSync = true;
+              Navigator.pop(dialogCtx);
+            },
+            child: AlertDialog(
+              title: const Text("Syncing Vault"),
+              content: ValueListenableBuilder<bool>(
+                valueListenable: _isPreparingNotifier,
+                builder: (context, isPreparing, child) {
+                  
+                  // STATE A: Scanning the files (The 40 second wait)
+                  if (isPreparing) {
+                    return Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const CircularProgressIndicator(color: Colors.deepPurple),
+                        const SizedBox(height: 20),
+                        ValueListenableBuilder<String>(
+                          valueListenable: _syncTextNotifier,
+                          builder: (context, text, child) => Text(
+                            text,
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(fontSize: 14, color: Colors.grey),
+                          ),
+                        ),
+                      ],
+                    );
+                  }
+                  
+                  // STATE B: Uploading the files
+                  return Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.grey[100],
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              "Total Files: $_totalAssetCount",
+                              style: const TextStyle(fontWeight: FontWeight.bold),
+                            ),
+                            const SizedBox(height: 4),
+                            ValueListenableBuilder<int>(
+                              valueListenable: _liveSyncedNotifier,
+                              builder: (context, value, child) => Text(
+                                "Already Synced: $value",
+                                style: const TextStyle(color: Colors.green),
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            ValueListenableBuilder<int>(
+                              valueListenable: _liveRemainingNotifier,
+                              builder: (context, value, child) => Text(
+                                "Remaining to Sync: $value",
+                                style: const TextStyle(color: Colors.blue),
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            ValueListenableBuilder<String>(
+                              valueListenable: _liveDataNotifier,
+                              builder: (context, value, child) => Text(
+                                "Data Uploaded: $value",
+                                style: const TextStyle(
+                                  color: Colors.deepPurple,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      ValueListenableBuilder<double>(
+                        valueListenable: _syncProgressNotifier,
+                        builder: (context, value, child) =>
+                            LinearProgressIndicator(value: value),
+                      ),
+                      const SizedBox(height: 10),
+                      ValueListenableBuilder<String>(
+                        valueListenable: _syncTextNotifier,
+                        builder: (context, value, child) => Center(
+                          child: Text(
+                            value,
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(fontSize: 12),
+                          ),
+                        ),
+                      ),
+                    ],
+                  );
+                },
+              ),
+              actions: [
+                // 🚀 ADDED: Manual Cancel Button
+                TextButton(
+                  onPressed: () {
+                    _cancelSync = true;
+                    Navigator.pop(dialogCtx);
+                  },
+                  child: const Text("Cancel", style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
+                ),
+              ],
+            ),
+          );
+        },
+      );
+    }
 
     try {
       final syncService = VaultSyncService();
@@ -280,38 +413,37 @@ class _VaultScreenState extends State<VaultScreen> {
         throw Exception("Desktop Offline.");
       }
 
-      // STEP 1: Ask desktop exactly what it has.
+      // STEP 1: Ask desktop exactly what it has
       Set<String> currentlyOnDesktop = await _fetchActualDesktopFiles();
+      
+      // Stop early if user canceled during fetching
+      if (_cancelSync) throw Exception("Sync cancelled by user.");
 
-      // STEP 2: BUILD QUEUE IN BATCHES
+      // STEP 2: BUILD QUEUE IN BATCHES (The 40 second math)
       List<AssetEntity> missingFilesQueue = [];
       int safeBatchSize = 500;
 
       for (int i = 0; i < _totalAssetCount; i += safeBatchSize) {
-        int end = (i + safeBatchSize < _totalAssetCount)
-            ? i + safeBatchSize
-            : _totalAssetCount;
-        List<AssetEntity> metadataBatch = await _currentAlbum!
-            .getAssetListRange(start: i, end: end);
+        if (_cancelSync) throw Exception("Sync cancelled by user."); // Check inside loop
+
+        int end = (i + safeBatchSize < _totalAssetCount) ? i + safeBatchSize : _totalAssetCount;
+        
+        _syncTextNotifier.value = "Analyzing items ${i} to $end...";
+        
+        List<AssetEntity> metadataBatch = await _currentAlbum!.getAssetListRange(start: i, end: end);
 
         for (var asset in metadataBatch) {
           String titleNoExt = "";
           if (asset.title != null && asset.title!.contains('.')) {
-            titleNoExt = asset.title!.substring(
-              0,
-              asset.title!.lastIndexOf('.'),
-            );
+            titleNoExt = asset.title!.substring(0, asset.title!.lastIndexOf('.'));
           } else if (asset.title != null) {
             titleNoExt = asset.title!;
           }
 
-          // Smart match logic
           bool isOnDesktop =
               currentlyOnDesktop.contains(asset.id) ||
-              (asset.title != null &&
-                  currentlyOnDesktop.contains(asset.title)) ||
-              (titleNoExt.isNotEmpty &&
-                  currentlyOnDesktop.contains(titleNoExt));
+              (asset.title != null && currentlyOnDesktop.contains(asset.title)) ||
+              (titleNoExt.isNotEmpty && currentlyOnDesktop.contains(titleNoExt));
 
           if (!isOnDesktop) {
             missingFilesQueue.add(asset);
@@ -325,105 +457,29 @@ class _VaultScreenState extends State<VaultScreen> {
       int alreadyOnDesktopCount = totalLocalFiles - targetUploadCount;
 
       if (targetUploadCount == 0) {
+        if (mounted && Navigator.canPop(context)) Navigator.pop(context); // Close dialog early
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Everything is already up to date! ☁️✓'),
-          ),
+          const SnackBar(content: Text('Everything is already up to date! ☁️✓')),
         );
         setState(() => _isSyncing = false);
         return;
       }
 
-      // Reset Live Variables
+      // 🚀 The math is done! Tell the dialog to switch from "Spinner" to "Progress Bar"
       _liveSyncedNotifier.value = alreadyOnDesktopCount;
       _liveRemainingNotifier.value = targetUploadCount;
-      _syncTextNotifier.value = "Preparing upload...";
       _syncProgressNotifier.value = 0.0;
-      _liveDataNotifier.value = "0.00 MB";
-
-      if (!mounted) return;
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (context) {
-          return AlertDialog(
-            title: const Text("Syncing Vault"),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.grey[100],
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        "Total Files: $totalLocalFiles",
-                        style: const TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                      const SizedBox(height: 4),
-                      ValueListenableBuilder<int>(
-                        valueListenable: _liveSyncedNotifier,
-                        builder: (context, value, child) => Text(
-                          "Already Synced: $value",
-                          style: const TextStyle(color: Colors.green),
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      ValueListenableBuilder<int>(
-                        valueListenable: _liveRemainingNotifier,
-                        builder: (context, value, child) => Text(
-                          "Remaining to Sync: $value",
-                          style: const TextStyle(color: Colors.blue),
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      ValueListenableBuilder<String>(
-                        valueListenable: _liveDataNotifier,
-                        builder: (context, value, child) => Text(
-                          "Data Uploaded: $value",
-                          style: const TextStyle(
-                            color: Colors.deepPurple,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 20),
-                ValueListenableBuilder<double>(
-                  valueListenable: _syncProgressNotifier,
-                  builder: (context, value, child) =>
-                      LinearProgressIndicator(value: value),
-                ),
-                const SizedBox(height: 10),
-                ValueListenableBuilder<String>(
-                  valueListenable: _syncTextNotifier,
-                  builder: (context, value, child) => Center(
-                    child: Text(
-                      value,
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(fontSize: 12),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          );
-        },
-      );
+      _isPreparingNotifier.value = false;
 
       // STEP 4: Iterate ONLY through the exact missing files!
       int successCount = 0;
       double totalMegabytesUploaded = 0.0;
 
       for (int i = 0; i < missingFilesQueue.length; i++) {
-        if (!mounted) break;
+        // 🚀 THE FIX: If back button was pressed, STOP the loop instantly!
+        if (!mounted || _cancelSync) {
+          break; 
+        }
 
         final asset = missingFilesQueue[i];
         final file = await asset.file;
@@ -431,10 +487,8 @@ class _VaultScreenState extends State<VaultScreen> {
         if (file != null) {
           int filesUploadedThisSession = i + 1;
 
-          _syncTextNotifier.value =
-              "Uploading file $filesUploadedThisSession of $targetUploadCount";
-          _syncProgressNotifier.value =
-              filesUploadedThisSession / targetUploadCount;
+          _syncTextNotifier.value = "Uploading file $filesUploadedThisSession of $targetUploadCount";
+          _syncProgressNotifier.value = filesUploadedThisSession / targetUploadCount;
           await Future.delayed(const Duration(milliseconds: 10));
 
           bool success = await syncService.uploadFile(file, dynamicUrl);
@@ -445,7 +499,6 @@ class _VaultScreenState extends State<VaultScreen> {
             if (asset.title != null) currentlyOnDesktop.add(asset.title!);
             await SyncTracker.markAsSynced(asset.id);
 
-            // CALCULATE FILE SIZE LIVE
             int fileBytes = file.lengthSync();
             totalMegabytesUploaded += (fileBytes / (1024 * 1024));
 
@@ -453,11 +506,9 @@ class _VaultScreenState extends State<VaultScreen> {
               double gb = totalMegabytesUploaded / 1024;
               _liveDataNotifier.value = "${gb.toStringAsFixed(2)} GB";
             } else {
-              _liveDataNotifier.value =
-                  "${totalMegabytesUploaded.toStringAsFixed(2)} MB";
+              _liveDataNotifier.value = "${totalMegabytesUploaded.toStringAsFixed(2)} MB";
             }
 
-            // Update File Counters Live
             _liveSyncedNotifier.value++;
             if (_liveRemainingNotifier.value > 0) {
               _liveRemainingNotifier.value--;
@@ -469,15 +520,18 @@ class _VaultScreenState extends State<VaultScreen> {
       }
 
       if (mounted) {
-        Navigator.pop(context); // Close dialog
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'Sync Complete! Uploaded $successCount missing files.',
-            ),
-            backgroundColor: Colors.green,
-          ),
-        );
+        if (!_cancelSync) Navigator.pop(context); // Close dialog if it finished normally
+        
+        if (_cancelSync) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Sync cancelled. Partial upload saved. 🛑'), backgroundColor: Colors.orange),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Sync Complete! Uploaded $successCount missing files.'), backgroundColor: Colors.green),
+          );
+        }
+        
         setState(() {
           _liveDesktopIds = currentlyOnDesktop;
           _hasUnsyncedItems = false;
@@ -485,10 +539,8 @@ class _VaultScreenState extends State<VaultScreen> {
       }
     } catch (e) {
       if (mounted) {
-        Navigator.pop(context);
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text("Error: $e")));
+        if (!_cancelSync) Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e"), backgroundColor: Colors.red));
       }
     } finally {
       if (mounted) setState(() => _isSyncing = false);

@@ -6,9 +6,12 @@ import 'package:guptik/models/facebook/meta_content_model.dart';
 import 'package:guptik/services/facebook/meta_service.dart';
 import 'package:guptik/screens/facebook/chat_detail_screen.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:guptik/config/app_theme.dart';
 
 class InboxScreen extends StatefulWidget {
-  const InboxScreen({super.key});
+  final SocialPlatform platform;
+
+  const InboxScreen({super.key, this.platform = SocialPlatform.facebook});
 
   @override
   State<InboxScreen> createState() => _InboxScreenState();
@@ -16,6 +19,7 @@ class InboxScreen extends StatefulWidget {
 
 class _InboxScreenState extends State<InboxScreen> {
   final MetaService _metaService = MetaService();
+  late SocialPlatform _selectedPlatform;
   List<MetaChat> _chats = [];
   bool _isLoading = true;
   String _searchQuery = '';
@@ -26,8 +30,18 @@ class _InboxScreenState extends State<InboxScreen> {
   @override
   void initState() {
     super.initState();
+    _selectedPlatform = widget.platform;
     _loadInbox();
     _subscribeToConversationUpdates();
+  }
+
+  @override
+  void didUpdateWidget(InboxScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.platform != widget.platform) {
+      _selectedPlatform = widget.platform;
+      _loadInbox();
+    }
   }
 
   @override
@@ -123,8 +137,14 @@ class _InboxScreenState extends State<InboxScreen> {
   }
 
   List<MetaChat> _filterChats(List<MetaChat> chats) {
-    if (_searchQuery.isEmpty) return chats;
-    return chats.where((chat) {
+    // Filter by selected platform
+    List<MetaChat> platformFiltered = chats
+        .where((chat) => chat.platform == _selectedPlatform)
+        .toList();
+
+    // Then filter by search query
+    if (_searchQuery.isEmpty) return platformFiltered;
+    return platformFiltered.where((chat) {
       return chat.senderName.toLowerCase().contains(
             _searchQuery.toLowerCase(),
           ) ||
@@ -135,75 +155,77 @@ class _InboxScreenState extends State<InboxScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[50],
+      backgroundColor: AppTheme.background,
       body: Column(
         children: [
           // Compact header to avoid overflow in landscape
           Container(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+            padding: const EdgeInsets.fromLTRB(
+              AppSpacing.lg,
+              AppSpacing.lg,
+              AppSpacing.lg,
+              AppSpacing.md,
+            ),
             decoration: BoxDecoration(
-              color: Colors.white,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.grey.withValues(alpha: 0.08),
-                  blurRadius: 4,
-                  offset: const Offset(0, 1),
-                ),
-              ],
+              color: AppTheme.surface,
+              boxShadow: AppShadows.light,
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(
-                  'Messages',
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.w700,
-                    color: Colors.black87,
-                  ),
-                ),
-                const SizedBox(height: 8),
+                Text('Messages', style: AppTheme.textTheme.headlineSmall),
+                const SizedBox(height: AppSpacing.lg),
                 TextField(
                   onChanged: (value) {
                     setState(() => _searchQuery = value);
                   },
                   decoration: InputDecoration(
                     hintText: 'Search conversations...',
-                    hintStyle: TextStyle(color: Colors.grey.shade500),
-                    prefixIcon: Icon(Icons.search, color: Colors.grey.shade600),
+                    hintStyle: AppTheme.textTheme.bodySmall,
+                    prefixIcon: Icon(
+                      Icons.search,
+                      color: AppTheme.facebookBlue,
+                    ),
                     border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(color: Colors.grey.shade200),
+                      borderRadius: BorderRadius.circular(AppRadius.lg),
+                      borderSide: BorderSide(color: AppTheme.lightGrey),
                     ),
                     enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(color: Colors.grey.shade200),
+                      borderRadius: BorderRadius.circular(AppRadius.lg),
+                      borderSide: BorderSide(color: AppTheme.lightGrey),
                     ),
                     focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(
-                        color: Color(0xFF1877F2),
+                      borderRadius: BorderRadius.circular(AppRadius.lg),
+                      borderSide: BorderSide(
+                        color: AppTheme.facebookBlue,
                         width: 2,
                       ),
                     ),
                     filled: true,
-                    fillColor: Colors.grey.shade50,
+                    fillColor: AppTheme.background,
                     contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 8,
+                      horizontal: AppSpacing.md,
+                      vertical: AppSpacing.md,
                     ),
                   ),
-                  style: const TextStyle(fontSize: 15),
+                  style: AppTheme.textTheme.bodyMedium,
                 ),
               ],
             ),
           ),
           Expanded(
             child: RefreshIndicator(
+              color: AppTheme.facebookBlue,
               onRefresh: _loadInbox,
               child: _isLoading
-                  ? const Center(child: CircularProgressIndicator())
+                  ? Center(
+                      child: CircularProgressIndicator(
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                          AppTheme.facebookBlue,
+                        ),
+                      ),
+                    )
                   : _filterChats(_chats).isEmpty
                   ? Center(
                       child: Column(
@@ -213,39 +235,42 @@ class _InboxScreenState extends State<InboxScreen> {
                             width: 100,
                             height: 100,
                             decoration: BoxDecoration(
-                              color: Colors.grey[100],
+                              color: AppTheme.facebookBlue.withValues(
+                                alpha: 0.1,
+                              ),
                               shape: BoxShape.circle,
                             ),
                             child: Icon(
                               Icons.chat_bubble_outline,
                               size: 40,
-                              color: Colors.grey[400],
+                              color: AppTheme.facebookBlue.withValues(
+                                alpha: 0.6,
+                              ),
                             ),
                           ),
-                          const SizedBox(height: 16),
+                          const SizedBox(height: AppSpacing.lg),
                           Text(
                             _searchQuery.isEmpty
                                 ? 'No messages yet'
                                 : 'No conversations found',
-                            style: const TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w600,
-                            ),
+                            style: AppTheme.textTheme.titleMedium,
                           ),
-                          const SizedBox(height: 8),
+                          const SizedBox(height: AppSpacing.md),
                           Text(
                             _searchQuery.isEmpty
                                 ? 'Your messages will appear here'
                                 : 'Try a different search term',
-                            style: TextStyle(color: Colors.grey[600]),
+                            style: AppTheme.textTheme.bodySmall,
+                            textAlign: TextAlign.center,
                           ),
                         ],
                       ),
                     )
                   : ListView.separated(
-                      padding: const EdgeInsets.all(16),
+                      padding: const EdgeInsets.all(AppSpacing.lg),
                       itemCount: _filterChats(_chats).length,
-                      separatorBuilder: (ctx, i) => const SizedBox(height: 8),
+                      separatorBuilder: (ctx, i) =>
+                          const SizedBox(height: AppSpacing.lg),
                       itemBuilder: (context, index) {
                         final chat = _filterChats(_chats)[index];
                         return _buildChatCard(chat);
@@ -259,25 +284,31 @@ class _InboxScreenState extends State<InboxScreen> {
   }
 
   Widget _buildChatCard(MetaChat chat) {
+    final platformColor = chat.platform == SocialPlatform.facebook
+        ? AppTheme.facebookBlue
+        : AppTheme.instagramPink;
+    final platformColors = chat.platform == SocialPlatform.facebook
+        ? [AppTheme.facebookBlue, const Color(0xFF0A66C2)]
+        : [AppTheme.instagramPink, const Color(0xFFC13584)];
+
     return Material(
       color: Colors.transparent,
       child: Container(
         decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
+          color: AppTheme.surface,
+          borderRadius: BorderRadius.circular(AppRadius.xl),
           border: Border.all(
-            color: chat.isUnread ? Colors.transparent : Colors.grey.shade200,
-            width: 1,
+            color: chat.isUnread
+                ? platformColor.withValues(alpha: 0.3)
+                : AppTheme.lightGrey.withValues(alpha: 0.5),
+            width: chat.isUnread ? 2 : 1,
           ),
           boxShadow: [
             BoxShadow(
               color: chat.isUnread
-                  ? (chat.platform == SocialPlatform.facebook
-                            ? const Color(0xFF1877F2)
-                            : const Color(0xFFE1306C))
-                        .withValues(alpha: 0.15)
-                  : Colors.grey.withValues(alpha: 0.08),
-              blurRadius: chat.isUnread ? 12 : 8,
+                  ? platformColor.withValues(alpha: 0.15)
+                  : AppTheme.mediumGrey.withValues(alpha: 0.08),
+              blurRadius: chat.isUnread ? 12 : 6,
               offset: const Offset(0, 2),
             ),
           ],
@@ -291,9 +322,12 @@ class _InboxScreenState extends State<InboxScreen> {
               ),
             );
           },
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(AppRadius.xl),
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.lg,
+              vertical: AppSpacing.lg,
+            ),
             child: Row(
               children: [
                 Stack(
@@ -304,18 +338,16 @@ class _InboxScreenState extends State<InboxScreen> {
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
                         gradient: LinearGradient(
-                          colors: chat.platform == SocialPlatform.facebook
-                              ? [
-                                  const Color(0xFF1877F2),
-                                  const Color(0xFF0A66C2),
-                                ]
-                              : [
-                                  const Color(0xFFE1306C),
-                                  const Color(0xFFC13584),
-                                ],
+                          colors: platformColors,
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
                         ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: platformColor.withValues(alpha: 0.2),
+                            blurRadius: 6,
+                          ),
+                        ],
                       ),
                       child: Center(
                         child: Text(
@@ -334,19 +366,14 @@ class _InboxScreenState extends State<InboxScreen> {
                       bottom: 0,
                       right: 0,
                       child: Container(
-                        padding: const EdgeInsets.all(6),
+                        padding: const EdgeInsets.all(AppSpacing.sm),
                         decoration: BoxDecoration(
-                          color: Colors.white,
+                          color: AppTheme.surface,
                           shape: BoxShape.circle,
-                          border: Border.all(
-                            color: chat.platform == SocialPlatform.facebook
-                                ? const Color(0xFF1877F2)
-                                : const Color(0xFFE1306C),
-                            width: 2,
-                          ),
+                          border: Border.all(color: platformColor, width: 2),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.grey.withValues(alpha: 0.2),
+                              color: Colors.black.withValues(alpha: 0.1),
                               blurRadius: 4,
                             ),
                           ],
@@ -356,15 +383,13 @@ class _InboxScreenState extends State<InboxScreen> {
                               ? FontAwesomeIcons.facebook
                               : FontAwesomeIcons.instagram,
                           size: 14,
-                          color: chat.platform == SocialPlatform.facebook
-                              ? const Color(0xFF1877F2)
-                              : const Color(0xFFE1306C),
+                          color: platformColor,
                         ),
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(width: 16),
+                const SizedBox(width: AppSpacing.lg),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -379,23 +404,21 @@ class _InboxScreenState extends State<InboxScreen> {
                                 fontWeight: chat.isUnread
                                     ? FontWeight.w700
                                     : FontWeight.w600,
-                                fontSize: 16,
-                                color: Colors.black87,
+                                fontSize: 15,
+                                color: AppTheme.dark,
                               ),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                             ),
                           ),
-                          const SizedBox(width: 12),
+                          const SizedBox(width: AppSpacing.lg),
                           Text(
                             chat.time,
                             style: TextStyle(
-                              fontSize: 13,
+                              fontSize: 12,
                               color: chat.isUnread
-                                  ? (chat.platform == SocialPlatform.facebook
-                                        ? const Color(0xFF1877F2)
-                                        : const Color(0xFFE1306C))
-                                  : Colors.grey.shade500,
+                                  ? platformColor
+                                  : AppTheme.mediumGrey,
                               fontWeight: chat.isUnread
                                   ? FontWeight.w600
                                   : FontWeight.w400,
@@ -403,16 +426,16 @@ class _InboxScreenState extends State<InboxScreen> {
                           ),
                         ],
                       ),
-                      const SizedBox(height: 8),
+                      const SizedBox(height: AppSpacing.md),
                       Text(
                         chat.lastMessage,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                           color: chat.isUnread
-                              ? Colors.black54
-                              : Colors.grey.shade600,
-                          fontSize: 14,
+                              ? AppTheme.dark.withValues(alpha: 0.7)
+                              : AppTheme.mediumGrey,
+                          fontSize: 13,
                           fontWeight: chat.isUnread
                               ? FontWeight.w500
                               : FontWeight.w400,
@@ -422,27 +445,16 @@ class _InboxScreenState extends State<InboxScreen> {
                   ),
                 ),
                 if (chat.isUnread) ...[
-                  const SizedBox(width: 12),
+                  const SizedBox(width: AppSpacing.lg),
                   Container(
                     width: 12,
                     height: 12,
                     decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: chat.platform == SocialPlatform.facebook
-                            ? [const Color(0xFF1877F2), const Color(0xFF0A66C2)]
-                            : [
-                                const Color(0xFFE1306C),
-                                const Color(0xFFC13584),
-                              ],
-                      ),
+                      gradient: LinearGradient(colors: platformColors),
                       shape: BoxShape.circle,
                       boxShadow: [
                         BoxShadow(
-                          color:
-                              (chat.platform == SocialPlatform.facebook
-                                      ? const Color(0xFF1877F2)
-                                      : const Color(0xFFE1306C))
-                                  .withValues(alpha: 0.3),
+                          color: platformColor.withValues(alpha: 0.3),
                           blurRadius: 4,
                         ),
                       ],

@@ -46,13 +46,18 @@ class SwitchDevice {
     };
   }
 
-  SwitchDevice copyWith({String? name, SwitchType? type, bool? state}) {
+  SwitchDevice copyWith({
+    String? name, 
+    SwitchType? type, 
+    bool? state, 
+    int? position,
+  }) {
     return SwitchDevice(
       id: id,
       boardId: boardId,
       name: name ?? this.name,
       type: type ?? this.type,
-      position: position,
+      position: position ?? this.position,
       state: state ?? this.state,
       isEnabled: isEnabled,
     );

@@ -2,10 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:guptik/models/facebook/meta_content_model.dart';
 import 'package:guptik/services/facebook/meta_service.dart';
 import 'package:guptik/widgets/facebook/meta_grid_card.dart';
+import 'package:guptik/config/app_theme.dart';
 import 'fullscreen_media_screen.dart';
 
 class ContentScreen extends StatefulWidget {
-  const ContentScreen({super.key});
+  final SocialPlatform platform;
+
+  const ContentScreen({super.key, this.platform = SocialPlatform.facebook});
 
   @override
   State<ContentScreen> createState() => _ContentScreenState();
@@ -15,13 +18,23 @@ class _ContentScreenState extends State<ContentScreen> {
   final MetaService _metaService = MetaService();
   late Future<List<MetaContent>> _contentFuture;
 
-  SocialPlatform _selectedPlatform = SocialPlatform.facebook;
+  late SocialPlatform _selectedPlatform;
   ContentType _selectedFilter = ContentType.post;
 
   @override
   void initState() {
     super.initState();
+    _selectedPlatform = widget.platform;
     _loadContent();
+  }
+
+  @override
+  void didUpdateWidget(ContentScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.platform != widget.platform) {
+      _selectedPlatform = widget.platform;
+      _loadContent();
+    }
   }
 
   void _loadContent() {
@@ -36,11 +49,11 @@ class _ContentScreenState extends State<ContentScreen> {
   Widget _buildFilterChip(String label, ContentType type) {
     final isSelected = _selectedFilter == type;
     final primaryColor = _selectedPlatform == SocialPlatform.facebook
-        ? const Color(0xFF1877F2)
-        : const Color(0xFFE1306C);
+        ? AppTheme.facebookBlue
+        : AppTheme.instagramPink;
 
     return Padding(
-      padding: const EdgeInsets.only(right: 8.0),
+      padding: const EdgeInsets.only(right: AppSpacing.md),
       child: GestureDetector(
         onTap: () {
           setState(() {
@@ -49,56 +62,27 @@ class _ContentScreenState extends State<ContentScreen> {
           });
         },
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.lg,
+            vertical: AppSpacing.md,
+          ),
           decoration: BoxDecoration(
-            color: isSelected ? primaryColor : Colors.white,
-            borderRadius: BorderRadius.circular(16),
+            color: isSelected ? primaryColor : AppTheme.surface,
+            borderRadius: BorderRadius.circular(AppRadius.lg),
             border: Border.all(
-              color: isSelected ? primaryColor : Colors.grey[300]!,
+              color: isSelected
+                  ? primaryColor
+                  : AppTheme.lightGrey.withValues(alpha: 0.3),
+              width: isSelected ? 2 : 1,
             ),
+            boxShadow: isSelected ? AppShadows.light : [],
           ),
           child: Text(
             label,
             style: TextStyle(
-              color: isSelected ? Colors.white : Colors.grey[700],
-              fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+              color: isSelected ? Colors.white : AppTheme.dark,
+              fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
               fontSize: 12,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildPlatformChip(String label, SocialPlatform platform) {
-    final isSelected = _selectedPlatform == platform;
-    final color = platform == SocialPlatform.facebook
-        ? const Color(0xFF1877F2)
-        : const Color(0xFFE1306C);
-
-    return Expanded(
-      child: GestureDetector(
-        onTap: () {
-          setState(() {
-            _selectedPlatform = platform;
-            _loadContent();
-          });
-        },
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 8),
-          decoration: BoxDecoration(
-            color: isSelected ? color : Colors.white,
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: isSelected ? color : Colors.grey[300]!),
-          ),
-          child: Center(
-            child: Text(
-              label,
-              style: TextStyle(
-                color: isSelected ? Colors.white : color,
-                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                fontSize: 13,
-              ),
             ),
           ),
         ),
@@ -108,26 +92,24 @@ class _ContentScreenState extends State<ContentScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final platformColor = _selectedPlatform == SocialPlatform.facebook
+        ? AppTheme.facebookBlue
+        : AppTheme.instagramPink;
+
     return Container(
-      color: Colors.grey[50],
+      color: AppTheme.background,
       child: Column(
         children: [
-          // Platform & Filter Bar – natural height, no extra constraints
+          // Filter Bar
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            color: Colors.white,
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.lg,
+              vertical: AppSpacing.lg,
+            ),
+            color: AppTheme.surface,
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                // Platform Chips
-                Row(
-                  children: [
-                    _buildPlatformChip('Facebook', SocialPlatform.facebook),
-                    const SizedBox(width: 8),
-                    _buildPlatformChip('Instagram', SocialPlatform.instagram),
-                  ],
-                ),
-                const SizedBox(height: 8),
                 // Filter Chips – scrollable horizontally
                 SingleChildScrollView(
                   scrollDirection: Axis.horizontal,
@@ -144,17 +126,24 @@ class _ContentScreenState extends State<ContentScreen> {
             ),
           ),
 
-          // Content Area - List View Only
+          // Content Area
           Expanded(
             child: RefreshIndicator(
               onRefresh: () async {
                 _loadContent();
               },
+              color: platformColor,
               child: FutureBuilder<List<MetaContent>>(
                 future: _contentFuture,
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const Center(child: CircularProgressIndicator());
+                    return Center(
+                      child: CircularProgressIndicator(
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                          platformColor,
+                        ),
+                      ),
+                    );
                   }
 
                   if (snapshot.hasError) {
@@ -165,18 +154,18 @@ class _ContentScreenState extends State<ContentScreen> {
                           Icon(
                             Icons.error_outline,
                             size: 48,
-                            color: Colors.grey[400],
+                            color: AppTheme.lightGrey,
                           ),
-                          const SizedBox(height: 16),
+                          const SizedBox(height: AppSpacing.lg),
                           Text(
                             'Error loading content',
-                            style: TextStyle(color: Colors.grey[600]),
+                            style: AppTheme.textTheme.titleMedium,
                           ),
-                          const SizedBox(height: 8),
+                          const SizedBox(height: AppSpacing.md),
                           ElevatedButton(
                             onPressed: _loadContent,
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF1877F2),
+                              backgroundColor: platformColor,
                             ),
                             child: const Text('Retry'),
                           ),
@@ -196,40 +185,37 @@ class _ContentScreenState extends State<ContentScreen> {
                             width: 80,
                             height: 80,
                             decoration: BoxDecoration(
-                              color: Colors.grey[100],
+                              color: platformColor.withValues(alpha: 0.1),
                               shape: BoxShape.circle,
                             ),
                             child: Icon(
                               Icons.grid_off,
                               size: 32,
-                              color: Colors.grey[400],
+                              color: platformColor.withValues(alpha: 0.5),
                             ),
                           ),
-                          const SizedBox(height: 16),
+                          const SizedBox(height: AppSpacing.lg),
                           Text(
                             'No ${_selectedFilter.name}s found',
-                            style: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                            ),
+                            style: AppTheme.textTheme.titleMedium,
                           ),
-                          const SizedBox(height: 8),
+                          const SizedBox(height: AppSpacing.md),
                           Text(
                             'Create your first post to get started',
-                            style: TextStyle(color: Colors.grey[600]),
+                            style: AppTheme.textTheme.bodySmall,
                           ),
                         ],
                       ),
                     );
                   }
 
-                  // LIST VIEW - Single column with inline comments
+                  // LIST VIEW
                   return ListView.builder(
-                    padding: const EdgeInsets.all(10),
+                    padding: const EdgeInsets.all(AppSpacing.lg),
                     itemCount: posts.length,
                     itemBuilder: (context, index) {
                       return Padding(
-                        padding: const EdgeInsets.only(bottom: 10),
+                        padding: const EdgeInsets.only(bottom: AppSpacing.lg),
                         child: GestureDetector(
                           onTap: () {
                             if (posts[index].imageUrl != null &&

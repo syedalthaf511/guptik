@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:guptik/models/facebook/meta_content_model.dart';
 import 'package:guptik/models/facebook/meta_insights_model.dart';
 import 'package:guptik/services/facebook/meta_service.dart';
+import 'package:guptik/config/app_theme.dart';
 
 class AnalyticsDashboardScreen extends StatefulWidget {
   final SocialPlatform platform;
@@ -101,25 +102,22 @@ class _AnalyticsDashboardScreenState extends State<AnalyticsDashboardScreen> {
     final platformName = _getPlatformName();
 
     return Scaffold(
-      backgroundColor: Colors.grey[50],
+      backgroundColor: AppTheme.background,
       appBar: AppBar(
         title: Text(
           '$platformName Analytics',
-          style: const TextStyle(
+          style: AppTheme.textTheme.headlineSmall?.copyWith(
             color: Colors.white,
-            fontWeight: FontWeight.bold,
-            fontSize: 18,
+            fontWeight: FontWeight.w600,
           ),
         ),
         backgroundColor: platformColor,
+        foregroundColor: Colors.white,
         elevation: 0,
+        centerTitle: false,
         actions: [
           PopupMenuButton<String>(
-            icon: const Icon(
-              Icons.calendar_today,
-              color: Colors.white,
-              size: 18,
-            ),
+            icon: Icon(Icons.calendar_today, color: Colors.white, size: 20),
             onSelected: (value) {
               setState(() {
                 _selectedTimeRange = value;
@@ -130,51 +128,63 @@ class _AnalyticsDashboardScreenState extends State<AnalyticsDashboardScreen> {
               return _timeRanges.map((range) {
                 return PopupMenuItem(
                   value: range['value'],
-                  child: Text(range['label']!),
+                  child: Text(
+                    range['label']!,
+                    style: AppTheme.textTheme.bodyMedium,
+                  ),
                 );
               }).toList();
             },
           ),
           IconButton(
             icon: _isRefreshing
-                ? const SizedBox(
-                    width: 18,
-                    height: 18,
+                ? SizedBox(
+                    width: 20,
+                    height: 20,
                     child: CircularProgressIndicator(
                       strokeWidth: 2,
-                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                      valueColor: AlwaysStoppedAnimation<Color>(platformColor),
                     ),
                   )
-                : const Icon(Icons.refresh, color: Colors.white, size: 18),
+                : Icon(Icons.refresh, color: Colors.white, size: 20),
             onPressed: _isRefreshing ? null : _loadAnalytics,
           ),
         ],
       ),
       body: _isLoading
-          ? Center(child: CircularProgressIndicator(color: platformColor))
-          : SingleChildScrollView(
-              padding: const EdgeInsets.all(8),
-              child: Column(
-                children: [
-                  // Key Metrics - FIXED OVERFLOW
-                  _buildMetricsSection(),
-                  const SizedBox(height: 8),
+          ? Center(
+              child: CircularProgressIndicator(
+                valueColor: AlwaysStoppedAnimation<Color>(platformColor),
+              ),
+            )
+          : RefreshIndicator(
+              onRefresh: _loadAnalytics,
+              color: platformColor,
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(AppSpacing.lg),
+                physics: const AlwaysScrollableScrollPhysics(),
+                child: Column(
+                  children: [
+                    // Key Metrics Section
+                    _buildMetricsSection(),
+                    const SizedBox(height: AppSpacing.xl),
 
-                  // Stories & Reels - FIXED OVERFLOW
-                  if (_storiesReelsSummary.isNotEmpty) ...[
-                    _buildStoriesReelsSection(),
-                    const SizedBox(height: 8),
+                    // Stories & Reels Section
+                    if (_storiesReelsSummary.isNotEmpty) ...[
+                      _buildStoriesReelsSection(),
+                      const SizedBox(height: AppSpacing.xl),
+                    ],
+
+                    // Top Posts Section
+                    _buildTopPostsSection(),
+                    const SizedBox(height: AppSpacing.xl),
+
+                    // Audience Demographics
+                    if (_demographics.isNotEmpty) ...[
+                      _buildDemographicsSection(),
+                    ],
                   ],
-
-                  // Top Posts
-                  _buildTopPostsSection(),
-                  const SizedBox(height: 8),
-
-                  // Audience Demographics
-                  if (_demographics.isNotEmpty) ...[
-                    _buildDemographicsSection(),
-                  ],
-                ],
+                ),
               ),
             ),
     );
@@ -182,128 +192,142 @@ class _AnalyticsDashboardScreenState extends State<AnalyticsDashboardScreen> {
 
   Widget _buildMetricsSection() {
     if (_pageInsights == null) {
-      return _buildCard('No analytics data available');
+      return _buildEmptyCard('No analytics data available');
     }
+
+    final platformColor = _getPlatformColor();
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(8),
       decoration: _cardDecoration(),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text(
-                'Key Metrics',
-                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                decoration: BoxDecoration(
-                  color: _getPlatformColor().withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Text(
-                  _timeRanges.firstWhere(
-                    (e) => e['value'] == _selectedTimeRange,
-                    orElse: () => _timeRanges[0],
-                  )['label']!,
-                  style: TextStyle(
-                    fontSize: 9,
-                    color: _getPlatformColor(),
-                    fontWeight: FontWeight.w600,
+          Padding(
+            padding: const EdgeInsets.all(AppSpacing.lg),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Key Metrics',
+                  style: AppTheme.textTheme.headlineSmall?.copyWith(
+                    fontWeight: FontWeight.w700,
+                    color: AppTheme.dark,
                   ),
                 ),
-              ),
-            ],
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.md,
+                    vertical: AppSpacing.xs,
+                  ),
+                  decoration: BoxDecoration(
+                    color: platformColor.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(AppRadius.xl),
+                  ),
+                  child: Text(
+                    _timeRanges.firstWhere(
+                      (e) => e['value'] == _selectedTimeRange,
+                      orElse: () => _timeRanges[0],
+                    )['label']!,
+                    style: AppTheme.textTheme.labelSmall?.copyWith(
+                      color: platformColor,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
-          const SizedBox(height: 8),
-
-          // Using Wrap instead of Row to prevent overflow
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              _buildMetricItem(
-                label: 'Followers',
-                value: _formatNumber(_pageInsights!.followers),
-                icon: Icons.people,
-                color: const Color(0xFF1877F2),
-              ),
-              _buildMetricItem(
-                label: 'Reach',
-                value: _formatNumber(_pageInsights!.totalReach),
-                icon: Icons.trending_up,
-                color: const Color(0xFF31A24C),
-              ),
-              _buildMetricItem(
-                label: 'Impressions',
-                value: _formatNumber(_pageInsights!.totalImpressions),
-                icon: Icons.visibility,
-                color: const Color(0xFFFF6B35),
-              ),
-              _buildMetricItem(
-                label: 'Engagement',
-                value: '${_pageInsights!.engagementRate.toStringAsFixed(1)}%',
-                icon: Icons.favorite,
-                color: const Color(0xFFE1306C),
-              ),
-            ],
+          Divider(height: 1, thickness: 1, color: AppTheme.lightGrey),
+          Padding(
+            padding: const EdgeInsets.all(AppSpacing.lg),
+            child: Wrap(
+              spacing: AppSpacing.lg,
+              runSpacing: AppSpacing.lg,
+              children: [
+                _buildMetricCard(
+                  label: 'Followers',
+                  value: _formatNumber(_pageInsights!.followers),
+                  icon: Icons.people,
+                  color: AppTheme.facebookBlue,
+                ),
+                _buildMetricCard(
+                  label: 'Reach',
+                  value: _formatNumber(_pageInsights!.totalReach),
+                  icon: Icons.trending_up,
+                  color: const Color(0xFF31A24C),
+                ),
+                _buildMetricCard(
+                  label: 'Impressions',
+                  value: _formatNumber(_pageInsights!.totalImpressions),
+                  icon: Icons.visibility,
+                  color: const Color(0xFFFF6B35),
+                ),
+                _buildMetricCard(
+                  label: 'Engagement',
+                  value: '${_pageInsights!.engagementRate.toStringAsFixed(1)}%',
+                  icon: Icons.favorite,
+                  color: AppTheme.instagramPink,
+                ),
+              ],
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildMetricItem({
+  Widget _buildMetricCard({
     required String label,
     required String value,
     required IconData icon,
     required Color color,
   }) {
-    // Calculate width to fit 2 per row with proper spacing
+    // Each card takes approximately half the width minus spacing
+    final double cardWidth = (MediaQuery.of(context).size.width - 64) / 2;
     return Container(
-      width:
-          (MediaQuery.of(context).size.width - 32) /
-          2, // 8px padding + 8px spacing
-      padding: const EdgeInsets.all(8),
+      width: cardWidth,
+      padding: const EdgeInsets.symmetric(
+        vertical: AppSpacing.md,
+        horizontal: AppSpacing.md,
+      ),
       decoration: BoxDecoration(
-        color: Colors.grey[50],
-        borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: Colors.grey[200]!),
+        color: AppTheme.surface,
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+        boxShadow: AppShadows.light,
+        border: Border.all(color: color.withValues(alpha: 0.2)),
       ),
       child: Row(
         children: [
           Container(
-            width: 28,
-            height: 28,
+            width: 48,
+            height: 48,
             decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(6),
+              color: color.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(AppRadius.md),
             ),
-            child: Icon(icon, color: color, size: 14),
+            child: Icon(icon, color: color, size: 24),
           ),
-          const SizedBox(width: 6),
+          const SizedBox(width: AppSpacing.md),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
                   value,
-                  style: const TextStyle(
-                    fontSize: 13,
+                  style: AppTheme.textTheme.titleLarge?.copyWith(
                     fontWeight: FontWeight.bold,
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
+                const SizedBox(height: AppSpacing.xs),
                 Text(
                   label,
-                  style: TextStyle(fontSize: 9, color: Colors.grey[600]),
+                  style: AppTheme.textTheme.labelSmall?.copyWith(
+                    color: AppTheme.mediumGrey,
+                    fontWeight: FontWeight.w500,
+                  ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -318,99 +342,110 @@ class _AnalyticsDashboardScreenState extends State<AnalyticsDashboardScreen> {
   Widget _buildStoriesReelsSection() {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(8),
       decoration: _cardDecoration(),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
         children: [
-          const Text(
-            'Stories & Reels',
-            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+          Padding(
+            padding: const EdgeInsets.all(AppSpacing.lg),
+            child: Text(
+              'Stories & Reels',
+              style: AppTheme.textTheme.headlineSmall?.copyWith(
+                fontWeight: FontWeight.w700,
+                color: AppTheme.dark,
+              ),
+            ),
           ),
-          const SizedBox(height: 8),
-          // Using Wrap instead of Row to prevent overflow
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              _buildMediaItem(
-                title: 'Stories',
-                count: '${_storiesReelsSummary['totalStories'] ?? 0}',
-                subtitle:
-                    '${_storiesReelsSummary['totalStoryViews'] ?? 0} views',
-                icon: Icons.history,
-                color: const Color(0xFFFFA500),
-              ),
-              _buildMediaItem(
-                title: 'Reels',
-                count: '${_storiesReelsSummary['totalReels'] ?? 0}',
-                subtitle:
-                    '${_storiesReelsSummary['totalReelViews'] ?? 0} plays',
-                icon: Icons.video_library,
-                color: const Color(0xFF5851DB),
-              ),
-            ],
+          Divider(height: 1, thickness: 1, color: AppTheme.lightGrey),
+          Padding(
+            padding: const EdgeInsets.all(AppSpacing.lg),
+            child: Wrap(
+              spacing: AppSpacing.lg,
+              runSpacing: AppSpacing.lg,
+              children: [
+                _buildMediaCard(
+                  title: 'Stories',
+                  count: '${_storiesReelsSummary['totalStories'] ?? 0}',
+                  subtitle:
+                      '${_storiesReelsSummary['totalStoryViews'] ?? 0} views',
+                  icon: Icons.history,
+                  color: const Color(0xFFFFA500),
+                ),
+                _buildMediaCard(
+                  title: 'Reels',
+                  count: '${_storiesReelsSummary['totalReels'] ?? 0}',
+                  subtitle:
+                      '${_storiesReelsSummary['totalReelViews'] ?? 0} plays',
+                  icon: Icons.video_library,
+                  color: const Color(0xFF5851DB),
+                ),
+              ],
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildMediaItem({
+  Widget _buildMediaCard({
     required String title,
     required String count,
     required String subtitle,
     required IconData icon,
     required Color color,
   }) {
+    final double cardWidth = (MediaQuery.of(context).size.width - 64) / 2;
     return Container(
-      width: (MediaQuery.of(context).size.width - 32) / 2,
-      padding: const EdgeInsets.all(8),
+      width: cardWidth,
+      padding: const EdgeInsets.symmetric(
+        vertical: AppSpacing.md,
+        horizontal: AppSpacing.md,
+      ),
       decoration: BoxDecoration(
-        color: Colors.grey[50],
-        borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: Colors.grey[200]!),
+        color: AppTheme.surface,
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+        boxShadow: AppShadows.light,
+        border: Border.all(color: color.withValues(alpha: 0.2)),
       ),
       child: Row(
         children: [
           Container(
-            width: 32,
-            height: 32,
+            width: 48,
+            height: 48,
             decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(6),
+              color: color.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(AppRadius.md),
             ),
-            child: Icon(icon, color: color, size: 16),
+            child: Icon(icon, color: color, size: 24),
           ),
-          const SizedBox(width: 6),
+          const SizedBox(width: AppSpacing.md),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
               children: [
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
                       title,
-                      style: const TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w500,
+                      style: AppTheme.textTheme.bodyLarge?.copyWith(
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                     Text(
                       count,
-                      style: const TextStyle(
-                        fontSize: 12,
+                      style: AppTheme.textTheme.titleLarge?.copyWith(
                         fontWeight: FontWeight.bold,
                       ),
                     ),
                   ],
                 ),
+                const SizedBox(height: AppSpacing.xs),
                 Text(
                   subtitle,
-                  style: TextStyle(fontSize: 9, color: Colors.grey[600]),
+                  style: AppTheme.textTheme.labelSmall?.copyWith(
+                    color: AppTheme.mediumGrey,
+                  ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -423,98 +458,121 @@ class _AnalyticsDashboardScreenState extends State<AnalyticsDashboardScreen> {
   }
 
   Widget _buildTopPostsSection() {
+    final platformColor = _getPlatformColor();
+
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(8),
       decoration: _cardDecoration(),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
         children: [
-          const Text(
-            'Top Posts',
-            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+          Padding(
+            padding: const EdgeInsets.all(AppSpacing.lg),
+            child: Text(
+              'Top Performing Posts',
+              style: AppTheme.textTheme.headlineSmall?.copyWith(
+                fontWeight: FontWeight.w700,
+                color: AppTheme.dark,
+              ),
+            ),
           ),
-          const SizedBox(height: 8),
+          Divider(height: 1, thickness: 1, color: AppTheme.lightGrey),
           if (_topPosts.isEmpty)
-            _buildEmptyState('No posts available')
+            _buildEmptyMessage('No posts available')
           else
             ListView.separated(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
+              padding: const EdgeInsets.all(AppSpacing.lg),
               itemCount: _topPosts.length > 3 ? 3 : _topPosts.length,
-              separatorBuilder: (ctx, i) => const SizedBox(height: 6),
+              separatorBuilder: (ctx, i) =>
+                  const SizedBox(height: AppSpacing.md),
               itemBuilder: (context, index) {
                 final post = _topPosts[index];
-                return _buildPostItem(post);
+                return _buildPostCard(post);
               },
+            ),
+          if (_topPosts.length > 3)
+            Padding(
+              padding: const EdgeInsets.only(bottom: AppSpacing.lg),
+              child: Center(
+                child: Text(
+                  '+ ${_topPosts.length - 3} more posts',
+                  style: AppTheme.textTheme.labelSmall?.copyWith(
+                    color: platformColor,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
             ),
         ],
       ),
     );
   }
 
-  Widget _buildPostItem(MetaPostInsights post) {
+  Widget _buildPostCard(MetaPostInsights post) {
     return Container(
-      padding: const EdgeInsets.all(6),
+      padding: const EdgeInsets.all(AppSpacing.md),
       decoration: BoxDecoration(
-        color: Colors.grey[50],
-        borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: Colors.grey[200]!),
+        color: AppTheme.background,
+        borderRadius: BorderRadius.circular(AppRadius.md),
+        border: Border.all(color: AppTheme.lightGrey),
       ),
       child: Row(
         children: [
-          // Thumbnail
           ClipRRect(
-            borderRadius: BorderRadius.circular(4),
+            borderRadius: BorderRadius.circular(AppRadius.sm),
             child: Container(
-              width: 36,
-              height: 36,
-              color: Colors.grey[200],
+              width: 60,
+              height: 60,
+              color: AppTheme.lightGrey,
               child: post.thumbnailUrl != null && post.thumbnailUrl!.isNotEmpty
                   ? Image.network(
                       post.thumbnailUrl!,
                       fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => Icon(
+                      errorBuilder: (_, _, _) => Icon(
                         Icons.broken_image,
-                        size: 16,
-                        color: Colors.grey[400],
+                        size: 24,
+                        color: AppTheme.mediumGrey,
                       ),
                     )
-                  : Icon(Icons.image, size: 16, color: Colors.grey[400]),
+                  : Icon(Icons.image, size: 24, color: AppTheme.mediumGrey),
             ),
           ),
-          const SizedBox(width: 6),
-
-          // Content
+          const SizedBox(width: AppSpacing.md),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
                   post.postCaption.isEmpty ? '(No caption)' : post.postCaption,
-                  style: const TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w500,
+                  style: AppTheme.textTheme.bodyLarge?.copyWith(
+                    fontWeight: FontWeight.w600,
                   ),
-                  maxLines: 1,
+                  maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                 ),
-                const SizedBox(height: 2),
+                const SizedBox(height: AppSpacing.md),
                 Row(
                   children: [
                     _buildStatChip(
                       icon: Icons.favorite,
                       count: post.likes,
-                      color: Colors.red,
+                      color: AppTheme.error,
                     ),
-                    const SizedBox(width: 4),
+                    const SizedBox(width: AppSpacing.md),
                     _buildStatChip(
                       icon: Icons.comment,
                       count: post.comments,
-                      color: Colors.blue,
+                      color: AppTheme.primaryTeal,
                     ),
+                    const SizedBox(width: AppSpacing.md),
+                    if (post.shares > 0)
+                      _buildStatChip(
+                        icon: Icons.share,
+                        count: post.shares,
+                        color: AppTheme.success,
+                      ),
                   ],
                 ),
               ],
@@ -531,20 +589,23 @@ class _AnalyticsDashboardScreenState extends State<AnalyticsDashboardScreen> {
     required Color color,
   }) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.sm,
+        vertical: AppSpacing.xs,
+      ),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(3),
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+        border: Border.all(color: color.withValues(alpha: 0.2)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 8, color: color),
-          const SizedBox(width: 1),
+          Icon(icon, size: 12, color: color),
+          const SizedBox(width: AppSpacing.xs),
           Text(
             _formatNumber(count),
-            style: TextStyle(
-              fontSize: 8,
+            style: AppTheme.textTheme.labelSmall?.copyWith(
               color: color,
               fontWeight: FontWeight.w600,
             ),
@@ -557,24 +618,31 @@ class _AnalyticsDashboardScreenState extends State<AnalyticsDashboardScreen> {
   Widget _buildDemographicsSection() {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(8),
       decoration: _cardDecoration(),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
         children: [
-          const Text(
-            'Audience',
-            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+          Padding(
+            padding: const EdgeInsets.all(AppSpacing.lg),
+            child: Text(
+              'Audience Demographics',
+              style: AppTheme.textTheme.headlineSmall?.copyWith(
+                fontWeight: FontWeight.w700,
+                color: AppTheme.dark,
+              ),
+            ),
           ),
-          const SizedBox(height: 8),
-          Column(
-            children: _demographics.map((demo) {
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: _buildDemographicBar(demo),
-              );
-            }).toList(),
+          Divider(height: 1, thickness: 1, color: AppTheme.lightGrey),
+          Padding(
+            padding: const EdgeInsets.all(AppSpacing.lg),
+            child: Column(
+              children: _demographics.map((demo) {
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: AppSpacing.lg),
+                  child: _buildDemographicBar(demo),
+                );
+              }).toList(),
+            ),
           ),
         ],
       ),
@@ -582,45 +650,50 @@ class _AnalyticsDashboardScreenState extends State<AnalyticsDashboardScreen> {
   }
 
   Widget _buildDemographicBar(MetaAudienceDemographics demo) {
+    final platformColor = _getPlatformColor();
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
       children: [
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(
               demo.ageGroup,
-              style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w500),
+              style: AppTheme.textTheme.bodyLarge?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
             ),
             Text(
               '${(demo.percentage * 100).toStringAsFixed(1)}%',
-              style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w600),
+              style: AppTheme.textTheme.bodyLarge?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ],
         ),
-        const SizedBox(height: 2),
+        const SizedBox(height: AppSpacing.md),
         Stack(
           children: [
             Container(
-              height: 4,
+              height: 8,
               decoration: BoxDecoration(
-                color: Colors.grey[200],
-                borderRadius: BorderRadius.circular(2),
+                color: AppTheme.lightGrey,
+                borderRadius: BorderRadius.circular(AppRadius.sm),
               ),
             ),
             FractionallySizedBox(
               widthFactor: demo.percentage,
               child: Container(
-                height: 4,
+                height: 8,
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     colors: [
-                      _getPlatformColor(),
-                      _getPlatformColor().withValues(alpha: 0.7),
+                      platformColor,
+                      platformColor.withValues(alpha: 0.7),
                     ],
                   ),
-                  borderRadius: BorderRadius.circular(2),
+                  borderRadius: BorderRadius.circular(AppRadius.sm),
                 ),
               ),
             ),
@@ -630,27 +703,34 @@ class _AnalyticsDashboardScreenState extends State<AnalyticsDashboardScreen> {
     );
   }
 
-  Widget _buildCard(String message) {
+  Widget _buildEmptyCard(String message) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(AppSpacing.xxxl),
       decoration: _cardDecoration(),
       child: Center(
         child: Text(
           message,
-          style: TextStyle(color: Colors.grey[600], fontSize: 13),
+          style: AppTheme.textTheme.bodyMedium?.copyWith(
+            color: AppTheme.mediumGrey,
+            fontWeight: FontWeight.w500,
+          ),
+          textAlign: TextAlign.center,
         ),
       ),
     );
   }
 
-  Widget _buildEmptyState(String message) {
+  Widget _buildEmptyMessage(String message) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 16),
+      padding: const EdgeInsets.all(AppSpacing.xxxl),
       child: Center(
         child: Text(
           message,
-          style: TextStyle(color: Colors.grey[500], fontSize: 12),
+          style: AppTheme.textTheme.bodyMedium?.copyWith(
+            color: AppTheme.lightGrey,
+            fontWeight: FontWeight.w500,
+          ),
         ),
       ),
     );
@@ -658,15 +738,9 @@ class _AnalyticsDashboardScreenState extends State<AnalyticsDashboardScreen> {
 
   BoxDecoration _cardDecoration() {
     return BoxDecoration(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(8),
-      boxShadow: [
-        BoxShadow(
-          color: Colors.grey.withValues(alpha: 0.1),
-          blurRadius: 4,
-          offset: const Offset(0, 1),
-        ),
-      ],
+      color: AppTheme.surface,
+      borderRadius: BorderRadius.circular(AppRadius.xl),
+      boxShadow: AppShadows.medium,
     );
   }
 }

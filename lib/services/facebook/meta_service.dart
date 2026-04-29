@@ -413,6 +413,7 @@ class MetaService {
     final userId = Supabase.instance.client.auth.currentUser?.id;
     if (userId == null) return [];
 
+    debugPrint("📥 Loading unified inbox for user: $userId");
     List<MetaChat> allChats = [];
 
     // Load Facebook conversations from Supabase
@@ -420,7 +421,15 @@ class MetaService {
       'facebook',
       userId,
     );
+    debugPrint("💙 Facebook conversations found: ${fbConversations.length}");
     for (var conv in fbConversations) {
+      final lastMsg = conv['last_message'];
+      final preview = lastMsg != null && lastMsg.length > 20
+          ? lastMsg.substring(0, 20)
+          : lastMsg ?? 'N/A';
+      debugPrint(
+        "  - FB Conv: ID=${conv['id']}, Sender=${conv['sender_id']}, Last=$preview",
+      );
       allChats.add(
         MetaChat(
           id: conv['id'],
@@ -442,10 +451,15 @@ class MetaService {
       'instagram',
       userId,
     );
+    debugPrint("📲 Instagram conversations found: ${igConversations.length}");
     for (var conv in igConversations) {
-      // For Instagram, the stored id is the UUID, but we need the original ID for API calls.
-      // However, we are not using the API anymore, so we can use the UUID as both.
-      // But the original ID is not stored, so we'll just use the UUID.
+      final lastMsg = conv['last_message'];
+      final preview = lastMsg != null && lastMsg.length > 20
+          ? lastMsg.substring(0, 20)
+          : lastMsg ?? 'N/A';
+      debugPrint(
+        "  - IG Conv: ID=${conv['id']}, Sender=${conv['sender_id']}, Last=$preview",
+      );
       allChats.add(
         MetaChat(
           id: conv['id'], // UUID
@@ -472,8 +486,12 @@ class MetaService {
       if (timeB == null) return -1;
       return timeB.compareTo(timeA);
     });
+
     debugPrint(
-      "Inbox loaded conversation IDs: ${allChats.map((c) => '${c.id} (${c.senderName})').toList()}",
+      "✅ Inbox loaded: ${allChats.length} total conversations (${fbConversations.length} FB + ${igConversations.length} IG)",
+    );
+    debugPrint(
+      "📋 Conversation IDs: ${allChats.map((c) => '${c.platform.name}:${c.id}(${c.senderName})').toList()}",
     );
     return allChats;
   }
@@ -558,16 +576,27 @@ class MetaService {
           );
         }
 
-        // Update conversation with latest message
+        // Update conversation with latest message and extract participant info
         if (messages.isNotEmpty) {
           final latestMsg = messages.last;
           final userId = Supabase.instance.client.auth.currentUser?.id;
           if (userId != null) {
+            // Extract participant ID from raw data - find the message from the other person
+            String? participantId;
+            for (var rawMsg in rawMsgs) {
+              final senderId = rawMsg['from']?['id'];
+              if (senderId != null && senderId != myIgId) {
+                participantId = senderId;
+                break;
+              }
+            }
+
             await _storageService.saveConversation(
               platform: 'instagram',
               conversationId: uuidConversationId,
-              participantId: '',
-              participantName: '',
+              participantId: participantId ?? '',
+              participantName:
+                  '', // Instagram doesn't provide username in messages API
               participantAvatar: '',
               lastMessage: latestMsg['content'] ?? '',
               lastMessageTime:
@@ -980,6 +1009,7 @@ class MetaService {
       return false;
     }
   }
+
   // ---------------------------------------------------------------------------
   // 8. SEND MEDIA MESSAGE (Image, Video, Document)
   // ---------------------------------------------------------------------------
@@ -1166,8 +1196,7 @@ class MetaService {
       debugPrint("❌ Exception in sendMediaMessage: $e");
       return false;
     }
-  } // ---------------------------------------------------------------------------
-
+  } 
   // 9. HELPERS
   // ---------------------------------------------------------------------------
   DateTime? _parseIsoTime(String? isoTime) {
@@ -2294,4 +2323,4 @@ class MetaService {
       };
     }
   }
-}
+}// ---------------------------------------------------------------------------
