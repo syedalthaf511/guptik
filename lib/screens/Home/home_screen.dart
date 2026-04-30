@@ -1,5 +1,7 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:guptik/models/home/dashboard_models.dart';
 import 'package:guptik/models/whatsapp/wa_conversation.dart';
 import 'package:guptik/screens/dashboard/flows_screen.dart';
 import 'package:guptik/screens/dashboard/message_templates_screen.dart';
@@ -9,6 +11,7 @@ import 'package:guptik/screens/home_control/homecontrol_screen.dart';
 import 'package:guptik/screens/trust_me/trust_me_mobile_wrapper.dart';
 import 'package:guptik/screens/vault/vaultscreen.dart';
 import 'package:guptik/services/dashboard/whatsapp_business_service.dart';
+import 'package:guptik/widgets/home/water_splash_button.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:guptik/screens/dashboard/quick_replies_screen.dart';
 import 'package:guptik/screens/dashboard/contacts_screen.dart';
@@ -31,11 +34,107 @@ import 'package:guptik/services/dashboard/conversations_service.dart';
 import 'package:guptik/screens/dashboard/business_settings_screen.dart';
 import 'package:guptik/screens/whatsapp/main_whatsapp_screen.dart';
 
+// IMPORTANT IMPORTS FOR YOUR NEWLY SEPARATED FILES
+import 'analytics_and_account_tab.dart'; 
+import 'profile_menu_dialog.dart';
+
 // Ancient Gold Color Definition
 const Color _ancientGold = Color(0xFFD4AF37);
 const Color _darkBg = Color(0xFF0A0A0A);
 
-// Custom overflow-safe Row widget to prevent ALL overflow errors
+// ==========================================
+// DEEP SPACE NEBULA ANIMATED BACKGROUND
+// ==========================================
+class AnimatedNebulaBackground extends StatefulWidget {
+  const AnimatedNebulaBackground({super.key});
+
+  @override
+  State<AnimatedNebulaBackground> createState() => _AnimatedNebulaBackgroundState();
+}
+
+class _AnimatedNebulaBackgroundState extends State<AnimatedNebulaBackground> with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      duration: const Duration(seconds: 15),
+      vsync: this,
+    )..repeat();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, child) {
+        return Container(
+          decoration: BoxDecoration(
+            gradient: SweepGradient(
+              center: Alignment.center,
+              startAngle: 0.0,
+              endAngle: 3.14159 * 2,
+              transform: GradientRotation(_controller.value * 2 * 3.14159),
+              colors: const [
+                Color(0xFF0A0A0A),
+                Color(0xFF160B2E),
+                Color(0xFF0A0A0A),
+                Color(0xFF001B3D),
+                Color(0xFF0A0A0A),
+              ],
+              stops: const [0.0, 0.25, 0.5, 0.75, 1.0],
+            ),
+          ),
+          child: Opacity(
+            opacity: 0.15,
+            child: Image.network(
+              'https://www.transparenttextures.com/patterns/stardust.png',
+              repeat: ImageRepeat.repeat,
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class GlassContainer extends StatelessWidget {
+  final Widget child;
+  final EdgeInsetsGeometry? padding;
+  final EdgeInsetsGeometry? margin;
+
+  const GlassContainer({super.key, required this.child, this.padding, this.margin});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: margin,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(12),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+          child: Container(
+            padding: padding,
+            decoration: BoxDecoration(
+              color: Colors.black.withValues(alpha: 0.4),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: _ancientGold.withValues(alpha: 0.25), width: 1),
+            ),
+            child: child,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class SafeRow extends StatelessWidget {
   final MainAxisAlignment mainAxisAlignment;
   final CrossAxisAlignment crossAxisAlignment;
@@ -64,40 +163,6 @@ class SafeRow extends StatelessWidget {
   }
 }
 
-// Responsive row that wraps content
-class ResponsiveRow extends StatelessWidget {
-  final List<Widget> children;
-  final double spacing;
-  final CrossAxisAlignment crossAxisAlignment;
-  final bool wrapWhenSmall;
-
-  const ResponsiveRow({
-    super.key,
-    required this.children,
-    this.spacing = 8.0,
-    this.crossAxisAlignment = CrossAxisAlignment.center,
-    this.wrapWhenSmall = false,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        if (wrapWhenSmall && constraints.maxWidth < 600) {
-          return Wrap(
-            spacing: spacing,
-            runSpacing: spacing,
-            crossAxisAlignment: WrapCrossAlignment.center,
-            children: children,
-          );
-        }
-
-        return Row(crossAxisAlignment: crossAxisAlignment, children: children);
-      },
-    );
-  }
-}
-
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
@@ -107,28 +172,18 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   int _selectedIndex = 0;
-
-  // Live Data State
   DashboardData? _dashboardData;
   bool _isLoading = true;
   String? _error;
   final int _maxRetries = 3;
 
-  // WhatsApp Business Service
   final WhatsAppBusinessService _whatsappService = WhatsAppBusinessService();
-
-  // Conversations Service
   final ConversationsService _conversationsService = ConversationsService();
 
-  // Get current user from Supabase
   User? get _currentUser => Supabase.instance.client.auth.currentUser;
 
   final List<DashboardSection> _sections = [
-    DashboardSection(
-      icon: Icons.dashboard,
-      title: 'Dashboard',
-      isSelected: true,
-    ),
+    DashboardSection(icon: Icons.dashboard, title: 'Dashboard', isSelected: true),
     DashboardSection(
       icon: Icons.library_books,
       title: 'Content Library',
@@ -182,7 +237,6 @@ class _HomeScreenState extends State<HomeScreen> {
     DashboardSection(icon: Icons.inbox, title: 'Inbox'),
   ];
 
-  // Key to control the drawer
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
   @override
@@ -213,28 +267,19 @@ class _HomeScreenState extends State<HomeScreen> {
       }
     } catch (e) {
       if (mounted) {
-        final isNetworkError =
-            e.toString().contains('network') ||
-            e.toString().contains('timeout') ||
-            e.toString().contains('connection');
-
+        final isNetworkError = e.toString().contains('network') || e.toString().contains('timeout') || e.toString().contains('connection');
         if (isNetworkError && attemptCount < _maxRetries) {
           final delaySeconds = (2 << attemptCount) * 2;
-
           setState(() {
-            _error =
-                'Connection issue. Retrying in $delaySeconds seconds... (${attemptCount + 1}/$_maxRetries)';
+            _error = 'Connection issue. Retrying in $delaySeconds seconds... (${attemptCount + 1}/$_maxRetries)';
             _isLoading = false;
           });
-
           Future.delayed(Duration(seconds: delaySeconds), () {
             if (mounted) _loadLiveDataWithRetry(attemptCount + 1);
           });
         } else {
           setState(() {
-            _error = attemptCount >= _maxRetries
-                ? 'Failed to load data after $_maxRetries attempts. Please check your connection and try again.'
-                : 'Failed to load live data: $e';
+            _error = attemptCount >= _maxRetries ? 'Failed to load data after $_maxRetries attempts.' : 'Failed to load live data: $e';
             _isLoading = false;
           });
         }
@@ -268,10 +313,7 @@ class _HomeScreenState extends State<HomeScreen> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                'Unlock premium features to grow your business faster:',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: Colors.white70),
-              ),
+              const Text('Unlock premium features to grow your business faster:', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: Colors.white70)),
               const SizedBox(height: 16),
               _buildFeatureItem('❖', 'Unlimited message templates'),
               _buildFeatureItem('❖', 'Advanced analytics & reports'),
@@ -291,34 +333,20 @@ class _HomeScreenState extends State<HomeScreen> {
                   children: [
                     Icon(Icons.local_offer, color: _ancientGold),
                     SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        'Special offer: Get 30% off your first 3 months!',
-                        style: TextStyle(
-                          color: _ancientGold,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
+                    Expanded(child: Text('Special offer: Get 30% off your first 3 months!', style: TextStyle(color: _ancientGold, fontWeight: FontWeight.w600))),
                   ],
                 ),
               ),
             ],
           ),
           actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Maybe Later', style: TextStyle(color: Colors.white54)),
-            ),
+            TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Maybe Later', style: TextStyle(color: Colors.white54))),
             ElevatedButton(
               onPressed: () {
                 Navigator.of(context).pop();
                 _handleUpgrade();
               },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: _ancientGold,
-                foregroundColor: Colors.black,
-              ),
+              style: ElevatedButton.styleFrom(backgroundColor: _ancientGold, foregroundColor: Colors.black),
               child: const Text('Upgrade Now'),
             ),
           ],
@@ -334,13 +362,7 @@ class _HomeScreenState extends State<HomeScreen> {
         children: [
           Text(icon, style: const TextStyle(fontSize: 16, color: _ancientGold)),
           const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              text,
-              style: const TextStyle(fontSize: 14, color: Colors.white70),
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
+          Expanded(child: Text(text, style: const TextStyle(fontSize: 14, color: Colors.white70), overflow: TextOverflow.ellipsis)),
         ],
       ),
     );
@@ -356,66 +378,26 @@ class _HomeScreenState extends State<HomeScreen> {
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              _buildPlanOption(
-                'Starter',
-                '\$19/month',
-                'Perfect for small businesses',
-                ['5,000 messages/month', 'Basic analytics', 'Email support'],
-                false,
-              ),
+              _buildPlanOption('Starter', '\$19/month', 'Perfect for small businesses', ['5,000 messages/month', 'Basic analytics', 'Email support'], false),
               const SizedBox(height: 16),
-              _buildPlanOption(
-                'Professional',
-                '\$49/month',
-                'Best for growing businesses',
-                [
-                  '25,000 messages/month',
-                  'Advanced analytics',
-                  'Priority support',
-                  'AI automation',
-                ],
-                true,
-              ),
+              _buildPlanOption('Professional', '\$49/month', 'Best for growing businesses', ['25,000 messages/month', 'Advanced analytics', 'Priority support', 'AI automation'], true),
               const SizedBox(height: 16),
-              _buildPlanOption(
-                'Enterprise',
-                '\$99/month',
-                'For large organizations',
-                [
-                  'Unlimited messages',
-                  'Custom integrations',
-                  'Dedicated manager',
-                  'White-label options',
-                ],
-                false,
-              ),
+              _buildPlanOption('Enterprise', '\$99/month', 'For large organizations', ['Unlimited messages', 'Custom integrations', 'Dedicated manager', 'White-label options'], false),
             ],
           ),
           actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Cancel', style: TextStyle(color: Colors.white54)),
-            ),
+            TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Cancel', style: TextStyle(color: Colors.white54))),
           ],
         );
       },
     );
   }
 
-  Widget _buildPlanOption(
-    String name,
-    String price,
-    String description,
-    List<String> features,
-    bool isRecommended,
-  ) {
+  Widget _buildPlanOption(String name, String price, String description, List<String> features, bool isRecommended) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        border: Border.all(
-          color: isRecommended ? _ancientGold : Colors.grey[800]!,
-          width: isRecommended ? 2 : 1,
-        ),
+        border: Border.all(color: isRecommended ? _ancientGold : Colors.grey[800]!, width: isRecommended ? 2 : 1),
         borderRadius: BorderRadius.circular(12),
         color: isRecommended ? _ancientGold.withValues(alpha: 0.1) : Colors.black,
       ),
@@ -430,81 +412,35 @@ class _HomeScreenState extends State<HomeScreen> {
                   children: [
                     Row(
                       children: [
-                        Expanded(
-                          child: Text(
-                            name,
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: isRecommended ? _ancientGold : Colors.white,
-                            ),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
+                        Expanded(child: Text(name, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: isRecommended ? _ancientGold : Colors.white), overflow: TextOverflow.ellipsis)),
                         if (isRecommended) ...[
                           const SizedBox(width: 8),
                           Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 2,
-                            ),
-                            decoration: BoxDecoration(
-                              color: _ancientGold,
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: const Text(
-                              'RECOMMENDED',
-                              style: TextStyle(
-                                color: Colors.black,
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                            decoration: BoxDecoration(color: _ancientGold, borderRadius: BorderRadius.circular(12)),
+                            child: const Text('RECOMMENDED', style: TextStyle(color: Colors.black, fontSize: 10, fontWeight: FontWeight.bold)),
                           ),
                         ],
                       ],
                     ),
-                    Text(
-                      description,
-                      style: TextStyle(fontSize: 12, color: Colors.grey[500]),
-                      overflow: TextOverflow.ellipsis,
-                    ),
+                    Text(description, style: TextStyle(fontSize: 12, color: Colors.grey[500]), overflow: TextOverflow.ellipsis),
                   ],
                 ),
               ),
-              Text(
-                price,
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: isRecommended ? _ancientGold : Colors.white,
-                ),
-              ),
+              Text(price, style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: isRecommended ? _ancientGold : Colors.white)),
             ],
           ),
           const SizedBox(height: 12),
-          ...features.map(
-            (feature) => Padding(
-              padding: const EdgeInsets.symmetric(vertical: 2),
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.check_circle,
-                    size: 16,
-                    color: isRecommended ? _ancientGold : Colors.grey[400],
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      feature,
-                      style: const TextStyle(fontSize: 12, color: Colors.white70),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
+          ...features.map((feature) => Padding(
+                padding: const EdgeInsets.symmetric(vertical: 2),
+                child: Row(
+                  children: [
+                    Icon(Icons.check_circle, size: 16, color: isRecommended ? _ancientGold : Colors.grey[400]),
+                    const SizedBox(width: 8),
+                    Expanded(child: Text(feature, style: const TextStyle(fontSize: 12, color: Colors.white70), overflow: TextOverflow.ellipsis)),
+                  ],
+                ),
+              )),
           const SizedBox(height: 12),
           SizedBox(
             width: double.infinity,
@@ -513,18 +449,8 @@ class _HomeScreenState extends State<HomeScreen> {
                 Navigator.of(context).pop();
                 _selectPlan(name, price);
               },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: isRecommended ? _ancientGold : Colors.grey[800],
-                foregroundColor: isRecommended ? Colors.black : Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 8),
-              ),
-              child: Text(
-                'Select $name',
-                style: const TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
+              style: ElevatedButton.styleFrom(backgroundColor: isRecommended ? _ancientGold : Colors.grey[800], foregroundColor: isRecommended ? Colors.black : Colors.white, padding: const EdgeInsets.symmetric(vertical: 8)),
+              child: Text('Select $name', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
             ),
           ),
         ],
@@ -535,244 +461,22 @@ class _HomeScreenState extends State<HomeScreen> {
   void _selectPlan(String planName, String price) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(
-          'Selected $planName plan ($price). Redirecting to payment...',
-          style: const TextStyle(color: Colors.black),
-        ),
+        content: Text('Selected $planName plan ($price). Redirecting to payment...', style: const TextStyle(color: Colors.black)),
         backgroundColor: _ancientGold,
-        action: SnackBarAction(
-          label: 'PROCEED',
-          textColor: Colors.black,
-          onPressed: () {},
-        ),
-      ),
-    );
-  }
-
-  void _showProfileMenu() {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          backgroundColor: Colors.black,
-          shape: RoundedRectangleBorder(
-            side: const BorderSide(color: _ancientGold, width: 1),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          contentPadding: EdgeInsets.zero,
-          content: SizedBox(
-            width: MediaQuery.of(context).size.width < 400
-                ? MediaQuery.of(context).size.width * 0.9
-                : 320,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Profile Header
-                Container(
-                  padding: const EdgeInsets.all(20),
-                  child: Row(
-                    children: [
-                      CircleAvatar(
-                        radius: 24,
-                        backgroundColor: _ancientGold,
-                        child: Text(
-                          _getInitials(_getUserDisplayName()),
-                          style: const TextStyle(
-                            color: Colors.black,
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              _getUserDisplayName(),
-                              style: const TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
-                                color: _ancientGold,
-                              ),
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                            Text(
-                              _getUserEmail(),
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: Colors.grey[400],
-                              ),
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-
-                const Divider(height: 1, color: Colors.white24),
-
-                // Menu Items
-                _buildProfileMenuItem(Icons.person_outline, 'My Account'),
-                _buildProfileMenuItem(Icons.phone_android, 'WhatsApp Numbers'),
-                _buildProfileMenuItem(Icons.facebook, 'Facebook & Instagram'),
-
-                const Divider(height: 1, color: Colors.white24),
-
-                _buildProfileMenuItem(Icons.api, 'API Configuration'),
-                _buildProfileMenuItem(Icons.webhook, 'Webhook Configuration'),
-                _buildProfileMenuItem(Icons.extension, 'Integrations'),
-                _buildProfileMenuItem(Icons.card_giftcard, 'Refer and Earn'),
-                _buildProfileMenuItem(Icons.bug_report_outlined, 'Report Bug'),
-
-                const Divider(height: 1, color: Colors.white24),
-
-                _buildProfileMenuItem(
-                  Icons.logout,
-                  'Log Out',
-                  isDestructive: true,
-                ),
-
-                const SizedBox(height: 8),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildProfileMenuItem(
-    IconData icon,
-    String title, {
-    bool isDestructive = false,
-  }) {
-    return InkWell(
-      onTap: () {
-        Navigator.of(context).pop();
-        _handleProfileAction(title);
-      },
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-        child: Row(
-          children: [
-            Icon(
-              icon,
-              color: isDestructive ? Colors.redAccent : _ancientGold,
-              size: 20,
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Text(
-                title,
-                style: TextStyle(
-                  fontSize: 14,
-                  color: isDestructive ? Colors.redAccent : Colors.white70,
-                  fontWeight: FontWeight.w400,
-                ),
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  void _handleProfileAction(String action) {
-    switch (action) {
-      case 'My Account':
-        Navigator.pushNamed(context, '/profile');
-        break;
-      case 'WhatsApp Numbers':
-        Navigator.pushNamed(context, '/whatsapp-numbers');
-        break;
-      case 'Facebook & Instagram':
-        Navigator.pushNamed(context, '/facebook-instagram');
-        break;
-      case 'API Configuration':
-        Navigator.pushNamed(context, '/api-settings');
-        break;
-      case 'Webhook Configuration':
-        Navigator.pushNamed(context, '/webhook-config');
-        break;
-      case 'Integrations':
-        Navigator.pushNamed(context, '/integrations');
-        break;
-      case 'Refer and Earn':
-        Navigator.pushNamed(context, '/referral');
-        break;
-      case 'Report Bug':
-        Navigator.pushNamed(context, '/support');
-        break;
-      case 'Log Out':
-        _showSignOutConfirmation();
-        break;
-    }
-  }
-
-  void _showSignOutConfirmation() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: Colors.black,
-        title: const Text('Sign Out', style: TextStyle(color: _ancientGold)),
-        content: const Text(
-          'Are you sure you want to sign out of your account?',
-          style: TextStyle(color: Colors.white70),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel', style: TextStyle(color: Colors.white54)),
-          ),
-          TextButton(
-            onPressed: () async {
-              final navigator = Navigator.of(context);
-              final messenger = ScaffoldMessenger.of(context);
-
-              navigator.pop();
-              try {
-                await Supabase.instance.client.auth.signOut();
-                if (!mounted) return;
-                navigator.pushReplacementNamed('/login');
-              } catch (e) {
-                if (!mounted) return;
-                messenger.showSnackBar(
-                  SnackBar(
-                    content: Text('Error signing out: $e'),
-                    backgroundColor: Colors.red,
-                  ),
-                );
-              }
-            },
-            style: TextButton.styleFrom(foregroundColor: Colors.redAccent),
-            child: const Text('Sign Out'),
-          ),
-        ],
+        action: SnackBarAction(label: 'PROCEED', textColor: Colors.black, onPressed: () {}),
       ),
     );
   }
 
   String _getInitials(String name) {
     if (name.isEmpty) return 'U';
-
     List<String> nameParts = name.trim().split(' ');
-    if (nameParts.length == 1) {
-      return nameParts[0][0].toUpperCase();
-    } else {
-      return '${nameParts[0][0].toUpperCase()}${nameParts[1][0].toUpperCase()}';
-    }
+    if (nameParts.length == 1) return nameParts[0][0].toUpperCase();
+    return '${nameParts[0][0].toUpperCase()}${nameParts[1][0].toUpperCase()}';
   }
 
   String _getUserDisplayName() {
-    return _dashboardData?.businessProfile?.displayName ??
-        _currentUser?.userMetadata?['full_name'] ??
-        _currentUser?.email?.split('@')[0] ??
-        'Business User';
+    return _dashboardData?.businessProfile?.displayName ?? _currentUser?.userMetadata?['full_name'] ?? _currentUser?.email?.split('@')[0] ?? 'Business User';
   }
 
   String _getUserEmail() {
@@ -792,29 +496,20 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildMenuItem(int flatIndex) {
     int currentIndex = 0;
-
     for (int sectionIndex = 0; sectionIndex < _sections.length; sectionIndex++) {
       final section = _sections[sectionIndex];
-
-      if (currentIndex == flatIndex) {
-        return _buildMainMenuItem(section, sectionIndex);
-      }
+      if (currentIndex == flatIndex) return _buildMainMenuItem(section, sectionIndex);
       currentIndex++;
 
       if (section.isExpanded && section.subSections != null) {
         for (int subIndex = 0; subIndex < section.subSections!.length; subIndex++) {
           if (currentIndex == flatIndex) {
-            return _buildSubMenuItem(
-              section.subSections![subIndex],
-              sectionIndex,
-              subIndex,
-            );
+            return _buildSubMenuItem(section.subSections![subIndex], sectionIndex, subIndex);
           }
           currentIndex++;
         }
       }
     }
-
     return const SizedBox.shrink();
   }
 
@@ -827,27 +522,13 @@ class _HomeScreenState extends State<HomeScreen> {
       margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
       child: ListTile(
         dense: true,
-        leading: Icon(
-          section.icon,
-          color: isSelected ? _ancientGold : Colors.grey[500],
-          size: 20,
-        ),
+        leading: Icon(section.icon, color: isSelected ? _ancientGold : Colors.grey[500], size: 20),
         title: Text(
           section.title,
-          style: TextStyle(
-            color: isSelected ? _ancientGold : Colors.grey[400],
-            fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-            fontSize: 14,
-          ),
+          style: TextStyle(color: isSelected ? _ancientGold : Colors.grey[400], fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal, fontSize: 14),
           overflow: TextOverflow.ellipsis,
         ),
-        trailing: hasSubSections
-            ? Icon(
-                section.isExpanded ? Icons.expand_less : Icons.expand_more,
-                color: isSelected ? _ancientGold : Colors.grey[500],
-                size: 20,
-              )
-            : null,
+        trailing: hasSubSections ? Icon(section.isExpanded ? Icons.expand_less : Icons.expand_more, color: isSelected ? _ancientGold : Colors.grey[500], size: 20) : null,
         selected: isSelected,
         selectedTileColor: _ancientGold.withValues(alpha: 0.1),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
@@ -856,32 +537,18 @@ class _HomeScreenState extends State<HomeScreen> {
             if (hasSubSections) {
               section.isExpanded = !section.isExpanded;
               _selectedIndex = sectionIndex;
-              for (int i = 0; i < _sections.length; i++) {
-                _sections[i].isSelected = i == sectionIndex;
-                if (_sections[i].subSections != null) {
-                  for (var subSection in _sections[i].subSections!) {
-                    subSection.isSelected = false;
-                  }
-                }
-              }
             } else {
               _selectedIndex = sectionIndex;
-              for (int i = 0; i < _sections.length; i++) {
-                _sections[i].isSelected = i == sectionIndex;
-                if (_sections[i].subSections != null) {
-                  for (var subSection in _sections[i].subSections!) {
-                    subSection.isSelected = false;
-                  }
-                }
+            }
+            for (int i = 0; i < _sections.length; i++) {
+              _sections[i].isSelected = i == sectionIndex;
+              if (_sections[i].subSections != null) {
+                for (var subSection in _sections[i].subSections!) subSection.isSelected = false;
               }
             }
           });
-
-          if (MediaQuery.of(context).size.width < 768) {
-            Navigator.pop(context);
-          }
+          if (MediaQuery.of(context).size.width < 768) Navigator.pop(context);
         },
-        contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 0),
       ),
     );
   }
@@ -896,21 +563,13 @@ class _HomeScreenState extends State<HomeScreen> {
         title: Row(
           children: [
             if (subSection.icon != null) ...[
-              Icon(
-                subSection.icon!,
-                color: subSection.isSelected ? _ancientGold : Colors.grey[500],
-                size: 16,
-              ),
+              Icon(subSection.icon!, color: subSection.isSelected ? _ancientGold : Colors.grey[500], size: 16),
               const SizedBox(width: 8),
             ],
             Expanded(
               child: Text(
                 subSection.title,
-                style: TextStyle(
-                  color: subSection.isSelected ? _ancientGold : Colors.grey[400],
-                  fontWeight: subSection.isSelected ? FontWeight.w600 : FontWeight.normal,
-                  fontSize: 13,
-                ),
+                style: TextStyle(color: subSection.isSelected ? _ancientGold : Colors.grey[400], fontWeight: subSection.isSelected ? FontWeight.w600 : FontWeight.normal, fontSize: 13),
                 overflow: TextOverflow.ellipsis,
               ),
             ),
@@ -926,17 +585,12 @@ class _HomeScreenState extends State<HomeScreen> {
             for (var section in _sections) {
               section.isSelected = false;
               if (section.subSections != null) {
-                for (var sub in section.subSections!) {
-                  sub.isSelected = false;
-                }
+                for (var sub in section.subSections!) sub.isSelected = false;
               }
             }
             subSection.isSelected = true;
           });
-
-          if (MediaQuery.of(context).size.width < 768) {
-            Navigator.pop(context);
-          }
+          if (MediaQuery.of(context).size.width < 768) Navigator.pop(context);
         },
       ),
     );
@@ -953,95 +607,87 @@ class _HomeScreenState extends State<HomeScreen> {
               backgroundColor: _darkBg,
               key: _scaffoldKey,
               drawer: _buildMobileDrawer(context),
-              body: Container(
-                decoration: BoxDecoration(
-                  color: _darkBg,
-                  image: const DecorationImage(
-                    image: NetworkImage('https://www.transparenttextures.com/patterns/cubes.png'), 
-                    opacity: 0.05,
-                    repeat: ImageRepeat.repeat,
-                  ),
-                ),
-                child: Column(
-                  children: [
-                    // Top Bar for Mobile
-                    Container(
-                      height: 80,
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      decoration: BoxDecoration(
-                        color: Colors.black,
-                        border: Border(bottom: BorderSide(color: _ancientGold.withValues(alpha: 0.2))),
-                        boxShadow: [
-                          BoxShadow(
-                            color: _ancientGold.withValues(alpha: 0.1),
-                            blurRadius: 4,
-                            offset: const Offset(0, 6),
-                          ),
-                        ],
-                      ),
-                      child: Row(
-                        children: [
-                          IconButton(
-                            icon: const Icon(Icons.menu, color: _ancientGold, size: 28),
-                            onPressed: () {
-                              _scaffoldKey.currentState?.openDrawer();
-                            },
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              _getCurrentTitle(),
-                              style: const TextStyle(
-                                fontSize: 22,
-                                fontWeight: FontWeight.w600,
-                                color: _ancientGold,
-                              ),
-                              overflow: TextOverflow.ellipsis,
+              body: Stack(
+                children: [
+                  const Positioned.fill(child: AnimatedNebulaBackground()),
+                  Column(
+                    children: [
+                      // Top Bar for Mobile
+                      Container(
+                        height: 60,
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        decoration: BoxDecoration(
+                          color: Colors.black,
+                          border: Border(bottom: BorderSide(color: _ancientGold.withValues(alpha: 0.2))),
+                          boxShadow: [
+                            BoxShadow(color: _ancientGold.withValues(alpha: 0.1), blurRadius: 4, offset: const Offset(0, 2)),
+                          ],
+                        ),
+                        child: Row(
+                          children: [
+                            IconButton(
+                              icon: const Icon(Icons.menu, color: _ancientGold, size: 24),
+                              onPressed: () => _scaffoldKey.currentState?.openDrawer(),
                             ),
-                          ),
-                          Container(
-                            constraints: const BoxConstraints(maxWidth: 100),
-                            child: InkWell(
-                              onTap: _showUpgradePlanDialog,
-                              borderRadius: BorderRadius.circular(20),
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                                decoration: BoxDecoration(
-                                  color: Colors.black,
-                                  border: Border.all(color: _ancientGold),
-                                  borderRadius: BorderRadius.circular(20),
-                                ),
-                                child: const Text(
-                                  'Upgrade',
-                                  style: TextStyle(color: _ancientGold, fontWeight: FontWeight.w600, fontSize: 11),
-                                ),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          IconButton(
-                            icon: const Icon(Icons.notifications_outlined, color: _ancientGold, size: 20),
-                            onPressed: () {},
-                          ),
-                          const SizedBox(width: 8),
-                          InkWell(
-                            onTap: _showProfileMenu,
-                            borderRadius: BorderRadius.circular(16),
-                            child: CircleAvatar(
-                              radius: 16,
-                              backgroundColor: _ancientGold,
+                            const SizedBox(width: 8),
+                            Expanded(
                               child: Text(
-                                _getInitials(_getUserDisplayName()),
-                                style: const TextStyle(color: Colors.black, fontSize: 12, fontWeight: FontWeight.bold),
+                                _getCurrentTitle(),
+                                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: _ancientGold),
+                                overflow: TextOverflow.ellipsis,
                               ),
                             ),
-                          ),
-                        ],
+                            Container(
+                              constraints: const BoxConstraints(maxWidth: 100),
+                              child: InkWell(
+                                onTap: _showUpgradePlanDialog,
+                                borderRadius: BorderRadius.circular(20),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                  decoration: BoxDecoration(
+                                    color: Colors.black.withValues(alpha: 0.5),
+                                    border: Border.all(color: _ancientGold),
+                                    borderRadius: BorderRadius.circular(20),
+                                  ),
+                                  child: const Text(
+                                    'Upgrade',
+                                    style: TextStyle(color: _ancientGold, fontWeight: FontWeight.w600, fontSize: 11),
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            IconButton(
+                              icon: const Icon(Icons.notifications_outlined, color: _ancientGold, size: 20),
+                              onPressed: () {},
+                            ),
+                            const SizedBox(width: 8),
+                            InkWell(
+                              onTap: () {
+                                showProfileMenu(
+                                  context: context,
+                                  displayName: _getUserDisplayName(),
+                                  email: _getUserEmail(),
+                                  initials: _getInitials(_getUserDisplayName()),
+                                );
+                              },
+                              borderRadius: BorderRadius.circular(16),
+                              child: CircleAvatar(
+                                radius: 16,
+                                backgroundColor: _ancientGold,
+                                child: Text(
+                                  _getInitials(_getUserDisplayName()),
+                                  style: const TextStyle(color: Colors.black, fontSize: 12, fontWeight: FontWeight.bold),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-                    Expanded(child: _buildCurrentContent()),
-                  ],
-                ),
+                      Expanded(child: _buildCurrentContent()),
+                    ],
+                  ),
+                ],
               ),
             ),
           );
@@ -1057,13 +703,12 @@ class _HomeScreenState extends State<HomeScreen> {
                 Container(
                   width: 260,
                   decoration: BoxDecoration(
-                    color: Colors.black,
+                    color: Colors.black.withValues(alpha: 0.8),
                     border: Border(right: BorderSide(color: _ancientGold.withValues(alpha: 0.2))),
                   ),
                   child: SafeArea(
                     child: Column(
                       children: [
-                        // Header
                         Container(
                           padding: const EdgeInsets.all(20),
                           child: const Row(
@@ -1080,8 +725,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             ],
                           ),
                         ),
-
-                        // Business Account Info
+                        // Business Info
                         Container(
                           margin: const EdgeInsets.symmetric(horizontal: 16),
                           padding: const EdgeInsets.all(16),
@@ -1119,16 +763,12 @@ class _HomeScreenState extends State<HomeScreen> {
                             ],
                           ),
                         ),
-
                         const SizedBox(height: 20),
-
-                        // Navigation Menu
+                        // Menu
                         Expanded(
                           child: ListView.builder(
                             itemCount: _getTotalMenuItemCount(),
-                            itemBuilder: (context, index) {
-                              return _buildMenuItem(index);
-                            },
+                            itemBuilder: (context, index) => _buildMenuItem(index),
                           ),
                         ),
                       ],
@@ -1138,83 +778,81 @@ class _HomeScreenState extends State<HomeScreen> {
 
                 // Main Content
                 Expanded(
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: _darkBg,
-                      image: const DecorationImage(
-                        image: NetworkImage('https://www.transparenttextures.com/patterns/cubes.png'), 
-                        opacity: 0.05,
-                        repeat: ImageRepeat.repeat,
-                      ),
-                    ),
-                    child: Column(
-                      children: [
-                        // Top Bar
-                        Container(
-                          height: 60,
-                          padding: const EdgeInsets.symmetric(horizontal: 20),
-                          decoration: BoxDecoration(
-                            color: Colors.black,
-                            border: Border(bottom: BorderSide(color: _ancientGold.withValues(alpha: 0.2))),
-                            boxShadow: [
-                              BoxShadow(
-                                color: _ancientGold.withValues(alpha: 0.1),
-                                blurRadius: 4,
-                                offset: const Offset(0, 2),
-                              ),
-                            ],
-                          ),
-                          child: Row(
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  _getCurrentTitle(),
-                                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: _ancientGold),
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                              Container(
-                                constraints: const BoxConstraints(maxWidth: 100),
-                                child: InkWell(
-                                  onTap: _showUpgradePlanDialog,
-                                  borderRadius: BorderRadius.circular(20),
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                                    decoration: BoxDecoration(
-                                      color: Colors.black,
-                                      border: Border.all(color: _ancientGold),
-                                      borderRadius: BorderRadius.circular(20),
-                                    ),
-                                    child: const Text(
-                                      'Upgrade',
-                                      style: TextStyle(color: _ancientGold, fontWeight: FontWeight.w600, fontSize: 11),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              const Icon(Icons.notifications_outlined, color: _ancientGold, size: 20),
-                              const SizedBox(width: 8),
-                              InkWell(
-                                onTap: _showProfileMenu,
-                                borderRadius: BorderRadius.circular(16),
-                                child: CircleAvatar(
-                                  radius: 16,
-                                  backgroundColor: _ancientGold,
+                  child: Stack(
+                    children: [
+                      const Positioned.fill(child: AnimatedNebulaBackground()),
+                      Column(
+                        children: [
+                          // Top Bar
+                          Container(
+                            height: 60,
+                            padding: const EdgeInsets.symmetric(horizontal: 20),
+                            decoration: BoxDecoration(
+                              color: Colors.black,
+                              border: Border(bottom: BorderSide(color: _ancientGold.withValues(alpha: 0.2))),
+                            ),
+                            child: Row(
+                              children: [
+                                Expanded(
                                   child: Text(
-                                    _getInitials(_getUserDisplayName()),
-                                    style: const TextStyle(color: Colors.black, fontSize: 12, fontWeight: FontWeight.bold),
+                                    _getCurrentTitle(),
+                                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: _ancientGold),
+                                    overflow: TextOverflow.ellipsis,
                                   ),
                                 ),
-                              ),
-                            ],
+                                Container(
+                                  constraints: const BoxConstraints(maxWidth: 100),
+                                  child: InkWell(
+                                    onTap: _showUpgradePlanDialog,
+                                    borderRadius: BorderRadius.circular(20),
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                      decoration: BoxDecoration(
+                                        color: Colors.black.withValues(alpha: 0.5),
+                                        border: Border.all(color: _ancientGold),
+                                        borderRadius: BorderRadius.circular(20),
+                                      ),
+                                      child: const Text(
+                                        'Upgrade',
+                                        style: TextStyle(color: _ancientGold, fontWeight: FontWeight.w600, fontSize: 11),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                IconButton(
+                                  icon: const Icon(Icons.notifications_outlined, color: _ancientGold, size: 20),
+                                  onPressed: () {},
+                                ),
+                                const SizedBox(width: 8),
+                                InkWell(
+                                  onTap: () {
+                                    showProfileMenu(
+                                      context: context,
+                                      displayName: _getUserDisplayName(),
+                                      email: _getUserEmail(),
+                                      initials: _getInitials(_getUserDisplayName()),
+                                    );
+                                  },
+                                  borderRadius: BorderRadius.circular(16),
+                                  child: CircleAvatar(
+                                    radius: 16,
+                                    backgroundColor: _ancientGold,
+                                    child: Text(
+                                      _getInitials(_getUserDisplayName()),
+                                      style: const TextStyle(color: Colors.black, fontSize: 12, fontWeight: FontWeight.bold),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
-                        ),
 
-                        // Content Area
-                        Expanded(child: _buildCurrentContent()),
-                      ],
-                    ),
+                          // Content Area
+                          Expanded(child: _buildCurrentContent()),
+                        ],
+                      ),
+                    ],
                   ),
                 ),
               ],
@@ -1225,7 +863,6 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // Mobile Drawer Widget
   Widget _buildMobileDrawer(BuildContext context) {
     return Drawer(
       width: 280,
@@ -1233,70 +870,21 @@ class _HomeScreenState extends State<HomeScreen> {
         color: Colors.black,
         child: Column(
           children: [
-            // Drawer Header
             Container(
               padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                border: Border(bottom: BorderSide(color: _ancientGold.withValues(alpha: 0.2))),
-              ),
+              decoration: BoxDecoration(border: Border(bottom: BorderSide(color: _ancientGold.withValues(alpha: 0.2)))),
               child: const Row(
                 children: [
                   Icon(Icons.chat_bubble_outline, color: _ancientGold, size: 28),
                   SizedBox(width: 12),
-                  Text(
-                    'Meta Fly',
-                    style: TextStyle(color: _ancientGold, fontSize: 20, fontWeight: FontWeight.bold),
-                  ),
+                  Text('Meta Fly', style: TextStyle(color: _ancientGold, fontSize: 20, fontWeight: FontWeight.bold)),
                 ],
               ),
             ),
-
-            // Business Account Info
-            Container(
-              margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: _ancientGold.withValues(alpha: 0.05),
-                border: Border.all(color: _ancientGold.withValues(alpha: 0.3)),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      const CircleAvatar(
-                        radius: 12,
-                        backgroundColor: _ancientGold,
-                        child: Icon(Icons.store, color: Colors.black, size: 16),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          _dashboardData?.businessProfile?.displayName ?? 'Business Name',
-                          style: const TextStyle(color: _ancientGold, fontWeight: FontWeight.w600),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    _dashboardData?.businessProfile?.phoneNumber ?? 'Phone Number',
-                    style: TextStyle(color: _ancientGold.withValues(alpha: 0.7), fontSize: 12),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
-              ),
-            ),
-
-            // Navigation Menu
             Expanded(
               child: ListView.builder(
                 itemCount: _getTotalMenuItemCount(),
-                itemBuilder: (context, index) {
-                  return _buildMenuItem(index);
-                },
+                itemBuilder: (context, index) => _buildMenuItem(index),
               ),
             ),
           ],
@@ -1309,16 +897,12 @@ class _HomeScreenState extends State<HomeScreen> {
     for (var section in _sections) {
       if (section.subSections != null) {
         for (var subSection in section.subSections!) {
-          if (subSection.isSelected) {
-            return subSection.title;
-          }
+          if (subSection.isSelected) return subSection.title;
         }
       }
     }
     if (_selectedIndex >= 0 && _selectedIndex < _sections.length) {
-      if (_sections[_selectedIndex].title == 'Inbox') {
-        return 'Conversations';
-      }
+      if (_sections[_selectedIndex].title == 'Inbox') return 'Conversations';
       return _sections[_selectedIndex].title;
     }
     return 'Dashboard';
@@ -1334,11 +918,8 @@ class _HomeScreenState extends State<HomeScreen> {
         }
       }
     }
-    if (_selectedIndex == 0) {
-      return _buildDashboardContent();
-    } else if (_selectedIndex > 0 && _selectedIndex < _sections.length) {
-      return _buildOtherContent();
-    }
+    if (_selectedIndex == 0) return _buildDashboardContent();
+    if (_selectedIndex > 0 && _selectedIndex < _sections.length) return _buildOtherContent();
     return _buildDashboardContent();
   }
 
@@ -1349,16 +930,9 @@ class _HomeScreenState extends State<HomeScreen> {
         children: [
           Icon(_getSubSectionIcon(subSectionTitle), size: 64, color: _ancientGold),
           const SizedBox(height: 16),
-          Text(
-            subSectionTitle,
-            style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w600, color: _ancientGold),
-          ),
+          Text(subSectionTitle, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w600, color: _ancientGold)),
           const SizedBox(height: 8),
-          Text(
-            _getSubSectionDescription(subSectionTitle),
-            style: const TextStyle(fontSize: 16, color: Colors.grey),
-            textAlign: TextAlign.center,
-          ),
+          Text(_getSubSectionDescription(subSectionTitle), style: const TextStyle(fontSize: 16, color: Colors.grey), textAlign: TextAlign.center),
           const SizedBox(height: 24),
           ElevatedButton(
             onPressed: () {
@@ -1406,7 +980,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 Navigator.push(context, MaterialPageRoute(builder: (context) => const DripSequencesScreen()));
               } else {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Opening $subSectionTitle...', style: const TextStyle(color: Colors.black)), backgroundColor: _ancientGold),
+                  const SnackBar(content: Text('Opening...', style: TextStyle(color: Colors.black)), backgroundColor: _ancientGold),
                 );
               }
             },
@@ -1471,922 +1045,269 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildDashboardContent() {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(20),
+    return DefaultTabController(
+      length: 2,
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Top Main Container (Black Background, Ancient Gold Text/Shadows)
+          // Custom TabBar
           Container(
-            padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              color: Colors.black,
-              border: Border.all(color: _ancientGold.withValues(alpha: 0.3)),
-              borderRadius: BorderRadius.circular(12),
-              boxShadow: [
-                BoxShadow(
-                  color: _ancientGold.withValues(alpha: 0.15),
-                  blurRadius: 10,
-                  offset: const Offset(0, 6),
-                ),
-              ],
+              color: Colors.black.withValues(alpha: 0.5),
+              border: Border(bottom: BorderSide(color: _ancientGold.withValues(alpha: 0.2))),
             ),
-            child: Column(
-              children: [
-                const Text(
-                  'Quick Access',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: _ancientGold),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Manage your ecosystem',
-                  style: TextStyle(fontSize: 14, color: _ancientGold.withValues(alpha: 0.8)),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 24),
-
-                // FIRST ROW - Homecontrol, Vault
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    // Homecontrol Icon
-                    Flexible(
-                      fit: FlexFit.tight,
-                      child: InkWell(
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(builder: (context) => const HomecontrolScreen()),
-                          );
-                        },
-                        child: Container(
-                          margin: const EdgeInsets.symmetric(horizontal: 5),
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: Colors.black,
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: _ancientGold.withValues(alpha: 0.5)),
-                          ),
-                          child: const Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              FaIcon(FontAwesomeIcons.house, color: _ancientGold, size: 28),
-                              SizedBox(height: 6),
-                              Text(
-                                'Homecontrol',
-                                style: TextStyle(fontSize: 10, color: _ancientGold, fontWeight: FontWeight.w600),
-                                textAlign: TextAlign.center,
-                                maxLines: 2,
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    // Vault Icon
-                    Flexible(
-                      fit: FlexFit.tight,
-                      child: InkWell(
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(builder: (context) => const VaultScreen()),
-                          );
-                        },
-                        child: Container(
-                          margin: const EdgeInsets.symmetric(horizontal: 5),
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: Colors.black,
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: _ancientGold.withValues(alpha: 0.5)),
-                          ),
-                          child: const Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              FaIcon(FontAwesomeIcons.vault, color: _ancientGold, size: 28),
-                              SizedBox(height: 6),
-                              Text(
-                                'Vault',
-                                style: TextStyle(fontSize: 12, color: _ancientGold, fontWeight: FontWeight.w600),
-                                textAlign: TextAlign.center,
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 20),
-
-                // SECOND ROW - Trust Me, GupTik
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    // Trust Me Icon
-                    Flexible(
-                      fit: FlexFit.tight,
-                      child: InkWell(
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(builder: (context) => const TrustMeMobileWrapper()),
-                          );
-                        },
-                        child: Container(
-                          margin: const EdgeInsets.symmetric(horizontal: 5),
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: Colors.black,
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: _ancientGold.withValues(alpha: 0.5)),
-                          ),
-                          child: const Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              FaIcon(FontAwesomeIcons.solidHandshake, color: _ancientGold, size: 28),
-                              SizedBox(height: 6),
-                              Text(
-                                'Trust Me',
-                                style: TextStyle(fontSize: 11, color: _ancientGold, fontWeight: FontWeight.w600),
-                                textAlign: TextAlign.center,
-                                maxLines: 2,
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    // GupTik Icon
-                    Flexible(
-                      fit: FlexFit.tight,
-                      child: InkWell(
-                        onTap: () async {
-                          showDialog(
-                            context: context,
-                            barrierDismissible: false,
-                            builder: (context) => const Center(child: CircularProgressIndicator(color: _ancientGold)),
-                          );
-
-                          try {
-                            final userId = Supabase.instance.client.auth.currentUser!.id;
-                            final data = await Supabase.instance.client
-                                .from('desktop_devices')
-                                .select('public_url, status')
-                                .eq('user_id', userId)
-                                .single();
-
-                            if (!mounted) return;
-                            Navigator.pop(context);
-
-                            if (data['status'] != 'online') {
-                              if (!mounted) return;
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('Your desktop is currently offline. Please turn it on.', style: TextStyle(color: Colors.black)), backgroundColor: _ancientGold),
-                              );
-                              return;
-                            }
-
-                            String rawUrl = data['public_url'] ?? '';
-                            if (!rawUrl.startsWith('http')) {
-                              rawUrl = 'https://$rawUrl';
-                            }
-
-                            if (rawUrl.isNotEmpty) {
-                              if (!mounted) return;
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(builder: (context) => GuptikScreen(tunnelUrl: rawUrl)),
-                              );
-                            }
-                          } catch (e) {
-                            if (!mounted) return;
-                            Navigator.pop(context);
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Could not find your desktop device.', style: TextStyle(color: Colors.black)), backgroundColor: _ancientGold),
-                            );
-                          }
-                        },
-                        child: Container(
-                          margin: const EdgeInsets.symmetric(horizontal: 5),
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: Colors.black,
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: _ancientGold.withValues(alpha: 0.5)),
-                          ),
-                          child: const Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              FaIcon(FontAwesomeIcons.personSnowboarding, color: _ancientGold, size: 28),
-                              SizedBox(height: 6),
-                              Text(
-                                'GupTik',
-                                style: TextStyle(fontSize: 12, color: _ancientGold, fontWeight: FontWeight.w600),
-                                textAlign: TextAlign.center,
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                
-                const SizedBox(height: 30),
-                
-                const Text(
-                  'Connect with us',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: _ancientGold),
-                ),
-                const SizedBox(height: 8),
-                const Text(
-                  'social media platforms',
-                  style: TextStyle(fontSize: 14, color: _ancientGold),
-                  textAlign: TextAlign.center,
-                ),
-                
-                const SizedBox(height: 20),
-
-                // THIRD ROW - WhatsApp, Facebook & Instagram
-                Row(
-                  children: [
-                    // WhatsApp Button
-                    Expanded(
-                      child: InkWell(
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(builder: (context) => const Whatsapp()),
-                          );
-                        },
-                        borderRadius: BorderRadius.circular(12),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          decoration: BoxDecoration(
-                            color: Colors.black,
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: _ancientGold.withValues(alpha: 0.5)),
-                          ),
-                          child: const Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              FaIcon(FontAwesomeIcons.whatsapp, color: _ancientGold, size: 28),
-                              SizedBox(height: 8),
-                              Text(
-                                'WhatsApp',
-                                style: TextStyle(fontSize: 12, color: _ancientGold, fontWeight: FontWeight.w600),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    // Combined Meta Button (Facebook & Instagram)
-                    Expanded(
-                      child: InkWell(
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(builder: (context) => const FbAndInstaScreen()),
-                          );
-                        },
-                        borderRadius: BorderRadius.circular(12),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          decoration: BoxDecoration(
-                            color: Colors.black,
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: _ancientGold.withValues(alpha: 0.5)),
-                          ),
-                          child: const Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                            children: [
-                              Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  FaIcon(FontAwesomeIcons.facebook, color: _ancientGold, size: 28),
-                                  SizedBox(height: 8),
-                                  Text(
-                                    'Facebook',
-                                    style: TextStyle(fontSize: 12, color: _ancientGold, fontWeight: FontWeight.w600),
-                                  ),
-                                ],
-                              ),
-                              SizedBox(
-                                height: 30,
-                                child: VerticalDivider(color: _ancientGold, thickness: 0.5),
-                              ),
-                              Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  FaIcon(FontAwesomeIcons.instagram, color: _ancientGold, size: 28),
-                                  SizedBox(height: 8),
-                                  Text(
-                                    'Instagram',
-                                    style: TextStyle(fontSize: 12, color: _ancientGold, fontWeight: FontWeight.w600),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
+            child: const TabBar(
+              indicatorColor: _ancientGold,
+              labelColor: _ancientGold,
+              unselectedLabelColor: Colors.grey,
+              indicatorWeight: 3,
+              tabs: [
+                Tab(icon: Icon(Icons.apps), text: 'Apps & Socials'),
+                Tab(icon: Icon(Icons.analytics), text: 'Analytics & Account'),
               ],
             ),
           ),
-
-          const SizedBox(height: 40),
-
-          // Business Account Status (LIVE DATA)
-          Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: Colors.black,
-              border: Border.all(color: _ancientGold.withValues(alpha: 0.3)),
-              borderRadius: BorderRadius.circular(12),
-              boxShadow: [
-                BoxShadow(
-                  color: _ancientGold.withValues(alpha: 0.15),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-            ),
-            child: _isLoading
-                ? const Center(child: CircularProgressIndicator(color: _ancientGold))
-                : _error != null
-                    ? _buildErrorDisplay()
-                    : _buildStatusGrid(),
-          ),
-
-          const SizedBox(height: 40),
-
-          // WhatsApp API Usage Header
-          _buildUsageHeader(),
-
-          const SizedBox(height: 20),
-
-          // API Usage Cards
-          _buildUsageCards(),
-
-          const SizedBox(height: 24),
-
-          // Bottom Row with Plan, Contacts, and Quick Links
-          _buildBottomSection(),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildStatusGrid() {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        if (constraints.maxWidth < 600) {
-          return Column(
-            children: [
-              ResponsiveRow(
-                children: [
-                  Expanded(
-                    child: _buildStatusItem('Phone Number', _dashboardData?.phoneNumberStatus?.displayPhoneNumber ?? 'Loading...'),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: _buildStatusItem('Display Name', _dashboardData?.businessProfile?.displayName ?? 'Loading...'),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              ResponsiveRow(
-                children: [
-                  Expanded(child: _buildStatusItem('Messaging Limit', '1k/24hr')),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: _buildStatusItem('Quality Rating', _dashboardData?.qualityRating?.rating ?? 'Loading...', isGreen: true),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              ResponsiveRow(
-                children: [
-                  Expanded(child: _buildStatusItem('MM Lite API', '')),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: _buildStatusItem('Phone Status', _getConnectionStatus(), isGreen: _getConnectionStatus() == 'CONNECTED'),
-                  ),
-                ],
-              ),
-            ],
-          );
-        } else {
-          return ResponsiveRow(
-            children: [
-              Expanded(child: _buildStatusItem('Phone Number', _dashboardData?.phoneNumberStatus?.displayPhoneNumber ?? 'Loading...')),
-              const SizedBox(width: 16),
-              Expanded(child: _buildStatusItem('Display Name', _dashboardData?.businessProfile?.displayName ?? 'Loading...')),
-              const SizedBox(width: 16),
-              Expanded(child: _buildStatusItem('Messaging Limit', '1k/24hr')),
-              const SizedBox(width: 16),
-              Expanded(child: _buildStatusItem('MM Lite API', '')),
-              const SizedBox(width: 16),
-              Expanded(child: _buildStatusItem('Quality Rating', _dashboardData?.qualityRating?.rating ?? 'Loading...', isGreen: true)),
-              const SizedBox(width: 16),
-              Expanded(child: _buildStatusItem('Phone Status', _getConnectionStatus(), isGreen: _getConnectionStatus() == 'CONNECTED')),
-            ],
-          );
-        }
-      },
-    );
-  }
-
-  Widget _buildStatusItem(String label, String value, {bool isGreen = false}) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: TextStyle(fontSize: 12, color: Colors.grey[400], fontWeight: FontWeight.w500),
-        ),
-        const SizedBox(height: 4),
-        Row(
-          children: [
-            if (isGreen && value.isNotEmpty)
-              Container(
-                width: 8,
-                height: 8,
-                decoration: const BoxDecoration(color: Colors.green, shape: BoxShape.circle),
-              ),
-            if (isGreen && value.isNotEmpty) const SizedBox(width: 6),
-            Expanded(
-              child: Text(
-                value,
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: isGreen ? Colors.green : _ancientGold,
-                ),
-              ),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-
-  Widget _buildUsageHeader() {
-    return Row(
-      children: [
-        const Icon(Icons.code, color: _ancientGold, size: 20),
-        const SizedBox(width: 8),
-        const Expanded(
-          child: Text(
-            'WhatsApp API Usage',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: _ancientGold),
-            overflow: TextOverflow.ellipsis,
-          ),
-        ),
-        const SizedBox(width: 8),
-        const Icon(Icons.info_outline, color: _ancientGold, size: 16),
-        const SizedBox(width: 8),
-        if (_isLoading)
-          const SizedBox(
-            width: 16,
-            height: 16,
-            child: CircularProgressIndicator(strokeWidth: 2, color: _ancientGold),
-          )
-        else
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 8,
-                height: 8,
-                decoration: const BoxDecoration(color: Colors.green, shape: BoxShape.circle),
-              ),
-              const SizedBox(width: 4),
-              const Text('Live', style: TextStyle(fontSize: 12, color: Colors.green, fontWeight: FontWeight.w600)),
-              const SizedBox(width: 8),
-              IconButton(
-                icon: const Icon(Icons.refresh, color: _ancientGold, size: 18),
-                onPressed: _loadLiveData,
-                tooltip: 'Refresh Data',
-                padding: const EdgeInsets.all(4),
-                constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
-              ),
-            ],
-          ),
-      ],
-    );
-  }
-
-  Widget _buildUsageCards() {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        if (constraints.maxWidth < 600) {
-          return Column(
-            children: [
-              _buildMessageDeliveryCard(),
-              const SizedBox(height: 16),
-              _buildMessagesSummaryCard(),
-            ],
-          );
-        } else {
-          return ResponsiveRow(
-            children: [
-              Expanded(flex: 2, child: _buildMessageDeliveryCard()),
-              const SizedBox(width: 16),
-              Expanded(child: _buildMessagesSummaryCard()),
-            ],
-          );
-        }
-      },
-    );
-  }
-
-  Widget _buildMessageDeliveryCard() {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.black,
-        border: Border.all(color: _ancientGold.withValues(alpha: 0.3)),
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: _ancientGold.withValues(alpha: 0.15),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Row(
-            children: [
-              Expanded(
-                child: Text(
-                  'Message Delivery Stats',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: _ancientGold),
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-              SizedBox(width: 8),
-              Icon(Icons.info_outline, color: _ancientGold, size: 16),
-            ],
-          ),
-          const SizedBox(height: 20),
-          LayoutBuilder(
-            builder: (context, constraints) {
-              if (constraints.maxWidth < 400) {
-                return Column(
-                  children: [
-                    _buildStatColumn(_dashboardData?.messageAnalytics?.marketing.toString() ?? '0', 'Marketing'),
-                    const SizedBox(height: 16),
-                    _buildStatColumn(_dashboardData?.messageAnalytics?.authentication.toString() ?? '0', 'Auth'),
-                    const SizedBox(height: 16),
-                    _buildStatColumn(_dashboardData?.messageAnalytics?.service.toString() ?? '0', 'Service'),
-                    const SizedBox(height: 16),
-                    _buildStatColumn(_dashboardData?.messageAnalytics?.utility.toString() ?? '0', 'Utility'),
-                    const SizedBox(height: 16),
-                    _buildStatColumn(_dashboardData?.messageAnalytics?.total.toString() ?? '0', 'Total'),
-                  ],
-                );
-              } else {
-                return ResponsiveRow(
-                  children: [
-                    Expanded(child: _buildStatColumn(_dashboardData?.messageAnalytics?.marketing.toString() ?? '0', 'Marketing')),
-                    Expanded(child: _buildStatColumn(_dashboardData?.messageAnalytics?.authentication.toString() ?? '0', 'Auth')),
-                    Expanded(child: _buildStatColumn(_dashboardData?.messageAnalytics?.service.toString() ?? '0', 'Service')),
-                    Expanded(child: _buildStatColumn(_dashboardData?.messageAnalytics?.utility.toString() ?? '0', 'Utility')),
-                    Expanded(child: _buildStatColumn(_dashboardData?.messageAnalytics?.total.toString() ?? '0', 'Total')),
-                  ],
-                );
-              }
-            },
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildMessagesSummaryCard() {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.black,
-        border: Border.all(color: _ancientGold.withValues(alpha: 0.3)),
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: _ancientGold.withValues(alpha: 0.15),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Row(
-            children: [
-              Expanded(
-                child: Text(
-                  'Messages',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: _ancientGold),
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-              SizedBox(width: 8),
-              Icon(Icons.info_outline, color: _ancientGold, size: 16),
-            ],
-          ),
-          const SizedBox(height: 20),
-          ResponsiveRow(
-            children: [
-              Expanded(child: _buildStatColumn(_dashboardData?.messageAnalytics?.sent.toString() ?? '0', 'Sent')),
-              const SizedBox(width: 16),
-              Expanded(child: _buildStatColumn(_dashboardData?.messageAnalytics?.delivered.toString() ?? '0', 'Delivered')),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildBottomSection() {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        if (constraints.maxWidth < 800) {
-          return Column(
-            children: [
-              _buildPlanCard(),
-              const SizedBox(height: 16),
-              _buildContactsCard(),
-              const SizedBox(height: 16),
-              _buildQuickLinksCard(),
-            ],
-          );
-        } else {
-          return ResponsiveRow(
-            children: [
-              Expanded(child: _buildPlanCard()),
-              const SizedBox(width: 16),
-              Expanded(child: _buildContactsCard()),
-              const SizedBox(width: 16),
-              Expanded(child: _buildQuickLinksCard()),
-            ],
-          );
-        }
-      },
-    );
-  }
-
-  Widget _buildPlanCard() {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.black,
-        border: Border.all(color: _ancientGold.withValues(alpha: 0.3)),
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: _ancientGold.withValues(alpha: 0.15),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Row(
-            children: [
-              Icon(Icons.credit_card, color: _ancientGold, size: 20),
-              SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  'Meta Fly Plan: Free',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: _ancientGold),
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          _buildPlanItem('Message templates', '0 / 250'),
-          _buildPlanItem('Contacts', '1 / 500'),
-          _buildPlanItem('Messages', '2 / 1,000'),
-          _buildPlanItem('Bulk broadcast notifications', '0 / 8'),
-          _buildPlanItem('Transactional notifications', '0 / 1'),
-          _buildPlanItem('API Requests', '0 / 100'),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildContactsCard() {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.black,
-        border: Border.all(color: _ancientGold.withValues(alpha: 0.3)),
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: _ancientGold.withValues(alpha: 0.15),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Row(
-            children: [
-              Icon(Icons.contacts, color: _ancientGold, size: 20),
-              SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  'Contacts',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: _ancientGold),
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          InkWell(
-            onTap: () => Navigator.pushNamed(context, '/contacts'),
-            child: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: _ancientGold.withValues(alpha: 0.2),
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                  child: const Text('1', style: TextStyle(color: _ancientGold, fontWeight: FontWeight.w600)),
-                ),
-                const SizedBox(width: 8),
-                Text('Contacts', style: TextStyle(color: _ancientGold.withValues(alpha: 0.7))),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildQuickLinksCard() {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.black,
-        border: Border.all(color: _ancientGold.withValues(alpha: 0.3)),
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: _ancientGold.withValues(alpha: 0.15),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Row(
-            children: [
-              Icon(Icons.link, color: _ancientGold, size: 20),
-              SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  'Quick Links',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: _ancientGold),
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          _buildQuickLink(Icons.chat, 'Follow us on WhatsApp', _ancientGold),
-          _buildQuickLink(Icons.facebook, 'Join our Facebook group', _ancientGold),
-          _buildQuickLink(Icons.star, 'Review us on TrustPilot', _ancientGold),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildErrorDisplay() {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.error_outline, size: 48, color: Colors.red[400]),
-            const SizedBox(height: 16),
-            Text(
-              _error!,
-              style: TextStyle(color: Colors.red[600], fontSize: 14, fontWeight: FontWeight.w500),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 16),
-            ElevatedButton.icon(
-              onPressed: () => _loadLiveData(),
-              icon: const Icon(Icons.refresh, color: Colors.black),
-              label: const Text('Retry', style: TextStyle(color: Colors.black)),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: _ancientGold,
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  String _getConnectionStatus() {
-    if (_dashboardData?.phoneNumberStatus?.status == 'VERIFIED') {
-      return 'CONNECTED';
-    }
-    return 'DISCONNECTED';
-  }
-
-  Widget _buildStatColumn(String value, String label) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          value,
-          style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: _ancientGold),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          label,
-          style: TextStyle(fontSize: 14, color: Colors.grey[400], fontWeight: FontWeight.w500),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildPlanItem(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
+          
           Expanded(
-            flex: 2,
-            child: Text(
-              label,
-              style: TextStyle(fontSize: 14, color: Colors.grey[400]),
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            flex: 1,
-            child: Text(
-              value,
-              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: _ancientGold),
-              textAlign: TextAlign.end,
-              overflow: TextOverflow.ellipsis,
+            child: TabBarView(
+              children: [
+                // ==========================================
+                // PAGE 1: APPS & SOCIALS
+                // ==========================================
+                SingleChildScrollView(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      GlassContainer(
+                        padding: const EdgeInsets.all(20),
+                        child: Column(
+                          children: [
+                            const Text('Quick Access', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: _ancientGold)),
+                            const SizedBox(height: 8),
+                            Text('Manage your ecosystem', style: TextStyle(fontSize: 14, color: _ancientGold.withValues(alpha: 0.8))),
+                            const SizedBox(height: 24),
+
+                            // FIRST ROW
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Flexible(
+                                  fit: FlexFit.tight,
+                                  child: WaterSplashButton(
+                                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const HomecontrolScreen())),
+                                    child: Container(
+                                      margin: const EdgeInsets.symmetric(horizontal: 5),
+                                      padding: const EdgeInsets.all(12),
+                                      decoration: BoxDecoration(
+                                        color: Colors.black,
+                                        borderRadius: BorderRadius.circular(12),
+                                        border: Border.all(color: _ancientGold.withValues(alpha: 0.5)),
+                                      ),
+                                      child: const Column(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          FaIcon(FontAwesomeIcons.house, color: _ancientGold, size: 28),
+                                          SizedBox(height: 6),
+                                          Text('Homecontrol', style: TextStyle(fontSize: 10, color: _ancientGold, fontWeight: FontWeight.w600)),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 10),
+                                Flexible(
+                                  fit: FlexFit.tight,
+                                  child: WaterSplashButton(
+                                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const VaultScreen())),
+                                    child: Container(
+                                      margin: const EdgeInsets.symmetric(horizontal: 5),
+                                      padding: const EdgeInsets.all(12),
+                                      decoration: BoxDecoration(
+                                        color: Colors.black,
+                                        borderRadius: BorderRadius.circular(12),
+                                        border: Border.all(color: _ancientGold.withValues(alpha: 0.5)),
+                                      ),
+                                      child: const Column(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          FaIcon(FontAwesomeIcons.vault, color: _ancientGold, size: 28),
+                                          SizedBox(height: 6),
+                                          Text('Vault', style: TextStyle(fontSize: 12, color: _ancientGold, fontWeight: FontWeight.w600)),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 20),
+
+                            // SECOND ROW
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Flexible(
+                                  fit: FlexFit.tight,
+                                  child: WaterSplashButton(
+                                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const TrustMeMobileWrapper())),
+                                    child: Container(
+                                      margin: const EdgeInsets.symmetric(horizontal: 5),
+                                      padding: const EdgeInsets.all(12),
+                                      decoration: BoxDecoration(
+                                        color: Colors.black,
+                                        borderRadius: BorderRadius.circular(12),
+                                        border: Border.all(color: _ancientGold.withValues(alpha: 0.5)),
+                                      ),
+                                      child: const Column(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          FaIcon(FontAwesomeIcons.solidHandshake, color: _ancientGold, size: 28),
+                                          SizedBox(height: 6),
+                                          Text('Trust Me', style: TextStyle(fontSize: 11, color: _ancientGold, fontWeight: FontWeight.w600)),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 10),
+                                Flexible(
+                                  fit: FlexFit.tight,
+                                  child: WaterSplashButton(
+                                    onTap: () async {
+                                      showDialog(context: context, barrierDismissible: false, builder: (context) => const Center(child: CircularProgressIndicator(color: _ancientGold)));
+                                      try {
+                                        final userId = Supabase.instance.client.auth.currentUser!.id;
+                                        final data = await Supabase.instance.client.from('desktop_devices').select('public_url, status').eq('user_id', userId).single();
+                                        if (!mounted) return;
+                                        Navigator.pop(context);
+
+                                        if (data['status'] != 'online') {
+                                          if (!mounted) return;
+                                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Your desktop is offline.', style: TextStyle(color: Colors.black)), backgroundColor: _ancientGold));
+                                          return;
+                                        }
+                                        String rawUrl = data['public_url'] ?? '';
+                                        if (!rawUrl.startsWith('http')) rawUrl = 'https://$rawUrl';
+                                        if (rawUrl.isNotEmpty) {
+                                          if (!mounted) return;
+                                          Navigator.push(context, MaterialPageRoute(builder: (context) => GuptikScreen(tunnelUrl: rawUrl)));
+                                        }
+                                      } catch (e) {
+                                        if (!mounted) return;
+                                        Navigator.pop(context);
+                                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Could not find desktop device.', style: TextStyle(color: Colors.black)), backgroundColor: _ancientGold));
+                                      }
+                                    },
+                                    child: Container(
+                                      margin: const EdgeInsets.symmetric(horizontal: 5),
+                                      padding: const EdgeInsets.all(12),
+                                      decoration: BoxDecoration(
+                                        color: Colors.black,
+                                        borderRadius: BorderRadius.circular(12),
+                                        border: Border.all(color: _ancientGold.withValues(alpha: 0.5)),
+                                      ),
+                                      child: const Column(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          FaIcon(FontAwesomeIcons.personSnowboarding, color: _ancientGold, size: 28),
+                                          SizedBox(height: 6),
+                                          Text('GupTik', style: TextStyle(fontSize: 12, color: _ancientGold, fontWeight: FontWeight.w600)),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            
+                            const SizedBox(height: 40),
+                            const Text('Connect with us', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: _ancientGold)),
+                            const SizedBox(height: 8),
+                            const Text('social media platforms', style: TextStyle(fontSize: 14, color: _ancientGold), textAlign: TextAlign.center),
+                            const SizedBox(height: 24),
+
+                            // THIRD ROW
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: WaterSplashButton(
+                                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const Whatsapp())),
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(vertical: 16),
+                                      decoration: BoxDecoration(
+                                        color: Colors.black,
+                                        borderRadius: BorderRadius.circular(12),
+                                        border: Border.all(color: _ancientGold.withValues(alpha: 0.5)),
+                                      ),
+                                      child: const Column(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          FaIcon(FontAwesomeIcons.whatsapp, color: _ancientGold, size: 28),
+                                          SizedBox(height: 8),
+                                          Text('WhatsApp', style: TextStyle(fontSize: 12, color: _ancientGold, fontWeight: FontWeight.w600)),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: WaterSplashButton(
+                                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const FbAndInstaScreen())),
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(vertical: 16),
+                                      decoration: BoxDecoration(
+                                        color: Colors.black,
+                                        borderRadius: BorderRadius.circular(12),
+                                        border: Border.all(color: _ancientGold.withValues(alpha: 0.5)),
+                                      ),
+                                      child: const Row(
+                                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                                        children: [
+                                          Column(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              FaIcon(FontAwesomeIcons.facebook, color: _ancientGold, size: 28),
+                                              SizedBox(height: 8),
+                                              Text('Facebook', style: TextStyle(fontSize: 12, color: _ancientGold, fontWeight: FontWeight.w600)),
+                                            ],
+                                          ),
+                                          SizedBox(height: 30, child: VerticalDivider(color: _ancientGold, thickness: 0.5)),
+                                          Column(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              FaIcon(FontAwesomeIcons.instagram, color: _ancientGold, size: 28),
+                                              SizedBox(height: 8),
+                                              Text('Instagram', style: TextStyle(fontSize: 12, color: _ancientGold, fontWeight: FontWeight.w600)),
+                                            ],
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                // ==========================================
+                // PAGE 2: ANALYTICS & ACCOUNT
+                // ==========================================
+                AnalyticsAndAccountTab(
+                  dashboardData: _dashboardData,
+                  isLoading: _isLoading,
+                  error: _error,
+                  onRefresh: _loadLiveData,
+                ),
+              ],
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildQuickLink(IconData icon, String label, Color color) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: InkWell(
-        onTap: () {},
-        child: Row(
-          children: [
-            Icon(icon, color: color, size: 16),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text(
-                label,
-                style: TextStyle(fontSize: 14, color: color, decoration: TextDecoration.underline),
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-            Icon(Icons.open_in_new, color: Colors.grey[500], size: 14),
-          ],
-        ),
       ),
     );
   }
@@ -2417,33 +1338,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
-class DashboardSection {
-  final IconData icon;
-  final String title;
-  final int? badge;
-  bool isSelected;
-  final List<SubSection>? subSections;
-  bool isExpanded;
-
-  DashboardSection({
-    required this.icon,
-    required this.title,
-    this.badge,
-    this.isSelected = false,
-    this.subSections,
-    this.isExpanded = false,
-  });
-}
-
-class SubSection {
-  final String title;
-  final IconData? icon;
-  bool isSelected;
-
-  SubSection({required this.title, this.icon, this.isSelected = false});
-}
-
-// Inbox Content Widget - Updated to Dark/Ancient Gold Theme
+// Inbox Content Widget 
 class InboxContentWidget extends StatefulWidget {
   final ConversationsService conversationsService;
 
@@ -2488,7 +1383,7 @@ class _InboxContentWidgetState extends State<InboxContentWidget> {
     } catch (e) {
       setState(() => isLoading = false);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error loading conversations: $e', style: const TextStyle(color: Colors.black)), backgroundColor: _ancientGold));
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Error loading conversations', style: TextStyle(color: Colors.black)), backgroundColor: _ancientGold));
       }
     }
   }
@@ -2511,15 +1406,13 @@ class _InboxContentWidgetState extends State<InboxContentWidget> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error loading messages: $e', style: const TextStyle(color: Colors.black)), backgroundColor: _ancientGold));
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Error loading messages', style: TextStyle(color: Colors.black)), backgroundColor: _ancientGold));
       }
     }
   }
 
   Future<void> _sendMessage() async {
-    if (_messageController.text.trim().isEmpty || selectedConversation == null) {
-      return;
-    }
+    if (_messageController.text.trim().isEmpty || selectedConversation == null) return;
 
     final messageText = _messageController.text.trim();
     _messageController.clear();
@@ -2644,31 +1537,9 @@ class _InboxContentWidgetState extends State<InboxContentWidget> {
               const Expanded(
                 child: Text('Conversations', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: _ancientGold), overflow: TextOverflow.ellipsis),
               ),
-              IconButton(
-                icon: const Icon(Icons.comment_outlined, color: _ancientGold, size: 18),
-                onPressed: () {},
-                tooltip: 'New Conversation',
-                padding: const EdgeInsets.all(4),
-                constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
-              ),
-              IconButton(
-                icon: const Icon(Icons.settings, color: _ancientGold, size: 18),
-                onPressed: () {
-                  Navigator.push(context, MaterialPageRoute(builder: (context) => const BusinessSettingsScreen()));
-                },
-                tooltip: 'Settings',
-                padding: const EdgeInsets.all(4),
-                constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
-              ),
-              IconButton(
-                icon: const Icon(Icons.refresh, color: _ancientGold, size: 18),
-                onPressed: () {
-                  _loadConversations();
-                },
-                tooltip: 'Refresh',
-                padding: const EdgeInsets.all(4),
-                constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
-              ),
+              IconButton(icon: const Icon(Icons.comment_outlined, color: _ancientGold, size: 18), onPressed: () {}, tooltip: 'New Conversation', padding: const EdgeInsets.all(4), constraints: const BoxConstraints(minWidth: 32, minHeight: 32)),
+              IconButton(icon: const Icon(Icons.settings, color: _ancientGold, size: 18), onPressed: () { Navigator.push(context, MaterialPageRoute(builder: (context) => const BusinessSettingsScreen())); }, tooltip: 'Settings', padding: const EdgeInsets.all(4), constraints: const BoxConstraints(minWidth: 32, minHeight: 32)),
+              IconButton(icon: const Icon(Icons.refresh, color: _ancientGold, size: 18), onPressed: _loadConversations, tooltip: 'Refresh', padding: const EdgeInsets.all(4), constraints: const BoxConstraints(minWidth: 32, minHeight: 32)),
             ],
           ),
         ),
@@ -2688,7 +1559,7 @@ class _InboxContentWidgetState extends State<InboxContentWidget> {
                   controller: _searchController,
                   style: const TextStyle(color: _ancientGold),
                   decoration: const InputDecoration(
-                    hintText: 'Search contacts and messages',
+                    hintText: 'Search...',
                     hintStyle: TextStyle(color: Colors.grey),
                     prefixIcon: Icon(Icons.search, color: _ancientGold),
                     border: InputBorder.none,
@@ -2779,11 +1650,7 @@ class _InboxContentWidgetState extends State<InboxContentWidget> {
             ),
             Text(
               _formatTimestamp(conversation.timestamp),
-              style: TextStyle(
-                fontSize: 10,
-                color: Colors.grey[500],
-                fontWeight: conversation.isUnread ? FontWeight.w600 : FontWeight.normal,
-              ),
+              style: TextStyle(fontSize: 10, color: Colors.grey[500], fontWeight: conversation.isUnread ? FontWeight.w600 : FontWeight.normal),
             ),
           ],
         ),
