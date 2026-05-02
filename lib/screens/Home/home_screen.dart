@@ -11,6 +11,7 @@ import 'package:guptik/screens/home_control/homecontrol_screen.dart';
 import 'package:guptik/screens/trust_me/trust_me_mobile_wrapper.dart';
 import 'package:guptik/screens/vault/vaultscreen.dart';
 import 'package:guptik/services/dashboard/whatsapp_business_service.dart';
+import 'package:guptik/widgets/home/animated_nebula_background.dart';
 import 'package:guptik/widgets/home/water_splash_button.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:guptik/screens/dashboard/quick_replies_screen.dart';
@@ -43,68 +44,6 @@ import 'profile_menu_dialog.dart';
 const Color _ancientGold = Color(0xFFD4AF37);
 const Color _darkBg = Color(0xFF0A0A0A);
 
-// ==========================================
-// DEEP SPACE NEBULA ANIMATED BACKGROUND
-// ==========================================
-class AnimatedNebulaBackground extends StatefulWidget {
-  const AnimatedNebulaBackground({super.key});
-
-  @override
-  State<AnimatedNebulaBackground> createState() => _AnimatedNebulaBackgroundState();
-}
-
-class _AnimatedNebulaBackgroundState extends State<AnimatedNebulaBackground> with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      duration: const Duration(seconds: 15),
-      vsync: this,
-    )..repeat();
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _controller,
-      builder: (context, child) {
-        return Container(
-          decoration: BoxDecoration(
-            gradient: SweepGradient(
-              center: Alignment.center,
-              startAngle: 0.0,
-              endAngle: 3.14159 * 2,
-              transform: GradientRotation(_controller.value * 2 * 3.14159),
-              colors: const [
-                Color(0xFF0A0A0A),
-                Color(0xFF160B2E),
-                Color(0xFF0A0A0A),
-                Color(0xFF001B3D),
-                Color(0xFF0A0A0A),
-              ],
-              stops: const [0.0, 0.25, 0.5, 0.75, 1.0],
-            ),
-          ),
-          child: Opacity(
-            opacity: 0.15,
-            child: Image.network(
-              'https://www.transparenttextures.com/patterns/stardust.png',
-              repeat: ImageRepeat.repeat,
-            ),
-          ),
-        );
-      },
-    );
-  }
-}
 
 class GlassContainer extends StatelessWidget {
   final Widget child;

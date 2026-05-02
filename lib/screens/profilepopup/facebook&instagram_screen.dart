@@ -1,9 +1,15 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:guptik/widgets/home/animated_nebula_background.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
 import 'package:http/http.dart' as http;
+
+
+// Ancient Gold Theme Constants
+const Color _ancientGold = Color(0xFFD4AF37);
+const Color _darkBg = Color(0xFF0A0A0A);
 
 // ─────────────────────────────────────────────────────────────────────────────
 // CONSTANTS
@@ -345,7 +351,6 @@ class _FacebookAndInstagramScreenState
       setState(() => _isLoading = true);
 
       // ✅ nativeWithFallback: tries native FB app, falls back to Chrome tab.
-      //    DO NOT use LoginBehavior.webOnly — Meta blocks that on mobile.
       final LoginResult result = await FacebookAuth.instance.login(
         loginBehavior: LoginBehavior.nativeWithFallback,
         permissions: [
@@ -655,12 +660,9 @@ class _FacebookAndInstagramScreenState
     SocialPlatform platform,
   ) async {
     try {
-      // ✅ Separate awaits preserve List<MetaStory> / List<MetaReel> types.
-      //    Future.wait() collapses to List<Object> causing getter errors.
       final List<MetaStory> stories = await getStories(platform);
       final List<MetaReel> reels = await getReels(platform);
 
-      // ✅ Fields are int in the model — no casting needed.
       final totalStoryViews = stories.fold<int>(0, (sum, s) => sum + s.views);
       final totalStoryReplies = stories.fold<int>(
         0,
@@ -712,8 +714,11 @@ class _FacebookAndInstagramScreenState
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(message),
-        backgroundColor: isError ? Colors.red : Colors.green,
+        content: Text(
+          message,
+          style: TextStyle(color: isError ? Colors.white : Colors.black, fontWeight: FontWeight.bold),
+        ),
+        backgroundColor: isError ? Colors.redAccent : _ancientGold,
       ),
     );
   }
@@ -732,7 +737,12 @@ class _FacebookAndInstagramScreenState
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
-          title: const Text('Connect Meta Suite'),
+          backgroundColor: Colors.black,
+          shape: RoundedRectangleBorder(
+            side: const BorderSide(color: _ancientGold, width: 1.5),
+            borderRadius: BorderRadius.circular(16),
+          ),
+          title: const Text('Connect Meta Suite', style: TextStyle(color: _ancientGold, fontWeight: FontWeight.bold)),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -750,20 +760,22 @@ class _FacebookAndInstagramScreenState
                       _userToken == null
                           ? 'Login with Facebook'
                           : 'Re-Login  (${_fbName ?? ''})',
+                      style: const TextStyle(fontWeight: FontWeight.bold),
                     ),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF1877F2),
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                     ),
                   ),
                 ),
 
                 if (_isLoading) ...[
                   const SizedBox(height: 16),
-                  const CircularProgressIndicator(),
+                  const CircularProgressIndicator(color: _ancientGold),
                   const SizedBox(height: 8),
-                  const Text('Fetching your Meta data…'),
+                  const Text('Fetching your Meta data…', style: TextStyle(color: Colors.white70)),
                 ],
 
                 // ── Page Selector ─────────────────────────────────────────
@@ -773,99 +785,138 @@ class _FacebookAndInstagramScreenState
                     alignment: Alignment.centerLeft,
                     child: Text(
                       'Select Facebook Page:',
-                      style: TextStyle(fontWeight: FontWeight.bold),
+                      style: TextStyle(fontWeight: FontWeight.bold, color: _ancientGold),
                     ),
                   ),
-                  DropdownButton<String>(
-                    isExpanded: true,
-                    value: _selectedPageId,
-                    items: _pages.map((p) {
-                      final hasIg = p['instagram_business_account'] != null;
-                      return DropdownMenuItem<String>(
-                        value: p['id'],
-                        child: Text(
-                          '${p['name']}  ${hasIg ? '✅ IG' : '❌ IG'}',
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      );
-                    }).toList(),
-                    onChanged: (val) {
-                      setDialogState(() {
-                        final page = _pages.firstWhere((p) => p['id'] == val);
-                        _selectedPageId = page['id'];
-                        _selectedPageName = page['name'];
-                        _selectedPageToken = page['access_token'];
-                        _selectedIgAccountId =
-                            page['instagram_business_account'];
-                      });
-                    },
+                  const SizedBox(height: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.5),
+                      border: Border.all(color: _ancientGold.withValues(alpha: 0.3)),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: DropdownButton<String>(
+                      isExpanded: true,
+                      dropdownColor: Colors.black,
+                      underline: const SizedBox(),
+                      icon: const Icon(Icons.arrow_drop_down, color: _ancientGold),
+                      style: const TextStyle(color: Colors.white),
+                      value: _selectedPageId,
+                      items: _pages.map((p) {
+                        final hasIg = p['instagram_business_account'] != null;
+                        return DropdownMenuItem<String>(
+                          value: p['id'],
+                          child: Text(
+                            '${p['name']}  ${hasIg ? '✅ IG' : '❌ IG'}',
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        );
+                      }).toList(),
+                      onChanged: (val) {
+                        setDialogState(() {
+                          final page = _pages.firstWhere((p) => p['id'] == val);
+                          _selectedPageId = page['id'];
+                          _selectedPageName = page['name'];
+                          _selectedPageToken = page['access_token'];
+                          _selectedIgAccountId =
+                              page['instagram_business_account'];
+                        });
+                      },
+                    ),
                   ),
                 ],
 
                 // ── Business Selector ──────────────────────────────────────
                 if (_businesses.length > 1) ...[
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 16),
                   const Align(
                     alignment: Alignment.centerLeft,
                     child: Text(
                       'Select Business Account:',
-                      style: TextStyle(fontWeight: FontWeight.bold),
+                      style: TextStyle(fontWeight: FontWeight.bold, color: _ancientGold),
                     ),
                   ),
-                  DropdownButton<String>(
-                    isExpanded: true,
-                    value: _selectedBusinessId,
-                    items: _businesses.map((b) {
-                      return DropdownMenuItem<String>(
-                        value: b['id'],
-                        child: Text(b['name'], overflow: TextOverflow.ellipsis),
-                      );
-                    }).toList(),
-                    onChanged: (val) async {
-                      setDialogState(() => _selectedBusinessId = val);
-                      if (_userToken != null && val != null) {
-                        await _fetchWhatsAppNumbers(_userToken!, val);
-                        setDialogState(() {});
-                      }
-                    },
+                  const SizedBox(height: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.5),
+                      border: Border.all(color: _ancientGold.withValues(alpha: 0.3)),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: DropdownButton<String>(
+                      isExpanded: true,
+                      dropdownColor: Colors.black,
+                      underline: const SizedBox(),
+                      icon: const Icon(Icons.arrow_drop_down, color: _ancientGold),
+                      style: const TextStyle(color: Colors.white),
+                      value: _selectedBusinessId,
+                      items: _businesses.map((b) {
+                        return DropdownMenuItem<String>(
+                          value: b['id'],
+                          child: Text(b['name'], overflow: TextOverflow.ellipsis),
+                        );
+                      }).toList(),
+                      onChanged: (val) async {
+                        setDialogState(() => _selectedBusinessId = val);
+                        if (_userToken != null && val != null) {
+                          await _fetchWhatsAppNumbers(_userToken!, val);
+                          setDialogState(() {});
+                        }
+                      },
+                    ),
                   ),
                 ],
 
                 // ── WhatsApp Phone Selector ────────────────────────────────
                 if (_wabaPhoneNumbers.length > 1) ...[
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 16),
                   const Align(
                     alignment: Alignment.centerLeft,
                     child: Text(
                       'Select WhatsApp Number:',
-                      style: TextStyle(fontWeight: FontWeight.bold),
+                      style: TextStyle(fontWeight: FontWeight.bold, color: _ancientGold),
                     ),
                   ),
-                  DropdownButton<String>(
-                    isExpanded: true,
-                    value: _whatsappPhoneNumberId,
-                    items: _wabaPhoneNumbers.map((p) {
-                      return DropdownMenuItem<String>(
-                        value: p['id'],
-                        child: Text(p['display_phone_number']),
-                      );
-                    }).toList(),
-                    onChanged: (val) {
-                      setDialogState(() {
-                        final phone = _wabaPhoneNumbers.firstWhere(
-                          (p) => p['id'] == val,
+                  const SizedBox(height: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.5),
+                      border: Border.all(color: _ancientGold.withValues(alpha: 0.3)),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: DropdownButton<String>(
+                      isExpanded: true,
+                      dropdownColor: Colors.black,
+                      underline: const SizedBox(),
+                      icon: const Icon(Icons.arrow_drop_down, color: _ancientGold),
+                      style: const TextStyle(color: Colors.white),
+                      value: _whatsappPhoneNumberId,
+                      items: _wabaPhoneNumbers.map((p) {
+                        return DropdownMenuItem<String>(
+                          value: p['id'],
+                          child: Text(p['display_phone_number']),
                         );
-                        _whatsappPhoneNumberId = phone['id'];
-                        _whatsappPhoneNumber = phone['display_phone_number'];
-                      });
-                    },
+                      }).toList(),
+                      onChanged: (val) {
+                        setDialogState(() {
+                          final phone = _wabaPhoneNumbers.firstWhere(
+                            (p) => p['id'] == val,
+                          );
+                          _whatsappPhoneNumberId = phone['id'];
+                          _whatsappPhoneNumber = phone['display_phone_number'];
+                        });
+                      },
+                    ),
                   ),
                 ],
 
                 // ── Summary ────────────────────────────────────────────────
                 if (_userToken != null) ...[
                   const SizedBox(height: 16),
-                  const Divider(),
+                  Divider(color: _ancientGold.withValues(alpha: 0.2)),
                   _summaryRow('FB User', _fbName ?? '—'),
                   _summaryRow('Page', _selectedPageName ?? '—'),
                   _summaryRow('IG Account ID', _selectedIgAccountId ?? 'None'),
@@ -873,11 +924,11 @@ class _FacebookAndInstagramScreenState
                   _summaryRow('WA Number', _whatsappPhoneNumber ?? 'None'),
                 ],
 
-                const SizedBox(height: 12),
+                const SizedBox(height: 16),
                 const Text(
                   '⚠️ App Secret is NEVER stored here — keep it in your '
                   'n8n/backend env only.',
-                  style: TextStyle(fontSize: 11, color: Colors.orange),
+                  style: TextStyle(fontSize: 11, color: Colors.orangeAccent),
                   textAlign: TextAlign.center,
                 ),
               ],
@@ -886,15 +937,17 @@ class _FacebookAndInstagramScreenState
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel'),
+              child: const Text('Cancel', style: TextStyle(color: Colors.white54)),
             ),
             ElevatedButton(
               onPressed: _userToken != null ? _saveSettingsToSupabase : null,
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.green,
-                foregroundColor: Colors.white,
+                backgroundColor: _ancientGold,
+                foregroundColor: Colors.black,
+                disabledBackgroundColor: Colors.grey[800],
+                disabledForegroundColor: Colors.grey[500],
               ),
-              child: const Text('Save All to Database'),
+              child: const Text('Save All to Database', style: TextStyle(fontWeight: FontWeight.bold)),
             ),
           ],
         ),
@@ -904,18 +957,21 @@ class _FacebookAndInstagramScreenState
 
   Widget _summaryRow(String label, String value) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 2),
+      padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            '$label: ',
-            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+          SizedBox(
+            width: 100,
+            child: Text(
+              '$label:',
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.white70),
+            ),
           ),
           Expanded(
             child: Text(
               value,
-              style: const TextStyle(fontSize: 12),
-              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(fontSize: 12, color: Colors.white, fontFamily: 'monospace'),
             ),
           ),
         ],
@@ -929,56 +985,74 @@ class _FacebookAndInstagramScreenState
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FA),
+      backgroundColor: _darkBg,
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
         title: const Text(
           'Social Media Settings',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+          style: TextStyle(color: _ancientGold, fontWeight: FontWeight.bold),
         ),
-        backgroundColor: const Color(0xFF17A2B8),
-        iconTheme: const IconThemeData(color: Colors.white),
+        backgroundColor: Colors.black.withValues(alpha: 0.7),
+        elevation: 0,
+        iconTheme: const IconThemeData(color: _ancientGold),
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(1.0),
+          child: Container(color: _ancientGold.withValues(alpha: 0.2), height: 1.0),
+        ),
         actions: [
           if (_accounts.isEmpty)
             IconButton(
-              icon: const Icon(Icons.add),
+              icon: const Icon(Icons.add, color: _ancientGold),
               onPressed: _showConfigDialog,
             ),
         ],
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : SingleChildScrollView(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Facebook & Instagram',
-                    style: TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black87,
+      // THE FIX: Full screen container to prevent background cutting off
+      body: Container(
+        width: double.infinity,
+        height: double.infinity,
+        child: Stack(
+          children: [
+            // The Shared Cinematic Nebula Background
+            const Positioned.fill(child: AnimatedNebulaBackground()),
+            
+            _isLoading
+                ? const Center(child: CircularProgressIndicator(color: _ancientGold))
+                : SingleChildScrollView(
+                    padding: const EdgeInsets.fromLTRB(20, 100, 20, 40),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Facebook & Instagram',
+                          style: TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                            color: _ancientGold,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Manage your Meta Business, Pages, WhatsApp & Instagram accounts from a single source.',
+                          style: TextStyle(fontSize: 14, color: Colors.grey[400]),
+                        ),
+                        const SizedBox(height: 30),
+                        if (_accounts.isEmpty)
+                          _buildEmptyState()
+                        else
+                          ListView.builder(
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            itemCount: _accounts.length,
+                            itemBuilder: (context, index) =>
+                                _buildAccountCard(_accounts[index], index),
+                          ),
+                      ],
                     ),
                   ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Manage your Meta Business, Pages, WhatsApp & Instagram.',
-                    style: TextStyle(fontSize: 16, color: Colors.grey[600]),
-                  ),
-                  const SizedBox(height: 30),
-                  if (_accounts.isEmpty)
-                    _buildEmptyState()
-                  else
-                    ListView.builder(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      itemCount: _accounts.length,
-                      itemBuilder: (context, index) =>
-                          _buildAccountCard(_accounts[index], index),
-                    ),
-                ],
-              ),
-            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -991,20 +1065,30 @@ class _FacebookAndInstagramScreenState
         padding: const EdgeInsets.symmetric(vertical: 40),
         child: Column(
           children: [
-            Icon(Icons.link_off, size: 64, color: Colors.grey[300]),
-            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.black.withValues(alpha: 0.4),
+                border: Border.all(color: _ancientGold.withValues(alpha: 0.3), width: 2),
+              ),
+              child: Icon(Icons.link_off, size: 64, color: _ancientGold.withValues(alpha: 0.8)),
+            ),
+            const SizedBox(height: 24),
             Text(
               'No social accounts connected.',
-              style: TextStyle(color: Colors.grey[500]),
+              style: TextStyle(color: Colors.grey[400], fontSize: 16),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 24),
             ElevatedButton(
               onPressed: _showConfigDialog,
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF17A2B8),
-                foregroundColor: Colors.white,
+                backgroundColor: _ancientGold,
+                foregroundColor: Colors.black,
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
               ),
-              child: const Text('Connect Accounts'),
+              child: const Text('Connect Accounts', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
             ),
           ],
         ),
@@ -1016,10 +1100,20 @@ class _FacebookAndInstagramScreenState
   // ACCOUNT CARD
   // ─────────────────────────────────────────────────────────────────────────
   Widget _buildAccountCard(Map<String, dynamic> account, int index) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 16),
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+    return Container(
+      margin: const EdgeInsets.only(bottom: 20),
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: 0.6),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: _ancientGold.withValues(alpha: 0.4), width: 1.5),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.4),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
       child: Padding(
         padding: const EdgeInsets.all(20),
         child: Column(
@@ -1028,57 +1122,90 @@ class _FacebookAndInstagramScreenState
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text(
-                  'Active Configuration',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                const Row(
+                  children: [
+                    Icon(Icons.check_circle, color: Colors.greenAccent, size: 20),
+                    SizedBox(width: 8),
+                    Text(
+                      'Active Configuration',
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: _ancientGold),
+                    ),
+                  ],
                 ),
                 Row(
                   children: [
                     IconButton(
-                      icon: const Icon(Icons.edit, color: Colors.blue),
+                      icon: const Icon(Icons.edit, color: Colors.blueAccent),
                       onPressed: _showConfigDialog,
                     ),
                     IconButton(
-                      icon: const Icon(Icons.delete_outline, color: Colors.red),
-                      onPressed: () => _clearSocialSettings(index),
+                      icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
+                      onPressed: () {
+                        showDialog(
+                          context: context,
+                          builder: (context) => AlertDialog(
+                            backgroundColor: Colors.black,
+                            shape: RoundedRectangleBorder(
+                              side: const BorderSide(color: _ancientGold, width: 1.5),
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            title: const Text('Disconnect Accounts?', style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
+                            content: const Text('Are you sure you want to disconnect your Meta accounts?', style: TextStyle(color: Colors.white70)),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.pop(context),
+                                child: const Text('Cancel', style: TextStyle(color: Colors.white54)),
+                              ),
+                              ElevatedButton(
+                                style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent, foregroundColor: Colors.black),
+                                onPressed: () {
+                                  Navigator.pop(context);
+                                  _clearSocialSettings(index);
+                                },
+                                child: const Text('Disconnect', style: TextStyle(fontWeight: FontWeight.bold)),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
                     ),
                   ],
                 ),
               ],
             ),
-            const Divider(),
+            Divider(color: _ancientGold.withValues(alpha: 0.2), height: 20),
 
             if (account['facebook_token'] != null) ...[
-              _sectionHeader('Facebook User', Colors.blue),
+              _sectionHeader('Facebook User', Colors.blueAccent),
               _buildInfoRow(
                 'Account ID',
                 account['facebook_account_id'] ?? '—',
               ),
               _buildInfoRow('Token', _maskToken(account['facebook_token'])),
-              const SizedBox(height: 12),
+              const SizedBox(height: 16),
             ],
 
             if (account['page_token'] != null) ...[
-              _sectionHeader('Facebook Page', Colors.orange),
+              _sectionHeader('Facebook Page', Colors.orangeAccent),
               _buildInfoRow('Page Token', _maskToken(account['page_token'])),
-              const SizedBox(height: 12),
+              const SizedBox(height: 16),
             ],
 
             if (account['instagram_account_id'] != null) ...[
-              _sectionHeader('Instagram', Colors.pink),
+              _sectionHeader('Instagram', Colors.pinkAccent),
               _buildInfoRow('IG Account ID', account['instagram_account_id']),
-              const SizedBox(height: 12),
+              const SizedBox(height: 16),
             ],
 
             if (account['business_id'] != null) ...[
-              _sectionHeader('Meta Business', const Color(0xFF0082FB)),
+              _sectionHeader('Meta Business', Colors.lightBlueAccent),
               _buildInfoRow('Business ID', account['business_id']),
               _buildInfoRow('Business Name', account['business_name'] ?? '—'),
-              const SizedBox(height: 12),
+              const SizedBox(height: 16),
             ],
 
             if (account['wa_phone_number_id'] != null) ...[
-              _sectionHeader('WhatsApp', Colors.green),
+              _sectionHeader('WhatsApp', Colors.greenAccent),
               _buildInfoRow('Phone Number ID', account['wa_phone_number_id']),
               _buildInfoRow('Number', account['mobile_number'] ?? '—'),
             ],
@@ -1090,40 +1217,61 @@ class _FacebookAndInstagramScreenState
 
   Widget _sectionHeader(String title, Color color) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 4),
-      child: Text(
-        title,
-        style: TextStyle(fontWeight: FontWeight.bold, color: color),
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        children: [
+          Icon(Icons.stop_circle, size: 12, color: color),
+          const SizedBox(width: 8),
+          Text(
+            title,
+            style: TextStyle(fontWeight: FontWeight.bold, color: color, fontSize: 14),
+          ),
+        ],
       ),
     );
   }
 
   Widget _buildInfoRow(String label, String value) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
+      padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(
-            width: 130,
+            width: 120,
             child: Text(
               '$label:',
               style: const TextStyle(
-                fontWeight: FontWeight.w500,
-                color: Colors.grey,
+                fontWeight: FontWeight.w600,
+                color: Colors.white70,
               ),
             ),
           ),
           Expanded(
             child: Text(
               value,
-              style: const TextStyle(fontWeight: FontWeight.w500),
-              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(color: Colors.white, fontFamily: 'monospace'),
             ),
           ),
           if (value != '—' && value != 'Not Set')
-            InkWell(
-              onTap: () => Clipboard.setData(ClipboardData(text: value)),
-              child: const Icon(Icons.copy, size: 14, color: Colors.grey),
+            SizedBox(
+              width: 32,
+              height: 24,
+              child: IconButton(
+                padding: EdgeInsets.zero,
+                icon: const Icon(Icons.copy, size: 16, color: _ancientGold),
+                tooltip: 'Copy to clipboard',
+                onPressed: () {
+                  Clipboard.setData(ClipboardData(text: value));
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Copied to clipboard', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+                      backgroundColor: _ancientGold,
+                      duration: Duration(seconds: 1),
+                    ),
+                  );
+                },
+              ),
             ),
         ],
       ),

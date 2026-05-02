@@ -1,4 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:guptik/widgets/home/animated_nebula_background.dart';
+
+
+// Ancient Gold Theme Constants
+const Color _ancientGold = Color(0xFFD4AF37);
+const Color _darkBg = Color(0xFF0A0A0A);
 
 class FlowsScreen extends StatefulWidget {
   const FlowsScreen({super.key});
@@ -47,99 +53,166 @@ class _FlowsScreenState extends State<FlowsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: _darkBg,
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: const Text('Flows', style: TextStyle(color: Colors.white)),
-        backgroundColor: const Color(0xFF17A2B8),
-        iconTheme: const IconThemeData(color: Colors.white),
+        title: const Text('Flows', style: TextStyle(color: _ancientGold, fontWeight: FontWeight.bold)),
+        backgroundColor: Colors.black.withValues(alpha: 0.7),
+        elevation: 0,
+        iconTheme: const IconThemeData(color: _ancientGold),
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(1.0),
+          child: Container(color: _ancientGold.withValues(alpha: 0.2), height: 1.0),
+        ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.add),
+            icon: const Icon(Icons.add, color: _ancientGold),
             onPressed: _createNewFlow,
           ),
         ],
       ),
-      body: Column(
-        children: [
-          // Header Section
-          Container(
-            padding: const EdgeInsets.all(16),
-            color: const Color(0xFF17A2B8).withValues(alpha: 0.05),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+      body: SizedBox(
+        width: double.infinity,
+        height: double.infinity,
+        child: Stack(
+          children: [
+            // The Shared Cinematic Nebula Background
+            const Positioned.fill(child: AnimatedNebulaBackground()),
+            
+            Column(
               children: [
-                Row(
-                  children: [
-                    Icon(Icons.account_tree, color: const Color(0xFF17A2B8), size: 24),
-                    const SizedBox(width: 8),
-                    const Text(
-                      'Conversation Flows',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF17A2B8),
+                // Header Section
+                Container(
+                  margin: const EdgeInsets.fromLTRB(16, 100, 16, 0),
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.6),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: _ancientGold.withValues(alpha: 0.4), width: 1.5),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.4),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
                       ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                const Text(
-                  'Design automated conversation flows to engage with your customers effectively. Create interactive experiences that guide customers through support, sales, and booking processes.',
-                  style: TextStyle(fontSize: 14, color: Colors.grey),
-                ),
-              ],
-            ),
-          ),
-
-          // Search and Filter Bar
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    onChanged: (value) => setState(() => _searchQuery = value),
-                    decoration: InputDecoration(
-                      hintText: 'Search flows...',
-                      prefixIcon: const Icon(Icons.search),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
+                    ],
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Row(
+                        children: [
+                          Icon(Icons.account_tree, color: _ancientGold, size: 28),
+                          SizedBox(width: 12),
+                          Text(
+                            'Conversation Flows',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: _ancientGold,
+                            ),
+                          ),
+                        ],
                       ),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                    ),
+                      const SizedBox(height: 12),
+                      Text(
+                        'Design automated conversation flows to engage with your customers effectively. Create interactive experiences that guide customers through support, sales, and booking processes.',
+                        style: TextStyle(fontSize: 14, color: Colors.grey[400], height: 1.4),
+                      ),
+                    ],
                   ),
                 ),
-                const SizedBox(width: 12),
-                DropdownButton<String>(
-                  value: _selectedFilter,
-                  items: ['All', 'Active', 'Draft', 'Paused'].map((filter) {
-                    return DropdownMenuItem(
-                      value: filter,
-                      child: Text(filter),
-                    );
-                  }).toList(),
-                  onChanged: (value) => setState(() => _selectedFilter = value!),
+
+                // Search and Filter Bar
+                Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        flex: 2,
+                        child: TextField(
+                          style: const TextStyle(color: Colors.white),
+                          onChanged: (value) => setState(() => _searchQuery = value),
+                          decoration: InputDecoration(
+                            hintText: 'Search flows...',
+                            hintStyle: TextStyle(color: Colors.grey[500]),
+                            prefixIcon: const Icon(Icons.search, color: _ancientGold),
+                            filled: true,
+                            fillColor: Colors.black.withValues(alpha: 0.5),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(color: _ancientGold.withValues(alpha: 0.3)),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(color: _ancientGold.withValues(alpha: 0.3)),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: const BorderSide(color: _ancientGold, width: 2),
+                            ),
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        flex: 1,
+                        child: DropdownButtonFormField<String>(
+                          dropdownColor: Colors.black,
+                          icon: const Icon(Icons.arrow_drop_down, color: _ancientGold),
+                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                          value: _selectedFilter,
+                          decoration: InputDecoration(
+                            filled: true,
+                            fillColor: Colors.black.withValues(alpha: 0.5),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(color: _ancientGold.withValues(alpha: 0.3)),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(color: _ancientGold.withValues(alpha: 0.3)),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: const BorderSide(color: _ancientGold),
+                            ),
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                          ),
+                          items: ['All', 'Active', 'Draft', 'Paused'].map((filter) {
+                            return DropdownMenuItem(
+                              value: filter,
+                              child: Text(filter, overflow: TextOverflow.ellipsis),
+                            );
+                          }).toList(),
+                          onChanged: (value) => setState(() => _selectedFilter = value!),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                // Flows List
+                Expanded(
+                  child: ListView.builder(
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 80), // Padding to avoid FAB overlap
+                    itemCount: _getFilteredFlows().length,
+                    itemBuilder: (context, index) {
+                      final flow = _getFilteredFlows()[index];
+                      return _buildFlowCard(flow);
+                    },
+                  ),
                 ),
               ],
             ),
-          ),
-
-          // Flows List
-          Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              itemCount: _getFilteredFlows().length,
-              itemBuilder: (context, index) {
-                final flow = _getFilteredFlows()[index];
-                return _buildFlowCard(flow);
-              },
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: _createNewFlow,
-        backgroundColor: const Color(0xFF17A2B8),
-        child: const Icon(Icons.add, color: Colors.white),
+        backgroundColor: _ancientGold,
+        child: const Icon(Icons.add, color: Colors.black),
       ),
     );
   }
@@ -164,14 +237,27 @@ class _FlowsScreenState extends State<FlowsScreen> {
   }
 
   Widget _buildFlowCard(Map<String, dynamic> flow) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: 0.6),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: _ancientGold.withValues(alpha: 0.3), width: 1.5),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.4),
+            blurRadius: 8,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Expanded(
                   child: Column(
@@ -180,25 +266,29 @@ class _FlowsScreenState extends State<FlowsScreen> {
                       Text(
                         flow['name'],
                         style: const TextStyle(
-                          fontSize: 16,
+                          fontSize: 18,
                           fontWeight: FontWeight.bold,
+                          color: Colors.white,
                         ),
                       ),
-                      const SizedBox(height: 4),
+                      const SizedBox(height: 6),
                       Text(
                         flow['description'],
                         style: TextStyle(
                           fontSize: 14,
-                          color: Colors.grey[600],
+                          color: Colors.grey[400],
+                          height: 1.3,
                         ),
                       ),
                     ],
                   ),
                 ),
+                const SizedBox(width: 12),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                   decoration: BoxDecoration(
-                    color: _getStatusColor(flow['status']).withValues(alpha: 0.1),
+                    color: _getStatusColor(flow['status']).withValues(alpha: 0.15),
+                    border: Border.all(color: _getStatusColor(flow['status']).withValues(alpha: 0.5)),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(
@@ -206,43 +296,75 @@ class _FlowsScreenState extends State<FlowsScreen> {
                     style: TextStyle(
                       color: _getStatusColor(flow['status']),
                       fontSize: 12,
-                      fontWeight: FontWeight.w600,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
                 ),
               ],
             ),
             
-            const SizedBox(height: 12),
+            const SizedBox(height: 16),
             
             // Flow Stats
             Row(
               children: [
-                Icon(Icons.linear_scale, size: 16, color: Colors.grey[600]),
-                const SizedBox(width: 4),
+                Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: BoxDecoration(
+                    color: Colors.white10,
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Icon(Icons.linear_scale, size: 16, color: Colors.grey[300]),
+                ),
+                const SizedBox(width: 8),
                 Text(
                   '${flow['steps']} steps',
-                  style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                  style: TextStyle(fontSize: 13, color: Colors.grey[300], fontWeight: FontWeight.bold),
                 ),
-                const SizedBox(width: 16),
-                Icon(Icons.chat_bubble_outline, size: 16, color: Colors.grey[600]),
-                const SizedBox(width: 4),
+                const SizedBox(width: 20),
+                Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: BoxDecoration(
+                    color: Colors.white10,
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Icon(Icons.chat_bubble_outline, size: 16, color: Colors.grey[300]),
+                ),
+                const SizedBox(width: 8),
                 Text(
                   '${flow['responses']} responses',
-                  style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                  style: TextStyle(fontSize: 13, color: Colors.grey[300], fontWeight: FontWeight.bold),
                 ),
               ],
             ),
             
-            const SizedBox(height: 8),
+            const SizedBox(height: 16),
             
             // Triggers
             if (flow['triggers'] != null && flow['triggers'].isNotEmpty) ...[
-              Text(
-                'Triggers: ${flow['triggers'].join(', ')}',
-                style: TextStyle(fontSize: 12, color: Colors.grey[500]),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  Text(
+                    'Triggers:',
+                    style: TextStyle(fontSize: 12, color: Colors.grey[500], fontWeight: FontWeight.bold),
+                  ),
+                  ...flow['triggers'].map<Widget>((trigger) => Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: _ancientGold.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(4),
+                      border: Border.all(color: _ancientGold.withValues(alpha: 0.3)),
+                    ),
+                    child: Text(
+                      trigger,
+                      style: const TextStyle(color: _ancientGold, fontSize: 11, fontFamily: 'monospace'),
+                    ),
+                  )).toList(),
+                ],
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 20),
             ],
             
             // Action Buttons
@@ -251,34 +373,39 @@ class _FlowsScreenState extends State<FlowsScreen> {
                 Expanded(
                   child: OutlinedButton.icon(
                     onPressed: () => _editFlow(flow),
-                    icon: const Icon(Icons.edit, size: 16),
-                    label: const Text('Edit'),
+                    icon: const Icon(Icons.edit, size: 18),
+                    label: const Text('Edit', style: TextStyle(fontWeight: FontWeight.bold)),
                     style: OutlinedButton.styleFrom(
-                      foregroundColor: const Color(0xFF17A2B8),
+                      foregroundColor: _ancientGold,
+                      side: BorderSide(color: _ancientGold.withValues(alpha: 0.5)),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
                     ),
                   ),
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: 12),
                 Expanded(
                   child: ElevatedButton.icon(
                     onPressed: () => _testFlow(flow),
-                    icon: const Icon(Icons.play_arrow, size: 16),
-                    label: const Text('Test'),
+                    icon: const Icon(Icons.play_arrow, size: 18),
+                    label: const Text('Test', style: TextStyle(fontWeight: FontWeight.bold)),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF17A2B8),
-                      foregroundColor: Colors.white,
+                      backgroundColor: _ancientGold,
+                      foregroundColor: Colors.black,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
                     ),
                   ),
                 ),
                 const SizedBox(width: 8),
                 IconButton(
                   onPressed: () => _duplicateFlow(flow),
-                  icon: Icon(Icons.copy, color: Colors.grey[600]),
+                  icon: const Icon(Icons.copy, color: Colors.white70),
                   tooltip: 'Duplicate',
                 ),
                 IconButton(
                   onPressed: () => _deleteFlow(flow),
-                  icon: const Icon(Icons.delete, color: Colors.red),
+                  icon: const Icon(Icons.delete, color: Colors.redAccent),
                   tooltip: 'Delete',
                 ),
               ],
@@ -292,13 +419,13 @@ class _FlowsScreenState extends State<FlowsScreen> {
   Color _getStatusColor(String status) {
     switch (status) {
       case 'Active':
-        return Colors.green;
+        return Colors.greenAccent;
       case 'Draft':
-        return Colors.orange;
+        return Colors.orangeAccent;
       case 'Paused':
-        return Colors.grey;
+        return Colors.grey[400]!;
       default:
-        return Colors.grey;
+        return Colors.grey[400]!;
     }
   }
 
@@ -306,12 +433,20 @@ class _FlowsScreenState extends State<FlowsScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Create New Flow'),
-        content: const Text('Flow builder is coming soon! This will open a visual flow designer where you can create automated conversation flows with drag-and-drop components.'),
+        backgroundColor: Colors.black,
+        shape: RoundedRectangleBorder(
+          side: const BorderSide(color: _ancientGold, width: 1.5),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        title: const Text('Create New Flow', style: TextStyle(color: _ancientGold, fontWeight: FontWeight.bold)),
+        content: const Text(
+          'Flow builder is coming soon! This will open a visual flow designer where you can create automated conversation flows with drag-and-drop components.',
+          style: TextStyle(color: Colors.white70, height: 1.5),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('OK'),
+            child: const Text('OK', style: TextStyle(color: _ancientGold, fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -322,12 +457,20 @@ class _FlowsScreenState extends State<FlowsScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Edit ${flow['name']}'),
-        content: const Text('Flow editor is coming soon! This will open the visual flow designer where you can modify your conversation flow structure.'),
+        backgroundColor: Colors.black,
+        shape: RoundedRectangleBorder(
+          side: const BorderSide(color: _ancientGold, width: 1.5),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        title: Text('Edit ${flow['name']}', style: const TextStyle(color: _ancientGold, fontWeight: FontWeight.bold)),
+        content: const Text(
+          'Flow editor is coming soon! This will open the visual flow designer where you can modify your conversation flow structure.',
+          style: TextStyle(color: Colors.white70, height: 1.5),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('OK'),
+            child: const Text('OK', style: TextStyle(color: _ancientGold, fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -338,12 +481,20 @@ class _FlowsScreenState extends State<FlowsScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Test ${flow['name']}'),
-        content: const Text('Flow testing simulator is coming soon! This will allow you to test your flow responses and see how customers will experience the conversation.'),
+        backgroundColor: Colors.black,
+        shape: RoundedRectangleBorder(
+          side: const BorderSide(color: _ancientGold, width: 1.5),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        title: Text('Test ${flow['name']}', style: const TextStyle(color: _ancientGold, fontWeight: FontWeight.bold)),
+        content: const Text(
+          'Flow testing simulator is coming soon! This will allow you to test your flow responses and see how customers will experience the conversation.',
+          style: TextStyle(color: Colors.white70, height: 1.5),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('OK'),
+            child: const Text('OK', style: TextStyle(color: _ancientGold, fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -353,8 +504,8 @@ class _FlowsScreenState extends State<FlowsScreen> {
   void _duplicateFlow(Map<String, dynamic> flow) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('${flow['name']} duplicated successfully'),
-        backgroundColor: Colors.green,
+        content: Text('${flow['name']} duplicated successfully', style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+        backgroundColor: Colors.greenAccent,
       ),
     );
   }
@@ -363,25 +514,36 @@ class _FlowsScreenState extends State<FlowsScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Delete Flow'),
-        content: Text('Are you sure you want to delete "${flow['name']}"? This action cannot be undone.'),
+        backgroundColor: Colors.black,
+        shape: RoundedRectangleBorder(
+          side: const BorderSide(color: _ancientGold, width: 1.5),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        title: const Text('Delete Flow', style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
+        content: Text(
+          'Are you sure you want to delete "${flow['name']}"? This action cannot be undone.',
+          style: const TextStyle(color: Colors.white70),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
+            child: const Text('Cancel', style: TextStyle(color: Colors.white54)),
           ),
-          TextButton(
+          ElevatedButton(
             onPressed: () {
               Navigator.pop(context);
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
-                  content: Text('Flow deleted successfully'),
-                  backgroundColor: Colors.red,
+                  content: Text('Flow deleted successfully', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+                  backgroundColor: Colors.redAccent,
                 ),
               );
             },
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('Delete'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.redAccent,
+              foregroundColor: Colors.black,
+            ),
+            child: const Text('Delete', style: TextStyle(fontWeight: FontWeight.bold)),
           ),
         ],
       ),

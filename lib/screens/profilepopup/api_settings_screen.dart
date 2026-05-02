@@ -1,6 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:guptik/widgets/home/animated_nebula_background.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+
+// Ancient Gold Theme Constants
+const Color _ancientGold = Color(0xFFD4AF37);
+const Color _darkBg = Color(0xFF0A0A0A);
 
 class ApiSettingsScreen extends StatefulWidget {
   const ApiSettingsScreen({super.key});
@@ -89,8 +94,8 @@ class _ApiSettingsScreenState extends State<ApiSettingsScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('✅ API keys saved successfully!'),
-            backgroundColor: Colors.green,
+            content: Text('✅ API keys saved successfully!', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+            backgroundColor: Colors.greenAccent,
           ),
         );
       }
@@ -98,8 +103,8 @@ class _ApiSettingsScreenState extends State<ApiSettingsScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('❌ Error saving keys: $e'),
-            backgroundColor: Colors.red,
+            content: Text('❌ Error saving keys: $e', style: const TextStyle(color: Colors.black)),
+            backgroundColor: Colors.redAccent,
           ),
         );
       }
@@ -123,8 +128,8 @@ class _ApiSettingsScreenState extends State<ApiSettingsScreen> {
     Clipboard.setData(ClipboardData(text: text));
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
-        content: Text('✅ API key copied to clipboard!'),
-        backgroundColor: Colors.green,
+        content: Text('✅ API key copied to clipboard!', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+        backgroundColor: _ancientGold,
         duration: Duration(seconds: 2),
       ),
     );
@@ -148,8 +153,8 @@ class _ApiSettingsScreenState extends State<ApiSettingsScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('✅ Configuration validated and saved successfully!'),
-            backgroundColor: Colors.green,
+            content: Text('✅ Configuration validated and saved successfully!', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+            backgroundColor: Colors.greenAccent,
           ),
         );
       }
@@ -157,8 +162,8 @@ class _ApiSettingsScreenState extends State<ApiSettingsScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('❌ Validation failed: $e'),
-            backgroundColor: Colors.red,
+            content: Text('❌ Validation failed: $e', style: const TextStyle(color: Colors.black)),
+            backgroundColor: Colors.redAccent,
           ),
         );
       }
@@ -170,294 +175,345 @@ class _ApiSettingsScreenState extends State<ApiSettingsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: _darkBg,
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
         title: const Text(
           'API Configuration',
-          style: TextStyle(color: Colors.white),
+          style: TextStyle(color: _ancientGold, fontWeight: FontWeight.bold),
         ),
-        backgroundColor: const Color(0xFF17A2B8),
-        iconTheme: const IconThemeData(color: Colors.white),
+        backgroundColor: Colors.black.withValues(alpha: 0.7),
+        elevation: 0,
+        iconTheme: const IconThemeData(color: _ancientGold),
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(1.0),
+          child: Container(color: _ancientGold.withValues(alpha: 0.2), height: 1.0),
+        ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.help_outline),
+            icon: const Icon(Icons.help_outline, color: _ancientGold),
             onPressed: _showHelpDialog,
           ),
         ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Header Card
-              Card(
-                color: const Color(0xFF17A2B8).withValues(alpha: 0.1),
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Icon(
-                            Icons.api,
-                            color: const Color(0xFF17A2B8),
-                            size: 24,
-                          ),
-                          const SizedBox(width: 8),
-                          const Text(
-                            'WhatsApp Business API Setup',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: Color(0xFF17A2B8),
-                            ),
+      // THE FIX: Full screen container ensures the background stretches to cover all scrollable area
+      body: Container(
+        width: double.infinity,
+        height: double.infinity,
+        child: Stack(
+          children: [
+            // The Shared Cinematic Nebula Background
+            const Positioned.fill(child: AnimatedNebulaBackground()),
+            
+            SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(20, 100, 20, 40),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Header Card
+                    Container(
+                      decoration: BoxDecoration(
+                        color: Colors.black.withValues(alpha: 0.6),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: _ancientGold.withValues(alpha: 0.4), width: 1.5),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.4),
+                            blurRadius: 10,
+                            offset: const Offset(0, 4),
                           ),
                         ],
                       ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Configure your WhatsApp Business API credentials to start sending messages through MetaFly.',
-                        style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+                      child: Padding(
+                        padding: const EdgeInsets.all(20),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Row(
+                              children: [
+                                Icon(
+                                  Icons.api,
+                                  color: _ancientGold,
+                                  size: 28,
+                                ),
+                                SizedBox(width: 12),
+                                Text(
+                                  'WhatsApp Business API Setup',
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                    color: _ancientGold,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 12),
+                            Text(
+                              'Configure your WhatsApp Business API credentials to start sending messages through MetaFly.',
+                              style: TextStyle(fontSize: 14, color: Colors.grey[400], height: 1.4),
+                            ),
+                          ],
+                        ),
                       ),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(height: 24),
-
-              // Webhook Configuration Section
-              const Divider(),
-              const SizedBox(height: 16),
-
-              Row(
-                children: [
-                  Icon(Icons.webhook, color: const Color(0xFF17A2B8), size: 20),
-                  const SizedBox(width: 8),
-                  const Text(
-                    'Webhook Configuration',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-
-              // Callback URL
-              _buildApiKeyField(
-                controller: _callbackUrlController,
-                label: 'Callback URL',
-                hint: 'https://app.metafly.com/webhooks/...',
-                icon: Icons.link,
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return 'Callback URL is required';
-                  }
-                  return null;
-                },
-              ),
-
-              const SizedBox(height: 16),
-
-              // Verify Token
-              _buildApiKeyField(
-                controller: _verifyTokenController,
-                label: 'Verify Token',
-                hint: 'meta-fly',
-                icon: Icons.verified,
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return 'Verify Token is required';
-                  }
-                  return null;
-                },
-              ),
-
-              const SizedBox(height: 24),
-
-              // Action Button (Validate and proceed)
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  onPressed: (_isLoading || _isValidating)
-                      ? null
-                      : _validateAndProceed,
-                  icon: (_isLoading || _isValidating)
-                      ? const SizedBox(
-                          width: 16,
-                          height: 16,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: Colors.white,
-                          ),
-                        )
-                      : const Icon(Icons.check_circle),
-                  label: Text(
-                    (_isLoading || _isValidating)
-                        ? 'Validating...'
-                        : 'Validate and proceed',
-                  ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF17A2B8),
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    textStyle: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
                     ),
-                  ),
-                ),
-              ),
+                    const SizedBox(height: 24),
 
-              const SizedBox(height: 24),
+                    // Webhook Configuration Section
+                    Divider(color: _ancientGold.withValues(alpha: 0.3)),
+                    const SizedBox(height: 16),
 
-              // API Integrations Section
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(20),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'API Integrations',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
+                    const Row(
+                      children: [
+                        Icon(Icons.webhook, color: _ancientGold, size: 24),
+                        SizedBox(width: 12),
+                        Text(
+                          'Webhook Configuration',
+                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 20),
+
+                    // Callback URL
+                    _buildApiKeyField(
+                      controller: _callbackUrlController,
+                      label: 'Callback URL',
+                      hint: 'https://app.metafly.com/webhooks/...',
+                      icon: Icons.link,
+                      validator: (value) {
+                        if (value == null || value.trim().isEmpty) {
+                          return 'Callback URL is required';
+                        }
+                        return null;
+                      },
+                    ),
+
+                    const SizedBox(height: 16),
+
+                    // Verify Token
+                    _buildApiKeyField(
+                      controller: _verifyTokenController,
+                      label: 'Verify Token',
+                      hint: 'meta-fly',
+                      icon: Icons.verified,
+                      validator: (value) {
+                        if (value == null || value.trim().isEmpty) {
+                          return 'Verify Token is required';
+                        }
+                        return null;
+                      },
+                    ),
+
+                    const SizedBox(height: 30),
+
+                    // Action Button (Validate and proceed)
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        onPressed: (_isLoading || _isValidating)
+                            ? null
+                            : _validateAndProceed,
+                        icon: (_isLoading || _isValidating)
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.black,
+                                ),
+                              )
+                            : const Icon(Icons.check_circle, color: Colors.black),
+                        label: Text(
+                          (_isLoading || _isValidating)
+                              ? 'Validating...'
+                              : 'Validate and proceed',
+                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: _ancientGold,
+                          foregroundColor: Colors.black,
+                          disabledBackgroundColor: Colors.grey[800],
+                          disabledForegroundColor: Colors.grey[500],
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
                         ),
                       ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Use the following API key for 3rd party integrations like WordPress, Shopify, Google Sheet etc.',
-                        style: TextStyle(fontSize: 14, color: Colors.grey[600]),
-                      ),
-                      const SizedBox(height: 16),
+                    ),
 
-                      Container(
-                        decoration: BoxDecoration(
-                          color: Colors.grey.shade100,
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: Colors.grey.shade300),
-                        ),
-                        child: Padding(
-                          padding: const EdgeInsets.all(12),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'MetaFly.com API Key',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.grey[700],
+                    const SizedBox(height: 30),
+
+                    // API Integrations Section
+                    Container(
+                      decoration: BoxDecoration(
+                        color: Colors.black.withValues(alpha: 0.6),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: _ancientGold.withValues(alpha: 0.4), width: 1.5),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.4),
+                            blurRadius: 10,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.all(20),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'API Integrations',
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: _ancientGold,
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            Text(
+                              'Use the following API key for 3rd party integrations like WordPress, Shopify, Google Sheet etc.',
+                              style: TextStyle(fontSize: 14, color: Colors.grey[400], height: 1.4),
+                            ),
+                            const SizedBox(height: 20),
+
+                            Container(
+                              decoration: BoxDecoration(
+                                color: Colors.black.withValues(alpha: 0.4),
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(color: _ancientGold.withValues(alpha: 0.3)),
+                              ),
+                              child: Padding(
+                                padding: const EdgeInsets.all(16),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Text(
+                                      'MetaFly.com API Key',
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w600,
+                                        color: Colors.white70,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 12),
+                                    Row(
+                                      children: [
+                                        Expanded(
+                                          child: Container(
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 12,
+                                              vertical: 12,
+                                            ),
+                                            decoration: BoxDecoration(
+                                              color: Colors.black,
+                                              borderRadius: BorderRadius.circular(6),
+                                              border: Border.all(
+                                                color: _ancientGold.withValues(alpha: 0.5),
+                                              ),
+                                            ),
+                                            child: Text(
+                                              _metaflyApiKey ??
+                                                  'API key will be generated after saving configuration',
+                                              style: TextStyle(
+                                                fontFamily: 'monospace',
+                                                fontSize: 12,
+                                                color: _metaflyApiKey != null
+                                                    ? _ancientGold
+                                                    : Colors.grey[600],
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                        const SizedBox(width: 12),
+                                        Container(
+                                          decoration: BoxDecoration(
+                                            color: _ancientGold,
+                                            borderRadius: BorderRadius.circular(6),
+                                          ),
+                                          child: IconButton(
+                                            icon: const Icon(
+                                              Icons.copy,
+                                              color: Colors.black,
+                                              size: 20,
+                                            ),
+                                            onPressed: _metaflyApiKey != null
+                                                ? () => _copyToClipboard(
+                                                    _metaflyApiKey!,
+                                                  )
+                                                : null,
+                                            padding: const EdgeInsets.all(10),
+                                            constraints: const BoxConstraints(
+                                              minWidth: 40,
+                                              minHeight: 40,
+                                            ),
+                                            tooltip: 'Copy',
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
                                 ),
                               ),
-                              const SizedBox(height: 8),
-                              Row(
-                                children: [
-                                  Expanded(
-                                    child: Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 12,
-                                        vertical: 8,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: Colors.white,
-                                        borderRadius: BorderRadius.circular(6),
-                                        border: Border.all(
-                                          color: Colors.grey.shade300,
-                                        ),
-                                      ),
-                                      child: Text(
-                                        _metaflyApiKey ??
-                                            'API key will be generated after saving configuration',
-                                        style: TextStyle(
-                                          fontFamily: 'monospace',
-                                          fontSize: 12,
-                                          color: _metaflyApiKey != null
-                                              ? Colors.pink
-                                              : Colors.grey[500],
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Container(
-                                    decoration: BoxDecoration(
-                                      color: Colors.grey.shade600,
-                                      borderRadius: BorderRadius.circular(6),
-                                    ),
-                                    child: IconButton(
-                                      icon: const Icon(
-                                        Icons.copy,
-                                        color: Colors.white,
-                                        size: 16,
-                                      ),
-                                      onPressed: _metaflyApiKey != null
-                                          ? () => _copyToClipboard(
-                                              _metaflyApiKey!,
-                                            )
-                                          : null,
-                                      padding: const EdgeInsets.all(8),
-                                      constraints: const BoxConstraints(
-                                        minWidth: 32,
-                                        minHeight: 32,
-                                      ),
-                                      tooltip: 'Copy',
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 16),
-
-              // Instructions Card
-              Card(
-                color: Colors.blue.shade50,
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Icon(Icons.info_outline, color: Colors.blue.shade700),
-                          const SizedBox(width: 8),
-                          Text(
-                            'How to get your API keys',
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: Colors.blue.shade700,
                             ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        '1. Go to Facebook Developers Console\n'
-                        '2. Select your WhatsApp Business app\n'
-                        '3. Get Access Token from App Dashboard\n'
-                        '4. Get Phone Number ID from WhatsApp > Phone Numbers\n'
-                        '5. Get Business Account ID from Business Settings',
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: Colors.blue.shade600,
+                          ],
                         ),
                       ),
-                    ],
-                  ),
+                    ),
+
+                    const SizedBox(height: 24),
+
+                    // Instructions Card
+                    Container(
+                      decoration: BoxDecoration(
+                        color: _ancientGold.withValues(alpha: 0.05),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: _ancientGold.withValues(alpha: 0.3), width: 1),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.all(20),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Row(
+                              children: [
+                                Icon(Icons.info_outline, color: _ancientGold),
+                                SizedBox(width: 12),
+                                Text(
+                                  'How to get your API keys',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 16,
+                                    color: _ancientGold,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 16),
+                            Text(
+                              '1. Go to Facebook Developers Console\n'
+                              '2. Select your WhatsApp Business app\n'
+                              '3. Get Access Token from App Dashboard\n'
+                              '4. Get Phone Number ID from WhatsApp > Phone Numbers\n'
+                              '5. Get Business Account ID from Business Settings',
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Colors.grey[300],
+                                height: 1.6,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
@@ -476,15 +532,31 @@ class _ApiSettingsScreenState extends State<ApiSettingsScreen> {
       controller: controller,
       obscureText: isPassword,
       validator: validator,
+      style: const TextStyle(color: _ancientGold, fontFamily: 'monospace'),
       decoration: InputDecoration(
         labelText: label,
+        labelStyle: TextStyle(color: Colors.grey[500], fontFamily: 'sans-serif'),
         hintText: hint,
-        prefixIcon: Icon(icon, color: const Color(0xFF17A2B8)),
+        hintStyle: TextStyle(color: Colors.grey[700]),
+        prefixIcon: Icon(icon, color: _ancientGold),
         suffixIcon: suffixIcon,
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+        filled: true,
+        fillColor: Colors.black.withValues(alpha: 0.3),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: BorderSide(color: _ancientGold.withValues(alpha: 0.3)),
+        ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
-          borderSide: const BorderSide(color: Color(0xFF17A2B8), width: 2),
+          borderSide: const BorderSide(color: _ancientGold, width: 2),
+        ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: const BorderSide(color: Colors.redAccent, width: 1),
+        ),
+        focusedErrorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: const BorderSide(color: Colors.redAccent, width: 2),
         ),
       ),
     );
@@ -494,32 +566,52 @@ class _ApiSettingsScreenState extends State<ApiSettingsScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('📋 API Setup Help'),
-        content: const SingleChildScrollView(
+        backgroundColor: Colors.black,
+        shape: RoundedRectangleBorder(
+          side: const BorderSide(color: _ancientGold, width: 1.5),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        title: const Row(
+          children: [
+            Icon(Icons.build_circle_outlined, color: _ancientGold),
+            SizedBox(width: 10),
+            Text('API Setup Help', style: TextStyle(color: _ancientGold, fontWeight: FontWeight.bold)),
+          ],
+        ),
+        content: SingleChildScrollView(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text(
+              const Text(
                 'To get your WhatsApp Business API credentials:',
-                style: TextStyle(fontWeight: FontWeight.bold),
+                style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
               ),
-              SizedBox(height: 12),
-              Text('🌐 Visit: developers.facebook.com'),
-              SizedBox(height: 8),
-              Text('📱 Create or select your WhatsApp Business app'),
-              SizedBox(height: 8),
-              Text('🔑 Generate Access Token in App Dashboard'),
-              SizedBox(height: 8),
-              Text('📞 Get Phone Number ID from WhatsApp section'),
-              SizedBox(height: 8),
-              Text('🏢 Get Business Account ID from Settings'),
-              SizedBox(height: 12),
-              Text(
-                'Need help? Contact our support team!',
-                style: TextStyle(
-                  fontStyle: FontStyle.italic,
-                  color: Colors.grey,
+              const SizedBox(height: 16),
+              Text('🌐 Visit: developers.facebook.com', style: TextStyle(color: Colors.grey[400])),
+              const SizedBox(height: 8),
+              Text('📱 Create or select your WhatsApp Business app', style: TextStyle(color: Colors.grey[400])),
+              const SizedBox(height: 8),
+              Text('🔑 Generate Access Token in App Dashboard', style: TextStyle(color: Colors.grey[400])),
+              const SizedBox(height: 8),
+              Text('📞 Get Phone Number ID from WhatsApp section', style: TextStyle(color: Colors.grey[400])),
+              const SizedBox(height: 8),
+              Text('🏢 Get Business Account ID from Settings', style: TextStyle(color: Colors.grey[400])),
+              const SizedBox(height: 20),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: _ancientGold.withValues(alpha: 0.1),
+                  border: Border.all(color: _ancientGold.withValues(alpha: 0.3)),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Text(
+                  'Need help? Contact our support team!',
+                  style: TextStyle(
+                    fontStyle: FontStyle.italic,
+                    color: _ancientGold,
+                    fontSize: 12,
+                  ),
                 ),
               ),
             ],
@@ -528,7 +620,7 @@ class _ApiSettingsScreenState extends State<ApiSettingsScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Got it!'),
+            child: const Text('Got it!', style: TextStyle(color: _ancientGold, fontWeight: FontWeight.bold)),
           ),
         ],
       ),

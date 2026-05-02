@@ -1,4 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:guptik/widgets/home/animated_nebula_background.dart';
+
+
+// Ancient Gold Theme Constants
+const Color _ancientGold = Color(0xFFD4AF37);
+const Color _darkBg = Color(0xFF0A0A0A);
 
 class QuickRepliesScreen extends StatefulWidget {
   const QuickRepliesScreen({super.key});
@@ -43,200 +49,280 @@ class _QuickRepliesScreenState extends State<QuickRepliesScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FA),
+      backgroundColor: _darkBg,
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
         title: const Text(
           'Quick Replies',
           style: TextStyle(
-            fontSize: 24,
+            color: _ancientGold,
             fontWeight: FontWeight.bold,
-            color: Colors.white,
           ),
         ),
-        backgroundColor: const Color(0xFF17A2B8),
-        foregroundColor: Colors.white,
+        backgroundColor: Colors.black.withValues(alpha: 0.7),
         elevation: 0,
+        iconTheme: const IconThemeData(color: _ancientGold),
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(1.0),
+          child: Container(color: _ancientGold.withValues(alpha: 0.2), height: 1.0),
+        ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.add),
+            icon: const Icon(Icons.add, color: _ancientGold),
             onPressed: () => _showCreateQuickReplyDialog(),
             tooltip: 'Create New Quick Reply',
           ),
         ],
       ),
-      body: Column(
-        children: [
-          // Header Stats
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(20),
-            decoration: const BoxDecoration(
-              color: Color(0xFF17A2B8),
-              borderRadius: BorderRadius.only(
-                bottomLeft: Radius.circular(20),
-                bottomRight: Radius.circular(20),
-              ),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
+      // THE FIX: Full screen box ensures the background stretches safely
+      body: SizedBox(
+        width: double.infinity,
+        height: double.infinity,
+        child: Stack(
+          children: [
+            // The Shared Cinematic Nebula Background
+            const Positioned.fill(child: AnimatedNebulaBackground()),
+            
+            Column(
               children: [
-                _buildStatCard('Total Replies', _quickReplies.length.toString(), Icons.reply),
-                _buildStatCard('Categories', (_categories.length - 1).toString(), Icons.category), // -1 to exclude 'All'
-                _buildStatCard('Most Used', _quickReplies.isNotEmpty ? _quickReplies.reduce((a, b) => (a['usage_count'] as int) > (b['usage_count'] as int) ? a : b)['usage_count'].toString() : '0', Icons.trending_up),
-              ],
-            ),
-          ),
-          
-          // Search and Filter Section
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              children: [
-                // Search Bar
-                TextField(
-                  controller: _searchController,
-                  onChanged: (_) => setState(() {}),
-                  decoration: InputDecoration(
-                    hintText: 'Search quick replies...',
-                    prefixIcon: const Icon(Icons.search, color: Color(0xFF17A2B8)),
-                    suffixIcon: _searchController.text.isNotEmpty
-                        ? IconButton(
-                            icon: const Icon(Icons.clear),
-                            onPressed: () {
-                              _searchController.clear();
-                              setState(() {});
-                            },
-                          )
-                        : null,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Color(0xFF17A2B8)),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Color(0xFF17A2B8), width: 2),
-                    ),
+                SizedBox(height: MediaQuery.of(context).padding.top + kToolbarHeight), // Push content below transparent AppBar
+                
+                // Header Stats
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(20),
+                  margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.6),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: _ancientGold.withValues(alpha: 0.4), width: 1.5),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.4),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                    children: [
+                      Expanded(child: _buildStatCard('Total Replies', _quickReplies.length.toString(), Icons.reply)),
+                      const SizedBox(width: 8),
+                      Expanded(child: _buildStatCard('Categories', (_categories.length - 1).toString(), Icons.category)), // -1 to exclude 'All'
+                      const SizedBox(width: 8),
+                      Expanded(child: _buildStatCard('Most Used', _quickReplies.isNotEmpty ? _quickReplies.reduce((a, b) => (a['usage_count'] as int) > (b['usage_count'] as int) ? a : b)['usage_count'].toString() : '0', Icons.trending_up)),
+                    ],
                   ),
                 ),
-                const SizedBox(height: 12),
                 
-                // Category Filter
-                Row(
-                  children: [
-                    const Text(
-                      'Category: ',
-                      style: TextStyle(fontWeight: FontWeight.w600),
-                    ),
-                    Expanded(
-                      child: DropdownButtonFormField<String>(
-                        initialValue: _selectedCategory,
-                        onChanged: (value) => setState(() => _selectedCategory = value!),
+                // Search and Filter Section
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  child: Column(
+                    children: [
+                      // Search Bar
+                      TextField(
+                        controller: _searchController,
+                        onChanged: (_) => setState(() {}),
+                        style: const TextStyle(color: Colors.white),
                         decoration: InputDecoration(
+                          hintText: 'Search quick replies...',
+                          hintStyle: TextStyle(color: Colors.grey[500]),
+                          prefixIcon: const Icon(Icons.search, color: _ancientGold),
+                          filled: true,
+                          fillColor: Colors.black.withValues(alpha: 0.5),
+                          suffixIcon: _searchController.text.isNotEmpty
+                              ? IconButton(
+                                  icon: const Icon(Icons.clear, color: Colors.white54),
+                                  onPressed: () {
+                                    _searchController.clear();
+                                    setState(() {});
+                                  },
+                                )
+                              : null,
                           border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(color: _ancientGold.withValues(alpha: 0.3)),
                           ),
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(color: _ancientGold.withValues(alpha: 0.3)),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: const BorderSide(color: _ancientGold, width: 2),
+                          ),
                         ),
-                        items: _categories.map((category) {
-                          return DropdownMenuItem(
-                            value: category,
-                            child: Text(category),
-                          );
-                        }).toList(),
                       ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          
-          // Quick Replies List
-          Expanded(
-            child: _filteredReplies.isEmpty
-                ? Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.reply_outlined,
-                          size: 64,
-                          color: Colors.grey[400],
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          _searchController.text.isEmpty && _selectedCategory == 'All' 
-                              ? 'No quick replies created yet'
-                              : 'No quick replies found',
-                          style: TextStyle(
-                            fontSize: 18,
-                            color: Colors.grey[600],
+                      const SizedBox(height: 12),
+                      
+                      // Category Filter
+                      Row(
+                        children: [
+                          const Text(
+                            'Category: ',
+                            style: TextStyle(fontWeight: FontWeight.bold, color: _ancientGold),
                           ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          _searchController.text.isEmpty && _selectedCategory == 'All'
-                              ? 'Create your first quick reply to get started'
-                              : 'Try adjusting your search or filter criteria',
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: Colors.grey[500],
-                          ),
-                        ),
-                        if (_searchController.text.isEmpty && _selectedCategory == 'All') ...[
-                          const SizedBox(height: 16),
-                          ElevatedButton.icon(
-                            onPressed: () => _showCreateQuickReplyDialog(),
-                            icon: const Icon(Icons.add),
-                            label: const Text('Create First Quick Reply'),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF17A2B8),
-                              foregroundColor: Colors.white,
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: DropdownButtonFormField<String>(
+                              dropdownColor: Colors.black,
+                              icon: const Icon(Icons.arrow_drop_down, color: _ancientGold),
+                              style: const TextStyle(color: Colors.white),
+                              isExpanded: true, // THE FIX: Prevents text overflow in dropdown
+                              initialValue: _selectedCategory,
+                              onChanged: (value) => setState(() => _selectedCategory = value!),
+                              decoration: InputDecoration(
+                                filled: true,
+                                fillColor: Colors.black.withValues(alpha: 0.5),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  borderSide: BorderSide(color: _ancientGold.withValues(alpha: 0.3)),
+                                ),
+                                enabledBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  borderSide: BorderSide(color: _ancientGold.withValues(alpha: 0.3)),
+                                ),
+                                focusedBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  borderSide: const BorderSide(color: _ancientGold),
+                                ),
+                                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                              ),
+                              items: _categories.map((category) {
+                                return DropdownMenuItem(
+                                  value: category,
+                                  child: Text(category, overflow: TextOverflow.ellipsis),
+                                );
+                              }).toList(),
                             ),
                           ),
                         ],
-                      ],
-                    ),
-                  )
-                : ListView.builder(
-                    padding: const EdgeInsets.all(16),
-                    itemCount: _filteredReplies.length,
-                    itemBuilder: (context, index) {
-                      final reply = _filteredReplies[index];
-                      return _buildQuickReplyCard(reply);
-                    },
+                      ),
+                    ],
                   ),
-          ),
-        ],
+                ),
+                
+                // Quick Replies List
+                Expanded(
+                  child: _filteredReplies.isEmpty
+                      ? _buildEmptyState()
+                      : ListView.builder(
+                          padding: const EdgeInsets.fromLTRB(16, 8, 16, 40),
+                          itemCount: _filteredReplies.length,
+                          itemBuilder: (context, index) {
+                            final reply = _filteredReplies[index];
+                            return _buildQuickReplyCard(reply);
+                          },
+                        ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // THE FIX: Wrapped empty state in SingleChildScrollView to avoid bottom overflow on small screens
+  Widget _buildEmptyState() {
+    return Center(
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(32),
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.black.withValues(alpha: 0.4),
+                border: Border.all(color: _ancientGold.withValues(alpha: 0.3), width: 2),
+                boxShadow: [
+                  BoxShadow(
+                    color: _ancientGold.withValues(alpha: 0.1),
+                    blurRadius: 20,
+                    spreadRadius: 5,
+                  )
+                ],
+              ),
+              child: Icon(
+                Icons.reply_outlined,
+                size: 64,
+                color: _ancientGold.withValues(alpha: 0.8),
+              ),
+            ),
+            const SizedBox(height: 24),
+            Text(
+              _searchController.text.isEmpty && _selectedCategory == 'All' 
+                  ? 'No quick replies created yet'
+                  : 'No quick replies found',
+              style: const TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: _ancientGold,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              _searchController.text.isEmpty && _selectedCategory == 'All'
+                  ? 'Create your first quick reply to get started'
+                  : 'Try adjusting your search or filter criteria',
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.grey[400],
+              ),
+              textAlign: TextAlign.center,
+            ),
+            if (_searchController.text.isEmpty && _selectedCategory == 'All') ...[
+              const SizedBox(height: 32),
+              ElevatedButton.icon(
+                onPressed: () => _showCreateQuickReplyDialog(),
+                icon: const Icon(Icons.add, color: Colors.black),
+                label: const Text('Create First Quick Reply', style: TextStyle(fontWeight: FontWeight.bold)),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: _ancientGold,
+                  foregroundColor: Colors.black,
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  elevation: 8,
+                ),
+              ),
+            ],
+          ],
+        ),
       ),
     );
   }
 
   Widget _buildStatCard(String title, String value, IconData icon) {
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.2),
+        color: _ancientGold.withValues(alpha: 0.1),
+        border: Border.all(color: _ancientGold.withValues(alpha: 0.3)),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, color: Colors.white, size: 24),
-          const SizedBox(height: 8),
+          Icon(icon, color: _ancientGold, size: 28),
+          const SizedBox(height: 12),
           Text(
             value,
             style: const TextStyle(
               color: Colors.white,
-              fontSize: 20,
+              fontSize: 22,
               fontWeight: FontWeight.bold,
             ),
           ),
+          const SizedBox(height: 4),
           Text(
             title,
-            style: const TextStyle(
-              color: Colors.white,
+            style: TextStyle(
+              color: Colors.grey[400],
               fontSize: 12,
+              fontWeight: FontWeight.w600,
             ),
             textAlign: TextAlign.center,
           ),
@@ -246,14 +332,22 @@ class _QuickRepliesScreenState extends State<QuickRepliesScreen> {
   }
 
   Widget _buildQuickReplyCard(Map<String, dynamic> reply) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      elevation: 2,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: 0.6),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: _ancientGold.withValues(alpha: 0.3), width: 1.5),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.4),
+            blurRadius: 8,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -265,46 +359,58 @@ class _QuickRepliesScreenState extends State<QuickRepliesScreen> {
                     style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
-                      color: Color(0xFF17A2B8),
+                      color: Colors.white,
                     ),
                   ),
                 ),
+                const SizedBox(width: 8),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF17A2B8).withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(6),
+                    color: _ancientGold.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: _ancientGold.withValues(alpha: 0.4)),
                   ),
                   child: Text(
                     reply['category'],
                     style: const TextStyle(
-                      fontSize: 12,
-                      color: Color(0xFF17A2B8),
-                      fontWeight: FontWeight.w600,
+                      fontSize: 11,
+                      color: _ancientGold,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 12),
-            Text(
-              reply['content'],
-              style: const TextStyle(
-                fontSize: 14,
-                color: Colors.black87,
-                height: 1.4,
+            const SizedBox(height: 16),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.black.withValues(alpha: 0.4),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.white10),
+              ),
+              child: Text(
+                reply['content'],
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.grey[300],
+                  height: 1.4,
+                ),
               ),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 16),
             Row(
               children: [
-                Icon(Icons.trending_up, size: 16, color: Colors.grey[600]),
-                const SizedBox(width: 4),
+                Icon(Icons.trending_up, size: 16, color: Colors.grey[500]),
+                const SizedBox(width: 6),
                 Text(
                   'Used ${reply['usage_count']} times',
                   style: TextStyle(
                     fontSize: 12,
-                    color: Colors.grey[600],
+                    color: Colors.grey[500],
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
                 const Spacer(),
@@ -317,34 +423,48 @@ class _QuickRepliesScreenState extends State<QuickRepliesScreen> {
                 ),
               ],
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 16),
+            // THE FIX: Flexible row prevents button overflow on narrow screens
             Row(
-              mainAxisAlignment: MainAxisAlignment.end,
               children: [
-                TextButton.icon(
-                  onPressed: () => _copyReply(reply['content']),
-                  icon: const Icon(Icons.copy, size: 16),
-                  label: const Text('Copy'),
-                  style: TextButton.styleFrom(
-                    foregroundColor: const Color(0xFF17A2B8),
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: () => _copyReply(reply['content']),
+                    icon: const Icon(Icons.copy, size: 16),
+                    label: const Text('Copy', style: TextStyle(fontWeight: FontWeight.bold)),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: _ancientGold,
+                      side: BorderSide(color: _ancientGold.withValues(alpha: 0.5)),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                    ),
                   ),
                 ),
                 const SizedBox(width: 8),
-                TextButton.icon(
-                  onPressed: () => _editQuickReply(reply),
-                  icon: const Icon(Icons.edit, size: 16),
-                  label: const Text('Edit'),
-                  style: TextButton.styleFrom(
-                    foregroundColor: const Color(0xFF17A2B8),
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: () => _editQuickReply(reply),
+                    icon: const Icon(Icons.edit, size: 16),
+                    label: const Text('Edit', style: TextStyle(fontWeight: FontWeight.bold)),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: _ancientGold,
+                      foregroundColor: Colors.black,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                    ),
                   ),
                 ),
                 const SizedBox(width: 8),
-                TextButton.icon(
-                  onPressed: () => _deleteQuickReply(reply['id']),
-                  icon: const Icon(Icons.delete, size: 16),
-                  label: const Text('Delete'),
-                  style: TextButton.styleFrom(
-                    foregroundColor: Colors.red[600],
+                Container(
+                  decoration: BoxDecoration(
+                    color: Colors.redAccent.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.redAccent.withValues(alpha: 0.3)),
+                  ),
+                  child: IconButton(
+                    onPressed: () => _deleteQuickReply(reply['id']),
+                    icon: const Icon(Icons.delete, size: 20, color: Colors.redAccent),
+                    tooltip: 'Delete',
                   ),
                 ),
               ],
@@ -360,8 +480,11 @@ class _QuickRepliesScreenState extends State<QuickRepliesScreen> {
     // For now, we'll show a helpful message
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('Quick reply ready to copy: "${content.length > 50 ? '${content.substring(0, 50)}...' : content}"'),
-        backgroundColor: const Color(0xFF17A2B8),
+        content: Text(
+          'Quick reply ready to copy: "${content.length > 50 ? '${content.substring(0, 50)}...' : content}"',
+          style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
+        ),
+        backgroundColor: _ancientGold,
         duration: const Duration(seconds: 3),
       ),
     );
@@ -375,14 +498,22 @@ class _QuickRepliesScreenState extends State<QuickRepliesScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Delete Quick Reply'),
-        content: const Text('Are you sure you want to delete this quick reply? This action cannot be undone.'),
+        backgroundColor: Colors.black,
+        shape: RoundedRectangleBorder(
+          side: const BorderSide(color: _ancientGold, width: 1.5),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        title: const Text('Delete Quick Reply', style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
+        content: const Text(
+          'Are you sure you want to delete this quick reply? This action cannot be undone.',
+          style: TextStyle(color: Colors.white70),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
+            child: const Text('Cancel', style: TextStyle(color: Colors.white54)),
           ),
-          TextButton(
+          ElevatedButton(
             onPressed: () {
               Navigator.pop(context);
               setState(() {
@@ -390,13 +521,16 @@ class _QuickRepliesScreenState extends State<QuickRepliesScreen> {
               });
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
-                  content: Text('Quick reply deleted successfully'),
-                  backgroundColor: Colors.green,
+                  content: Text('Quick reply deleted successfully', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+                  backgroundColor: Colors.greenAccent,
                 ),
               );
             },
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('Delete'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.redAccent,
+              foregroundColor: Colors.black,
+            ),
+            child: const Text('Delete', style: TextStyle(fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -411,39 +545,84 @@ class _QuickRepliesScreenState extends State<QuickRepliesScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text(editingReply != null ? 'Edit Quick Reply' : 'Create Quick Reply'),
+        backgroundColor: Colors.black,
+        shape: RoundedRectangleBorder(
+          side: const BorderSide(color: _ancientGold, width: 1.5),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        title: Text(
+          editingReply != null ? 'Edit Quick Reply' : 'Create Quick Reply',
+          style: const TextStyle(color: _ancientGold, fontWeight: FontWeight.bold),
+        ),
+        // THE FIX: SingleChildScrollView prevents keyboard overflow inside the dialog
         content: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               TextField(
                 controller: titleController,
-                decoration: const InputDecoration(
+                style: const TextStyle(color: Colors.white),
+                decoration: InputDecoration(
                   labelText: 'Title',
-                  border: OutlineInputBorder(),
+                  labelStyle: TextStyle(color: Colors.grey[500]),
+                  filled: true,
+                  fillColor: Colors.black.withValues(alpha: 0.3),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: BorderSide(color: _ancientGold.withValues(alpha: 0.3)),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: const BorderSide(color: _ancientGold, width: 2),
+                  ),
                 ),
               ),
               const SizedBox(height: 16),
               TextField(
                 controller: contentController,
-                decoration: const InputDecoration(
+                style: const TextStyle(color: Colors.white),
+                decoration: InputDecoration(
                   labelText: 'Content',
-                  border: OutlineInputBorder(),
+                  labelStyle: TextStyle(color: Colors.grey[500]),
+                  filled: true,
+                  fillColor: Colors.black.withValues(alpha: 0.3),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: BorderSide(color: _ancientGold.withValues(alpha: 0.3)),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: const BorderSide(color: _ancientGold, width: 2),
+                  ),
                 ),
-                maxLines: 3,
+                maxLines: 4,
               ),
               const SizedBox(height: 16),
               DropdownButtonFormField<String>(
+                dropdownColor: Colors.black,
+                icon: const Icon(Icons.arrow_drop_down, color: _ancientGold),
+                style: const TextStyle(color: Colors.white),
                 initialValue: selectedCategory,
+                isExpanded: true, // Prevents text overflow
                 onChanged: (value) => selectedCategory = value!,
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   labelText: 'Category',
-                  border: OutlineInputBorder(),
+                  labelStyle: TextStyle(color: Colors.grey[500]),
+                  filled: true,
+                  fillColor: Colors.black.withValues(alpha: 0.3),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: BorderSide(color: _ancientGold.withValues(alpha: 0.3)),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: const BorderSide(color: _ancientGold, width: 2),
+                  ),
                 ),
                 items: ['Greetings', 'Information', 'Support', 'Orders', 'Other']
                     .map((category) => DropdownMenuItem(
                           value: category,
-                          child: Text(category),
+                          child: Text(category, overflow: TextOverflow.ellipsis),
                         ))
                     .toList(),
               ),
@@ -453,7 +632,7 @@ class _QuickRepliesScreenState extends State<QuickRepliesScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
+            child: const Text('Cancel', style: TextStyle(color: Colors.white54)),
           ),
           ElevatedButton(
             onPressed: () {
@@ -486,18 +665,20 @@ class _QuickRepliesScreenState extends State<QuickRepliesScreen> {
                 Navigator.pop(context);
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                    content: Text(editingReply != null 
-                        ? 'Quick reply updated successfully' 
-                        : 'Quick reply created successfully'),
-                    backgroundColor: Colors.green,
+                    content: Text(
+                      editingReply != null ? 'Quick reply updated successfully' : 'Quick reply created successfully',
+                      style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
+                    ),
+                    backgroundColor: Colors.greenAccent,
                   ),
                 );
               }
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF17A2B8),
+              backgroundColor: _ancientGold,
+              foregroundColor: Colors.black,
             ),
-            child: Text(editingReply != null ? 'Update' : 'Create'),
+            child: Text(editingReply != null ? 'Update' : 'Create', style: const TextStyle(fontWeight: FontWeight.bold)),
           ),
         ],
       ),

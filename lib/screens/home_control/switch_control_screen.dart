@@ -1,13 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:guptik/widgets/home/animated_nebula_background.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
-
 import '../../models/home_control/switch_model.dart';
 import '../../models/home_control/switch_type.dart';
 import '../../providers/home_control/dynamic_theme_provider.dart';
 import '../../widgets/home_control/home_control_widgets.dart';
 import 'timer_screen.dart';
+
+// Ancient Gold Theme Constants
+const Color _ancientGold = Color(0xFFD4AF37);
+const Color _darkBg = Color(0xFF0A0A0A);
 
 class SwitchControlScreen extends StatefulWidget {
   final String boardId;
@@ -109,9 +113,12 @@ class _SwitchControlScreenState extends State<SwitchControlScreen>
     } catch (e) {
       _loadSwitches();
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Error: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: $e', style: const TextStyle(color: Colors.black)),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
       }
     }
   }
@@ -155,7 +162,10 @@ class _SwitchControlScreenState extends State<SwitchControlScreen>
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Failed to swap positions. Check connection.')),
+          const SnackBar(
+            content: Text('Failed to swap positions. Check connection.', style: TextStyle(color: Colors.black)),
+            backgroundColor: Colors.redAccent,
+          ),
         );
       }
     } finally {
@@ -184,9 +194,12 @@ class _SwitchControlScreenState extends State<SwitchControlScreen>
       if (mounted) Navigator.pop(context);
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Error: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: $e', style: const TextStyle(color: Colors.black)),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
       }
     }
   }
@@ -204,9 +217,12 @@ class _SwitchControlScreenState extends State<SwitchControlScreen>
       if (mounted) Navigator.pop(context);
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Error: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: $e', style: const TextStyle(color: Colors.black)),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
       }
     }
   }
@@ -218,9 +234,12 @@ class _SwitchControlScreenState extends State<SwitchControlScreen>
       if (mounted) Navigator.pop(context);
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Error: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: $e', style: const TextStyle(color: Colors.black)),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
       }
     }
   }
@@ -235,25 +254,37 @@ class _SwitchControlScreenState extends State<SwitchControlScreen>
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
-          title: const Text('Add Device'),
+          backgroundColor: Colors.black,
+          shape: RoundedRectangleBorder(
+            side: const BorderSide(color: _ancientGold, width: 1),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          title: const Text('Add Device', style: TextStyle(color: _ancientGold, fontWeight: FontWeight.bold)),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               TextField(
                 controller: nameController,
-                decoration: const InputDecoration(
+                style: const TextStyle(color: _ancientGold),
+                decoration: InputDecoration(
                   labelText: 'Name',
-                  border: OutlineInputBorder(),
+                  labelStyle: TextStyle(color: Colors.grey[500]),
+                  enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: _ancientGold.withValues(alpha: 0.3))),
+                  focusedBorder: const OutlineInputBorder(borderSide: BorderSide(color: _ancientGold)),
                 ),
                 autofocus: true,
               ),
               const SizedBox(height: 16),
               DropdownButtonFormField<SwitchType>(
                 // ignore: deprecated_member_use
-                value: selectedType, 
-                decoration: const InputDecoration(
+                value: selectedType,
+                dropdownColor: Colors.black,
+                style: const TextStyle(color: _ancientGold),
+                decoration: InputDecoration(
                   labelText: 'Type',
-                  border: OutlineInputBorder(),
+                  labelStyle: TextStyle(color: Colors.grey[500]),
+                  enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: _ancientGold.withValues(alpha: 0.3))),
+                  focusedBorder: const OutlineInputBorder(borderSide: BorderSide(color: _ancientGold)),
                 ),
                 items: SwitchType.values
                     .map(
@@ -261,7 +292,7 @@ class _SwitchControlScreenState extends State<SwitchControlScreen>
                         value: t,
                         child: Row(
                           children: [
-                            Icon(_getIconForType(t), size: 16),
+                            Icon(_getIconForType(t), size: 16, color: _ancientGold),
                             const SizedBox(width: 8),
                             Text(t.name.toUpperCase()),
                           ],
@@ -276,15 +307,19 @@ class _SwitchControlScreenState extends State<SwitchControlScreen>
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel'),
+              child: const Text('Cancel', style: TextStyle(color: Colors.white54)),
             ),
             ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: _ancientGold,
+                foregroundColor: Colors.black,
+              ),
               onPressed: () {
                 if (nameController.text.isNotEmpty) {
                   _addSwitch(nameController.text.trim(), selectedType);
                 }
               },
-              child: const Text('Add'),
+              child: const Text('Add', style: TextStyle(fontWeight: FontWeight.bold)),
             ),
           ],
         ),
@@ -300,23 +335,49 @@ class _SwitchControlScreenState extends State<SwitchControlScreen>
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
-          title: const Text('Edit Device'),
+          backgroundColor: Colors.black,
+          shape: RoundedRectangleBorder(
+            side: const BorderSide(color: _ancientGold, width: 1),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          title: const Text('Edit Device', style: TextStyle(color: _ancientGold, fontWeight: FontWeight.bold)),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               TextField(
                 controller: nameController,
-                decoration: const InputDecoration(labelText: 'Name'),
+                style: const TextStyle(color: _ancientGold),
+                decoration: InputDecoration(
+                  labelText: 'Name',
+                  labelStyle: TextStyle(color: Colors.grey[500]),
+                  enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: _ancientGold.withValues(alpha: 0.3))),
+                  focusedBorder: const OutlineInputBorder(borderSide: BorderSide(color: _ancientGold)),
+                ),
+                autofocus: true,
               ),
               const SizedBox(height: 16),
               DropdownButtonFormField<SwitchType>(
                 // ignore: deprecated_member_use
                 value: selectedType,
+                dropdownColor: Colors.black,
+                style: const TextStyle(color: _ancientGold),
+                decoration: InputDecoration(
+                  labelText: 'Type',
+                  labelStyle: TextStyle(color: Colors.grey[500]),
+                  enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: _ancientGold.withValues(alpha: 0.3))),
+                  focusedBorder: const OutlineInputBorder(borderSide: BorderSide(color: _ancientGold)),
+                ),
                 items: SwitchType.values
                     .map(
                       (t) => DropdownMenuItem(
                         value: t,
-                        child: Text(t.name.toUpperCase()),
+                        child: Row(
+                          children: [
+                            Icon(_getIconForType(t), size: 16, color: _ancientGold),
+                            const SizedBox(width: 8),
+                            Text(t.name.toUpperCase()),
+                          ],
+                        ),
                       ),
                     )
                     .toList(),
@@ -327,12 +388,16 @@ class _SwitchControlScreenState extends State<SwitchControlScreen>
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel'),
+              child: const Text('Cancel', style: TextStyle(color: Colors.white54)),
             ),
             ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: _ancientGold,
+                foregroundColor: Colors.black,
+              ),
               onPressed: () =>
                   _editSwitch(device, nameController.text, selectedType),
-              child: const Text('Save'),
+              child: const Text('Save', style: TextStyle(fontWeight: FontWeight.bold)),
             ),
           ],
         ),
@@ -344,17 +409,28 @@ class _SwitchControlScreenState extends State<SwitchControlScreen>
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Delete Device?'),
-        content: Text('Are you sure you want to delete "${device.name}"?'),
+        backgroundColor: Colors.black,
+        shape: RoundedRectangleBorder(
+          side: const BorderSide(color: _ancientGold, width: 1),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        title: const Text('Delete Device?', style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
+        content: Text(
+          'Are you sure you want to delete "${device.name}"?',
+          style: const TextStyle(color: Colors.white70),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
+            child: const Text('Cancel', style: TextStyle(color: Colors.white54)),
           ),
-          TextButton(
+          ElevatedButton(
             onPressed: () => _deleteSwitch(device.id),
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('Delete'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.redAccent,
+              foregroundColor: Colors.black,
+            ),
+            child: const Text('Delete', style: TextStyle(fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -364,24 +440,39 @@ class _SwitchControlScreenState extends State<SwitchControlScreen>
   void _showOptionsSheet(SwitchDevice device) {
     showModalBottomSheet(
       context: context,
-      builder: (context) => Padding(
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        decoration: BoxDecoration(
+          color: Colors.black,
+          border: Border.all(color: _ancientGold.withValues(alpha: 0.3)),
+          borderRadius: const BorderRadius.only(topLeft: Radius.circular(20), topRight: Radius.circular(20)),
+        ),
         padding: const EdgeInsets.all(16),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(device.name, style: Theme.of(context).textTheme.titleLarge),
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: _ancientGold.withValues(alpha: 0.5),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text(device.name, style: const TextStyle(color: _ancientGold, fontSize: 20, fontWeight: FontWeight.bold)),
             const SizedBox(height: 16),
             ListTile(
-              leading: const Icon(Icons.edit),
-              title: const Text('Edit'),
+              leading: const Icon(Icons.edit, color: _ancientGold),
+              title: const Text('Edit', style: TextStyle(color: Colors.white)),
               onTap: () {
                 Navigator.pop(context);
                 _showEditDialog(device);
               },
             ),
             ListTile(
-              leading: const Icon(Icons.delete, color: Colors.red),
-              title: const Text('Delete', style: TextStyle(color: Colors.red)),
+              leading: const Icon(Icons.delete, color: Colors.redAccent),
+              title: const Text('Delete', style: TextStyle(color: Colors.redAccent)),
               onTap: () {
                 Navigator.pop(context);
                 _showDeleteConfirm(device);
@@ -413,12 +504,12 @@ class _SwitchControlScreenState extends State<SwitchControlScreen>
   Widget _buildSwitchCard(SwitchDevice device) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.1),
+        color: Colors.black.withValues(alpha: 0.6),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.white30),
+        border: Border.all(color: _ancientGold.withValues(alpha: 0.4), width: 1.5),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.1),
+            color: Colors.black.withValues(alpha: 0.4),
             blurRadius: 8,
             offset: const Offset(0, 4),
           ),
@@ -436,7 +527,7 @@ class _SwitchControlScreenState extends State<SwitchControlScreen>
                     child: Icon(
                       _getIconForType(device.type),
                       size: 40,
-                      color: Colors.white,
+                      color: _ancientGold,
                     ),
                   )
                 else
@@ -444,8 +535,8 @@ class _SwitchControlScreenState extends State<SwitchControlScreen>
                     _getIconForType(device.type),
                     size: 40,
                     color: device.state
-                        ? Colors.yellowAccent
-                        : Colors.white54,
+                        ? _ancientGold
+                        : Colors.white30,
                   ),
                 const SizedBox(height: 12),
                 Padding(
@@ -456,8 +547,8 @@ class _SwitchControlScreenState extends State<SwitchControlScreen>
                     device.name,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: Colors.white,
+                    style: TextStyle(
+                      color: device.state ? _ancientGold : Colors.white70,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
@@ -466,7 +557,10 @@ class _SwitchControlScreenState extends State<SwitchControlScreen>
                 Switch(
                   value: device.state,
                   onChanged: (val) => _toggle(device),
-                  activeTrackColor: Colors.cyanAccent,
+                  activeTrackColor: _ancientGold,
+                  activeColor: Colors.black,
+                  inactiveThumbColor: Colors.grey[400],
+                  inactiveTrackColor: Colors.white24,
                 ),
               ],
             ),
@@ -477,7 +571,7 @@ class _SwitchControlScreenState extends State<SwitchControlScreen>
             child: IconButton(
               icon: const Icon(
                 Icons.alarm,
-                color: Colors.white70,
+                color: _ancientGold,
                 size: 20,
               ),
               tooltip: 'Manage Timers',
@@ -500,9 +594,9 @@ class _SwitchControlScreenState extends State<SwitchControlScreen>
             top: 4,
             left: 4,
             child: IconButton(
-              icon: const Icon(
+              icon: Icon(
                 Icons.more_vert,
-                color: Colors.white54,
+                color: _ancientGold.withValues(alpha: 0.7),
                 size: 20,
               ),
               tooltip: 'Options',
@@ -516,8 +610,6 @@ class _SwitchControlScreenState extends State<SwitchControlScreen>
 
   @override
   Widget build(BuildContext context) {
-    final theme = Provider.of<DynamicThemeProvider>(context);
-    
     // Using MediaQuery to calculate exact tile dimensions for seamless dragging feedback
     final crossAxisCount = 2;
     final spacing = 16.0;
@@ -527,101 +619,124 @@ class _SwitchControlScreenState extends State<SwitchControlScreen>
     final itemHeight = itemWidth / 1.1; // Derived from childAspectRatio
 
     return Scaffold(
+      backgroundColor: _darkBg,
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
         title: Text(
           widget.boardName,
-          style: const TextStyle(color: Colors.white),
+          style: const TextStyle(
+            color: _ancientGold,
+            fontWeight: FontWeight.bold,
+          ),
         ),
-        backgroundColor: Colors.transparent,
-        iconTheme: const IconThemeData(color: Colors.white),
+        backgroundColor: Colors.black.withValues(alpha: 0.7),
+        elevation: 0,
+        iconTheme: const IconThemeData(color: _ancientGold),
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(1.0),
+          child: Container(color: _ancientGold.withValues(alpha: 0.2), height: 1.0),
+        ),
       ),
-      extendBodyBehindAppBar: true,
-      body: AnimatedSkyBackground(
-        isDarkMode: theme.isDarkMode,
-        child: _isLoading
-            ? const Center(
-                child: CircularProgressIndicator(color: Colors.white),
-              )
-            : GridView.builder(
-                padding: const EdgeInsets.fromLTRB(16, 100, 16, 16),
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2,
-                  mainAxisSpacing: 16,
-                  crossAxisSpacing: 16,
-                  childAspectRatio: 1.1,
-                ),
-                itemCount: _switches.length + 1,
-                itemBuilder: (context, index) {
-                  // Add Switch Button
-                  if (index == _switches.length) {
-                    return Card(
-                      elevation: 0,
-                      color: Colors.white.withValues(alpha: 0.1),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(20),
-                        side: const BorderSide(color: Colors.white30, width: 1),
-                      ),
-                      child: InkWell(
-                        borderRadius: BorderRadius.circular(20),
-                        onTap: _showAddSwitchDialog,
-                        child: const Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(
-                                Icons.add_circle_outline,
-                                size: 40,
-                                color: Colors.white70,
-                              ),
-                              SizedBox(height: 8),
-                              Text(
-                                "Add Switch",
-                                style: TextStyle(color: Colors.white70),
-                              ),
-                            ],
-                          ),
+      body: Stack(
+        children: [
+          // The Shared Cinematic Nebula Background
+          const Positioned.fill(child: AnimatedNebulaBackground()),
+          
+          // Main Content
+          _isLoading
+              ? const Center(
+                  child: CircularProgressIndicator(color: _ancientGold),
+                )
+              : GridView.builder(
+                  padding: const EdgeInsets.fromLTRB(16, 100, 16, 16),
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2,
+                    mainAxisSpacing: 16,
+                    crossAxisSpacing: 16,
+                    childAspectRatio: 1.1,
+                  ),
+                  itemCount: _switches.length + 1,
+                  itemBuilder: (context, index) {
+                    // Add Switch Button
+                    if (index == _switches.length) {
+                      return Card(
+                        elevation: 0,
+                        color: Colors.transparent,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(20),
+                          side: BorderSide(color: _ancientGold.withValues(alpha: 0.3), width: 1.5),
                         ),
-                      ),
-                    );
-                  }
-
-                  // Switch Card wrapped in DragTarget & LongPressDraggable
-                  final device = _switches[index];
-
-                  return DragTarget<int>(
-                    onAcceptWithDetails: (details) {
-                      final oldIndex = details.data;
-                      if (oldIndex != index) {
-                        _reorderSwitches(oldIndex, index);
-                      }
-                    },
-                    builder: (context, candidateData, rejectedData) {
-                      return LongPressDraggable<int>(
-                        data: index,
-                        // Ghost visualization held under the finger
-                        feedback: Material(
-                          type: MaterialType.transparency,
-                          child: SizedBox(
-                            width: itemWidth,
-                            height: itemHeight,
-                            child: Opacity(
-                              opacity: 0.8,
-                              child: _buildSwitchCard(device),
+                        child: InkWell(
+                          borderRadius: BorderRadius.circular(20),
+                          onTap: _showAddSwitchDialog,
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: Colors.black.withValues(alpha: 0.4),
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: Center(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    Icons.add_circle_outline,
+                                    size: 40,
+                                    color: _ancientGold.withValues(alpha: 0.8),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    "Add Switch",
+                                    style: TextStyle(
+                                      color: _ancientGold.withValues(alpha: 0.8),
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
                         ),
-                        // The faded original item left behind in the grid
-                        childWhenDragging: Opacity(
-                          opacity: 0.3,
-                          child: _buildSwitchCard(device),
-                        ),
-                        // Default non-dragging view
-                        child: _buildSwitchCard(device),
                       );
-                    },
-                  );
-                },
-              ),
+                    }
+
+                    // Switch Card wrapped in DragTarget & LongPressDraggable
+                    final device = _switches[index];
+
+                    return DragTarget<int>(
+                      onAcceptWithDetails: (details) {
+                        final oldIndex = details.data;
+                        if (oldIndex != index) {
+                          _reorderSwitches(oldIndex, index);
+                        }
+                      },
+                      builder: (context, candidateData, rejectedData) {
+                        return LongPressDraggable<int>(
+                          data: index,
+                          // Ghost visualization held under the finger
+                          feedback: Material(
+                            type: MaterialType.transparency,
+                            child: SizedBox(
+                              width: itemWidth,
+                              height: itemHeight,
+                              child: Opacity(
+                                opacity: 0.8,
+                                child: _buildSwitchCard(device),
+                              ),
+                            ),
+                          ),
+                          // The faded original item left behind in the grid
+                          childWhenDragging: Opacity(
+                            opacity: 0.3,
+                            child: _buildSwitchCard(device),
+                          ),
+                          // Default non-dragging view
+                          child: _buildSwitchCard(device),
+                        );
+                      },
+                    );
+                  },
+                ),
+        ],
       ),
     );
   }

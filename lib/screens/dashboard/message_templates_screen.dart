@@ -2,7 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:guptik/screens/dashboard/create_template_screen.dart';
 import 'package:guptik/services/dashboard/template_service.dart';
+import 'package:guptik/widgets/home/animated_nebula_background.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+
+
+// Ancient Gold Theme Constants
+const Color _ancientGold = Color(0xFFD4AF37);
+const Color _darkBg = Color(0xFF0A0A0A);
 
 class MessageTemplatesScreen extends StatefulWidget {
   const MessageTemplatesScreen({super.key});
@@ -77,8 +83,8 @@ class _MessageTemplatesScreenState extends State<MessageTemplatesScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Duplicate templates removed successfully!'),
-            backgroundColor: Colors.green,
+            content: Text('Duplicate templates removed successfully!', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+            backgroundColor: Colors.greenAccent,
           ),
         );
       }
@@ -86,8 +92,8 @@ class _MessageTemplatesScreenState extends State<MessageTemplatesScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error removing duplicates: $e'),
-            backgroundColor: Colors.red,
+            content: Text('Error removing duplicates: $e', style: const TextStyle(color: Colors.black)),
+            backgroundColor: Colors.redAccent,
           ),
         );
       }
@@ -100,35 +106,56 @@ class _MessageTemplatesScreenState extends State<MessageTemplatesScreen> {
   Widget build(BuildContext context) {
     if (_isLoading) {
       return Scaffold(
+        backgroundColor: _darkBg,
+        extendBodyBehindAppBar: true,
         appBar: AppBar(
-          title: const Text('Message Templates', style: TextStyle(color: Colors.white)),
-          backgroundColor: Colors.teal,
-          iconTheme: const IconThemeData(color: Colors.white),
+          title: const Text('Message Templates', style: TextStyle(color: _ancientGold, fontWeight: FontWeight.bold)),
+          backgroundColor: Colors.black.withValues(alpha: 0.7),
+          elevation: 0,
+          iconTheme: const IconThemeData(color: _ancientGold),
+          bottom: PreferredSize(
+            preferredSize: const Size.fromHeight(1.0),
+            child: Container(color: _ancientGold.withValues(alpha: 0.2), height: 1.0),
+          ),
         ),
         body: const Center(
-          child: CircularProgressIndicator(color: Colors.teal),
+          child: CircularProgressIndicator(color: _ancientGold),
         ),
       );
     }
 
     if (_error != null) {
       return Scaffold(
+        backgroundColor: _darkBg,
+        extendBodyBehindAppBar: true,
         appBar: AppBar(
-          title: const Text('Message Templates', style: TextStyle(color: Colors.white)),
-          backgroundColor: Colors.teal,
-          iconTheme: const IconThemeData(color: Colors.white),
+          title: const Text('Message Templates', style: TextStyle(color: _ancientGold, fontWeight: FontWeight.bold)),
+          backgroundColor: Colors.black.withValues(alpha: 0.7),
+          elevation: 0,
+          iconTheme: const IconThemeData(color: _ancientGold),
+          bottom: PreferredSize(
+            preferredSize: const Size.fromHeight(1.0),
+            child: Container(color: _ancientGold.withValues(alpha: 0.2), height: 1.0),
+          ),
         ),
         body: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.error_outline, size: 64, color: Colors.grey[400]),
+              Icon(Icons.error_outline, size: 64, color: Colors.redAccent.withValues(alpha: 0.8)),
               const SizedBox(height: 16),
-              Text(_error!, textAlign: TextAlign.center),
-              const SizedBox(height: 16),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 32.0),
+                child: Text(_error!, textAlign: TextAlign.center, style: const TextStyle(color: Colors.white70)),
+              ),
+              const SizedBox(height: 24),
               ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: _ancientGold,
+                  foregroundColor: Colors.black,
+                ),
                 onPressed: _loadTemplates,
-                child: const Text('Retry'),
+                child: const Text('Retry', style: TextStyle(fontWeight: FontWeight.bold)),
               ),
             ],
           ),
@@ -137,84 +164,126 @@ class _MessageTemplatesScreenState extends State<MessageTemplatesScreen> {
     }
 
     return Scaffold(
+      backgroundColor: _darkBg,
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: const Text('Message Templates', style: TextStyle(color: Colors.white)),
-        backgroundColor: Colors.teal,
-        iconTheme: const IconThemeData(color: Colors.white),
+        title: const Text('Message Templates', style: TextStyle(color: _ancientGold, fontWeight: FontWeight.bold)),
+        backgroundColor: Colors.black.withValues(alpha: 0.7),
+        elevation: 0,
+        iconTheme: const IconThemeData(color: _ancientGold),
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(1.0),
+          child: Container(color: _ancientGold.withValues(alpha: 0.2), height: 1.0),
+        ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.help_outline),
+            icon: const Icon(Icons.help_outline, color: _ancientGold),
             onPressed: _showTemplateVariablesHelp,
             tooltip: 'Template Variables Help',
           ),
           IconButton(
-            icon: const Icon(Icons.cleaning_services),
+            icon: const Icon(Icons.cleaning_services, color: _ancientGold),
             onPressed: _removeDuplicates,
             tooltip: 'Remove Duplicates',
           ),
           IconButton(
-            icon: const Icon(Icons.import_export),
+            icon: const Icon(Icons.import_export, color: _ancientGold),
             onPressed: _showImportExportDialog,
             tooltip: 'Import/Export',
           ),
           IconButton(
-            icon: const Icon(Icons.add),
+            icon: const Icon(Icons.add, color: _ancientGold),
             onPressed: () => _showTemplateDialog(),
           ),
         ],
       ),
-      body: RefreshIndicator(
-        onRefresh: _loadTemplates,
-        child: templates.isEmpty ? _buildEmptyState() : _buildTemplatesList(),
+      body: Container(
+        width: double.infinity,
+        height: double.infinity,
+        child: Stack(
+          children: [
+            // The Shared Cinematic Nebula Background
+            const Positioned.fill(child: AnimatedNebulaBackground()),
+            
+            RefreshIndicator(
+              color: Colors.black,
+              backgroundColor: _ancientGold,
+              onRefresh: _loadTemplates,
+              child: templates.isEmpty ? _buildEmptyState() : _buildTemplatesList(),
+            ),
+          ],
+        ),
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => _showTemplateDialog(),
-        backgroundColor: Colors.teal,
-        child: const Icon(Icons.add, color: Colors.white),
+        backgroundColor: _ancientGold,
+        child: const Icon(Icons.add, color: Colors.black),
       ),
     );
   }
 
   Widget _buildEmptyState() {
     return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            Icons.text_snippet_outlined,
-            size: 100,
-            color: Colors.grey[400],
-          ),
-          const SizedBox(height: 24),
-          Text(
-            'No Templates Yet',
-            style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-              color: Colors.grey[600],
+      child: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(32),
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.black.withValues(alpha: 0.4),
+                border: Border.all(color: _ancientGold.withValues(alpha: 0.3), width: 2),
+                boxShadow: [
+                  BoxShadow(
+                    color: _ancientGold.withValues(alpha: 0.1),
+                    blurRadius: 20,
+                    spreadRadius: 5,
+                  )
+                ],
+              ),
+              child: Icon(
+                Icons.text_snippet_outlined,
+                size: 80,
+                color: _ancientGold.withValues(alpha: 0.8),
+              ),
             ),
-          ),
-          const SizedBox(height: 12),
-          Text(
-            'Create your first message template\nto get started',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 16,
-              color: Colors.grey[500],
+            const SizedBox(height: 32),
+            const Text(
+              'No Templates Yet',
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                color: _ancientGold,
+              ),
             ),
-          ),
-          const SizedBox(height: 32),
-          ElevatedButton.icon(
-            onPressed: () => _showTemplateDialog(),
-            icon: const Icon(Icons.add),
-            label: const Text('Create Template'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.teal,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+            const SizedBox(height: 16),
+            Text(
+              'Create your first message template\nto get started',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 16,
+                color: Colors.grey[400],
+                height: 1.5,
+              ),
             ),
-          ),
-        ],
+            const SizedBox(height: 40),
+            ElevatedButton.icon(
+              onPressed: () => _showTemplateDialog(),
+              icon: const Icon(Icons.add, color: Colors.black),
+              label: const Text('Create Template', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: _ancientGold,
+                foregroundColor: Colors.black,
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                elevation: 8,
+                shadowColor: Colors.black.withValues(alpha: 0.5),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -223,32 +292,33 @@ class _MessageTemplatesScreenState extends State<MessageTemplatesScreen> {
     List<Map<String, dynamic>> filteredTemplates = _getFilteredAndSortedTemplates();
     
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
+      physics: const AlwaysScrollableScrollPhysics(),
+      padding: const EdgeInsets.fromLTRB(16, 100, 16, 80),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Feature 1: Search and Filter Bar
           _buildSearchAndFilterBar(),
-          const SizedBox(height: 16),
+          const SizedBox(height: 24),
           
           // Feature 6: Quick Access Sections
           if (favoriteTemplates.isNotEmpty) ...[
             _buildSectionHeader('⭐ Favorites', favoriteTemplates.length),
-            const SizedBox(height: 8),
+            const SizedBox(height: 12),
             _buildTemplateList(favoriteTemplates.take(2).toList()),
-            const SizedBox(height: 16),
+            const SizedBox(height: 24),
           ],
           
           if (recentTemplates.isNotEmpty) ...[
             _buildSectionHeader('🕒 Recent', recentTemplates.length),
-            const SizedBox(height: 8),
+            const SizedBox(height: 12),
             _buildTemplateList(recentTemplates.take(3).toList()),
-            const SizedBox(height: 16),
+            const SizedBox(height: 24),
           ],
           
           // All Templates
           _buildSectionHeader('📝 All Templates', filteredTemplates.length),
-          const SizedBox(height: 8),
+          const SizedBox(height: 12),
           
           if (filteredTemplates.isEmpty)
             Center(
@@ -256,7 +326,7 @@ class _MessageTemplatesScreenState extends State<MessageTemplatesScreen> {
                 padding: const EdgeInsets.all(32),
                 child: Text(
                   'No templates match your search',
-                  style: TextStyle(color: Colors.grey[600]),
+                  style: TextStyle(color: Colors.grey[500], fontSize: 16),
                 ),
               ),
             )
@@ -273,14 +343,25 @@ class _MessageTemplatesScreenState extends State<MessageTemplatesScreen> {
       children: [
         // Search Bar
         TextField(
+          style: const TextStyle(color: Colors.white),
           decoration: InputDecoration(
             hintText: 'Search templates...',
-            prefixIcon: const Icon(Icons.search),
+            hintStyle: TextStyle(color: Colors.grey[500]),
+            prefixIcon: const Icon(Icons.search, color: _ancientGold),
+            filled: true,
+            fillColor: Colors.black.withValues(alpha: 0.5),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: _ancientGold.withValues(alpha: 0.3)),
             ),
-            filled: true,
-            fillColor: Colors.grey[50],
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: _ancientGold.withValues(alpha: 0.3)),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: _ancientGold, width: 2),
+            ),
           ),
           onChanged: (value) {
             setState(() {
@@ -288,18 +369,33 @@ class _MessageTemplatesScreenState extends State<MessageTemplatesScreen> {
             });
           },
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 16),
         
         // Filter and Sort Row
         Row(
           children: [
             Expanded(
               child: DropdownButtonFormField<String>(
+                dropdownColor: Colors.black,
+                icon: const Icon(Icons.arrow_drop_down, color: _ancientGold),
+                style: const TextStyle(color: Colors.white),
                 initialValue: _selectedFilter,
                 decoration: InputDecoration(
                   labelText: 'Category',
+                  labelStyle: TextStyle(color: Colors.grey[500]),
+                  filled: true,
+                  fillColor: Colors.black.withValues(alpha: 0.5),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: _ancientGold.withValues(alpha: 0.3)),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: _ancientGold.withValues(alpha: 0.3)),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: _ancientGold),
                   ),
                   contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 ),
@@ -316,11 +412,26 @@ class _MessageTemplatesScreenState extends State<MessageTemplatesScreen> {
             const SizedBox(width: 12),
             Expanded(
               child: DropdownButtonFormField<String>(
+                dropdownColor: Colors.black,
+                icon: const Icon(Icons.arrow_drop_down, color: _ancientGold),
+                style: const TextStyle(color: Colors.white),
                 initialValue: _selectedSort,
                 decoration: InputDecoration(
                   labelText: 'Sort by',
+                  labelStyle: TextStyle(color: Colors.grey[500]),
+                  filled: true,
+                  fillColor: Colors.black.withValues(alpha: 0.5),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: _ancientGold.withValues(alpha: 0.3)),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: _ancientGold.withValues(alpha: 0.3)),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: _ancientGold),
                   ),
                   contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 ),
@@ -349,20 +460,22 @@ class _MessageTemplatesScreenState extends State<MessageTemplatesScreen> {
           style: const TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.bold,
+            color: Colors.white,
           ),
         ),
-        const SizedBox(width: 8),
+        const SizedBox(width: 12),
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
           decoration: BoxDecoration(
-            color: Colors.teal[100],
+            color: _ancientGold.withValues(alpha: 0.15),
+            border: Border.all(color: _ancientGold.withValues(alpha: 0.5)),
             borderRadius: BorderRadius.circular(12),
           ),
           child: Text(
             count.toString(),
-            style: TextStyle(
+            style: const TextStyle(
               fontSize: 12,
-              color: Colors.teal[700],
+              color: _ancientGold,
               fontWeight: FontWeight.bold,
             ),
           ),
@@ -385,11 +498,23 @@ class _MessageTemplatesScreenState extends State<MessageTemplatesScreen> {
   Widget _buildTemplateCard(Map<String, dynamic> template, int index) {
     bool isFavorite = template['is_favorite'] ?? false;
     
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: 0.6),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: _ancientGold.withValues(alpha: 0.3), width: 1.5),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.4),
+            blurRadius: 8,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
       child: InkWell(
         onTap: () => _useTemplate(template),
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(12),
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Column(
@@ -397,9 +522,18 @@ class _MessageTemplatesScreenState extends State<MessageTemplatesScreen> {
             children: [
               Row(
                 children: [
-                  Icon(
-                    _getTemplateIcon(template['category'] ?? 'General'),
-                    color: _getCategoryColor(template['category'] ?? 'General'),
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: _getCategoryColor(template['category'] ?? 'General').withValues(alpha: 0.15),
+                      shape: BoxShape.circle,
+                      border: Border.all(color: _getCategoryColor(template['category'] ?? 'General').withValues(alpha: 0.3)),
+                    ),
+                    child: Icon(
+                      _getTemplateIcon(template['category'] ?? 'General'),
+                      color: _getCategoryColor(template['category'] ?? 'General'),
+                      size: 20,
+                    ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
@@ -408,87 +542,99 @@ class _MessageTemplatesScreenState extends State<MessageTemplatesScreen> {
                       style: const TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 16,
+                        color: Colors.white,
                       ),
                     ),
                   ),
                   IconButton(
                     icon: Icon(
                       isFavorite ? Icons.favorite : Icons.favorite_border,
-                      color: isFavorite ? Colors.red : Colors.grey,
+                      color: isFavorite ? Colors.redAccent : Colors.white54,
                     ),
                     onPressed: () => _toggleFavorite(template),
                   ),
-                  PopupMenuButton(
-                    itemBuilder: (context) => [
-                      const PopupMenuItem(
-                        value: 'edit',
-                        child: Row(
-                          children: [
-                            Icon(Icons.edit),
-                            SizedBox(width: 8),
-                            Text('Edit'),
-                          ],
-                        ),
+                  Theme(
+                    data: Theme.of(context).copyWith(
+                      cardColor: Colors.black,
+                      iconTheme: const IconThemeData(color: _ancientGold),
+                    ),
+                    child: PopupMenuButton(
+                      shape: RoundedRectangleBorder(
+                        side: BorderSide(color: _ancientGold.withValues(alpha: 0.5)),
+                        borderRadius: BorderRadius.circular(8),
                       ),
-                      const PopupMenuItem(
-                        value: 'duplicate',
-                        child: Row(
-                          children: [
-                            Icon(Icons.copy),
-                            SizedBox(width: 8),
-                            Text('Duplicate'),
-                          ],
+                      itemBuilder: (context) => [
+                        const PopupMenuItem(
+                          value: 'edit',
+                          child: Row(
+                            children: [
+                              Icon(Icons.edit, color: Colors.white70, size: 20),
+                              SizedBox(width: 12),
+                              Text('Edit', style: TextStyle(color: Colors.white)),
+                            ],
+                          ),
                         ),
-                      ),
-                      const PopupMenuItem(
-                        value: 'delete',
-                        child: Row(
-                          children: [
-                            Icon(Icons.delete, color: Colors.red),
-                            SizedBox(width: 8),
-                            Text('Delete', style: TextStyle(color: Colors.red)),
-                          ],
+                        const PopupMenuItem(
+                          value: 'duplicate',
+                          child: Row(
+                            children: [
+                              Icon(Icons.copy, color: Colors.white70, size: 20),
+                              SizedBox(width: 12),
+                              Text('Duplicate', style: TextStyle(color: Colors.white)),
+                            ],
+                          ),
                         ),
-                      ),
-                    ],
-                    onSelected: (value) {
-                      switch (value) {
-                        case 'edit':
-                          _showTemplateDialog(template: template, index: index);
-                          break;
-                        case 'duplicate':
-                          _duplicateTemplate(template);
-                          break;
-                        case 'delete':
-                          _deleteTemplate(index);
-                          break;
-                      }
-                    },
+                        const PopupMenuItem(
+                          value: 'delete',
+                          child: Row(
+                            children: [
+                              Icon(Icons.delete, color: Colors.redAccent, size: 20),
+                              SizedBox(width: 12),
+                              Text('Delete', style: TextStyle(color: Colors.redAccent)),
+                            ],
+                          ),
+                        ),
+                      ],
+                      onSelected: (value) {
+                        switch (value) {
+                          case 'edit':
+                            _showTemplateDialog(template: template, index: index);
+                            break;
+                          case 'duplicate':
+                            _duplicateTemplate(template);
+                            break;
+                          case 'delete':
+                            _deleteTemplate(index);
+                            break;
+                        }
+                      },
+                    ),
                   ),
                 ],
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 12),
               Text(
                 template['message'] ?? 'No content',
                 maxLines: 3,
                 overflow: TextOverflow.ellipsis,
-                style: TextStyle(color: Colors.grey[600]),
+                style: TextStyle(color: Colors.grey[400], height: 1.4),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 16),
               Row(
                 children: [
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(
-                      color: _getCategoryColor(template['category'] ?? 'General').withValues(alpha: 0.1),
+                      color: _getCategoryColor(template['category'] ?? 'General').withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: _getCategoryColor(template['category'] ?? 'General').withValues(alpha: 0.3)),
                     ),
                     child: Text(
                       template['category'] ?? 'General',
                       style: TextStyle(
-                        fontSize: 12,
+                        fontSize: 11,
                         color: _getCategoryColor(template['category'] ?? 'General'),
-                        fontWeight: FontWeight.w500,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
                   ),
@@ -498,6 +644,7 @@ class _MessageTemplatesScreenState extends State<MessageTemplatesScreen> {
                     style: TextStyle(
                       fontSize: 12,
                       color: Colors.grey[500],
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
                 ],
@@ -564,8 +711,8 @@ class _MessageTemplatesScreenState extends State<MessageTemplatesScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Template "${template['name']}" duplicated'),
-            backgroundColor: Colors.green,
+            content: Text('Template "${template['name']}" duplicated', style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+            backgroundColor: Colors.greenAccent,
           ),
         );
       }
@@ -573,8 +720,8 @@ class _MessageTemplatesScreenState extends State<MessageTemplatesScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Failed to duplicate template'),
-            backgroundColor: Colors.red,
+            content: Text('Failed to duplicate template', style: TextStyle(color: Colors.white)),
+            backgroundColor: Colors.redAccent,
           ),
         );
       }
@@ -599,8 +746,8 @@ class _MessageTemplatesScreenState extends State<MessageTemplatesScreen> {
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Template "${template['name']}" copied to clipboard'),
-          backgroundColor: Colors.green,
+          content: Text('Template "${template['name']}" copied to clipboard', style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+          backgroundColor: _ancientGold,
         ),
       );
     }
@@ -647,36 +794,51 @@ class _MessageTemplatesScreenState extends State<MessageTemplatesScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('📝 Template Variables'),
+        backgroundColor: Colors.black,
+        shape: RoundedRectangleBorder(
+          side: const BorderSide(color: _ancientGold, width: 1.5),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        title: const Row(
+          children: [
+            Icon(Icons.edit_note, color: _ancientGold),
+            SizedBox(width: 10),
+            Text('Template Variables', style: TextStyle(color: _ancientGold, fontWeight: FontWeight.bold)),
+          ],
+        ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Use these variables in your templates:', style: TextStyle(fontWeight: FontWeight.bold)),
-            const SizedBox(height: 12),
+            const Text('Use these variables in your templates:', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
+            const SizedBox(height: 16),
             _buildVariableRow('{{name}}', 'Your name', userName),
             _buildVariableRow('{{company}}', 'Company name', 'Meta Fly'),
             _buildVariableRow('{{date}}', 'Current date', '${DateTime.now().day}/${DateTime.now().month}/${DateTime.now().year}'),
             _buildVariableRow('{{time}}', 'Current time', TimeOfDay.now().format(context)),
             _buildVariableRow('{{phone}}', 'Your phone', user?.phone ?? '+1234567890'),
             _buildVariableRow('{{email}}', 'Your email', userEmail),
-            const SizedBox(height: 8),
-            const Divider(),
-            const SizedBox(height: 8),
-            const Text('WhatsApp Business API Variables:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
-            const SizedBox(height: 8),
+            const SizedBox(height: 12),
+            Divider(color: _ancientGold.withValues(alpha: 0.3)),
+            const SizedBox(height: 12),
+            const Text('WhatsApp Business API Variables:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.white)),
+            const SizedBox(height: 12),
             _buildVariableRow('{{1}}', 'First parameter', userName),
             _buildVariableRow('{{2}}', 'Second parameter', 'Meta Fly'),
             _buildVariableRow('{{3}}', 'Third parameter', 'Current date'),
-            const SizedBox(height: 12),
-            const Text('Example:', style: TextStyle(fontWeight: FontWeight.bold)),
-            Text('"Hello {{name}}, welcome to {{company}}! Today is {{date}}."'),
+            const SizedBox(height: 16),
+            const Text('Example:', style: TextStyle(fontWeight: FontWeight.bold, color: _ancientGold)),
+            const SizedBox(height: 8),
+            Text(
+              '"Hello {{name}}, welcome to {{company}}! Today is {{date}}."',
+              style: TextStyle(color: Colors.grey[400], fontStyle: FontStyle.italic),
+            ),
           ],
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Got it!'),
+            child: const Text('Got it!', style: TextStyle(color: _ancientGold, fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -685,26 +847,34 @@ class _MessageTemplatesScreenState extends State<MessageTemplatesScreen> {
 
   Widget _buildVariableRow(String variable, String description, String example) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 4),
+      padding: const EdgeInsets.only(bottom: 8),
       child: Row(
         children: [
           SizedBox(
             width: 80,
-            child: Text(
-              variable,
-              style: const TextStyle(
-                fontFamily: 'monospace',
-                fontSize: 12,
-                fontWeight: FontWeight.bold,
-                color: Colors.blue,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+              decoration: BoxDecoration(
+                color: _ancientGold.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: Text(
+                variable,
+                style: const TextStyle(
+                  fontFamily: 'monospace',
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  color: _ancientGold,
+                ),
+                textAlign: TextAlign.center,
               ),
             ),
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: 12),
           Expanded(
             child: Text(
               '$description → $example',
-              style: const TextStyle(fontSize: 12),
+              style: TextStyle(fontSize: 12, color: Colors.grey[300]),
               overflow: TextOverflow.ellipsis,
             ),
           ),
@@ -717,29 +887,41 @@ class _MessageTemplatesScreenState extends State<MessageTemplatesScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('📁 Import/Export Templates'),
+        backgroundColor: Colors.black,
+        shape: RoundedRectangleBorder(
+          side: const BorderSide(color: _ancientGold, width: 1.5),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        title: const Text('📁 Import/Export Templates', style: TextStyle(color: _ancientGold, fontWeight: FontWeight.bold)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             ListTile(
-              leading: const Icon(Icons.file_upload, color: Colors.blue),
-              title: const Text('Import Templates'),
-              subtitle: const Text('Import from JSON file'),
+              leading: const Icon(Icons.file_upload, color: Colors.blueAccent),
+              title: const Text('Import Templates', style: TextStyle(color: Colors.white)),
+              subtitle: Text('Import from JSON file', style: TextStyle(color: Colors.grey[500], fontSize: 12)),
               onTap: () {
                 Navigator.pop(context);
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('📥 Import feature coming soon!')),
+                  const SnackBar(
+                    content: Text('📥 Import feature coming soon!', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+                    backgroundColor: _ancientGold,
+                  ),
                 );
               },
             ),
+            Divider(color: _ancientGold.withValues(alpha: 0.2)),
             ListTile(
-              leading: const Icon(Icons.file_download, color: Colors.green),
-              title: const Text('Export Templates'),
-              subtitle: const Text('Export to JSON file'),
+              leading: const Icon(Icons.file_download, color: Colors.greenAccent),
+              title: const Text('Export Templates', style: TextStyle(color: Colors.white)),
+              subtitle: Text('Export to JSON file', style: TextStyle(color: Colors.grey[500], fontSize: 12)),
               onTap: () {
                 Navigator.pop(context);
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('📤 Export feature coming soon!')),
+                  const SnackBar(
+                    content: Text('📤 Export feature coming soon!', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+                    backgroundColor: _ancientGold,
+                  ),
                 );
               },
             ),
@@ -748,7 +930,7 @@ class _MessageTemplatesScreenState extends State<MessageTemplatesScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
+            child: const Text('Cancel', style: TextStyle(color: Colors.white54)),
           ),
         ],
       ),
@@ -783,17 +965,28 @@ class _MessageTemplatesScreenState extends State<MessageTemplatesScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Delete Template'),
-        content: Text('Are you sure you want to delete "${template['name']}"?'),
+        backgroundColor: Colors.black,
+        shape: RoundedRectangleBorder(
+          side: const BorderSide(color: _ancientGold, width: 1.5),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        title: const Text('Delete Template', style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
+        content: Text(
+          'Are you sure you want to delete "${template['name']}"?',
+          style: const TextStyle(color: Colors.white70),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
+            child: const Text('Cancel', style: TextStyle(color: Colors.white54)),
           ),
-          TextButton(
+          ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('Delete'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.redAccent,
+              foregroundColor: Colors.black,
+            ),
+            child: const Text('Delete', style: TextStyle(fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -808,8 +1001,8 @@ class _MessageTemplatesScreenState extends State<MessageTemplatesScreen> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Template "${template['name']}" deleted'),
-              backgroundColor: Colors.green,
+              content: Text('Template "${template['name']}" deleted', style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+              backgroundColor: _ancientGold,
             ),
           );
         }
@@ -817,8 +1010,8 @@ class _MessageTemplatesScreenState extends State<MessageTemplatesScreen> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('Failed to delete template'),
-              backgroundColor: Colors.red,
+              content: Text('Failed to delete template', style: TextStyle(color: Colors.white)),
+              backgroundColor: Colors.redAccent,
             ),
           );
         }
@@ -843,16 +1036,16 @@ class _MessageTemplatesScreenState extends State<MessageTemplatesScreen> {
 
   Color _getCategoryColor(String category) {
     switch (category) {
-      case 'Marketing': return Colors.red;
-      case 'Utility': return Colors.blue;
-      case 'Authentication': return Colors.green;
-      case 'General': return Colors.grey;
-      case 'Greeting': return Colors.amber;
-      case 'Business': return Colors.purple;
-      case 'Support': return Colors.orange;
-      case 'Promotion': return Colors.pink;
-      case 'Reminder': return Colors.teal;
-      default: return Colors.grey;
+      case 'Marketing': return Colors.redAccent;
+      case 'Utility': return Colors.blueAccent;
+      case 'Authentication': return Colors.greenAccent;
+      case 'General': return Colors.grey[400]!;
+      case 'Greeting': return Colors.amberAccent;
+      case 'Business': return Colors.purpleAccent;
+      case 'Support': return Colors.orangeAccent;
+      case 'Promotion': return Colors.pinkAccent;
+      case 'Reminder': return Colors.tealAccent;
+      default: return Colors.grey[400]!;
     }
   }
 }

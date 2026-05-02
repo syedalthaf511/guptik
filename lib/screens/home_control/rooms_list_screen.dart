@@ -1,11 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:guptik/widgets/home/animated_nebula_background.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
 import 'package:provider/provider.dart';
+
 import '../../models/home_control/room_model.dart';
 import '../../screens/home_control/board_list_screen.dart';
 import '../../widgets/home_control/dynamic_background_widget.dart';
 import '../../providers/home_control/dynamic_theme_provider.dart';
+
+// Ancient Gold Theme Constants
+const Color _ancientGold = Color(0xFFD4AF37);
+const Color _darkBg = Color(0xFF0A0A0A);
 
 class RoomListScreen extends StatefulWidget {
   final String homeId;
@@ -101,7 +107,10 @@ class _RoomListScreenState extends State<RoomListScreen> {
           _rooms.add(newRoom);
         });
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Room "$name" added successfully')),
+          SnackBar(
+            content: Text('Room "$name" added successfully', style: const TextStyle(color: Colors.black)),
+            backgroundColor: _ancientGold,
+          ),
         );
       }
     } catch (e) {
@@ -139,9 +148,12 @@ class _RoomListScreenState extends State<RoomListScreen> {
             );
           }
         });
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Room updated to "$newName"')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Room updated to "$newName"', style: const TextStyle(color: Colors.black)),
+            backgroundColor: _ancientGold,
+          ),
+        );
       }
     } catch (e) {
       if (mounted) {
@@ -165,9 +177,12 @@ class _RoomListScreenState extends State<RoomListScreen> {
         setState(() {
           _rooms.removeWhere((r) => r.id == room.id);
         });
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Room "${room.name}" deleted')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Room "${room.name}" deleted', style: const TextStyle(color: Colors.black)),
+            backgroundColor: _ancientGold,
+          ),
+        );
       }
     } catch (e) {
       if (mounted) {
@@ -182,11 +197,7 @@ class _RoomListScreenState extends State<RoomListScreen> {
     String selectedIcon = 'meeting_room';
 
     final List<Map<String, dynamic>> roomIcons = [
-      {
-        'icon': Icons.meeting_room,
-        'name': 'meeting_room',
-        'label': 'Living Room',
-      },
+      {'icon': Icons.meeting_room, 'name': 'meeting_room', 'label': 'Living Room'},
       {'icon': Icons.bed, 'name': 'bed', 'label': 'Bedroom'},
       {'icon': Icons.kitchen, 'name': 'kitchen', 'label': 'Kitchen'},
       {'icon': Icons.bathtub, 'name': 'bathtub', 'label': 'Bathroom'},
@@ -202,32 +213,46 @@ class _RoomListScreenState extends State<RoomListScreen> {
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
-          title: const Text('Add New Room'),
+          backgroundColor: Colors.black,
+          shape: RoundedRectangleBorder(
+            side: const BorderSide(color: _ancientGold, width: 1),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          title: const Text('Add New Room', style: TextStyle(color: _ancientGold, fontWeight: FontWeight.bold)),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 TextField(
                   controller: nameController,
-                  decoration: const InputDecoration(
+                  style: const TextStyle(color: _ancientGold),
+                  decoration: InputDecoration(
                     labelText: 'Room Name',
+                    labelStyle: TextStyle(color: Colors.grey[500]),
                     hintText: 'Enter room name',
-                    border: OutlineInputBorder(),
+                    hintStyle: TextStyle(color: Colors.grey[700]),
+                    enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: _ancientGold.withValues(alpha: 0.3))),
+                    focusedBorder: const OutlineInputBorder(borderSide: BorderSide(color: _ancientGold)),
                   ),
                   autofocus: true,
                 ),
                 const SizedBox(height: 16),
                 TextField(
                   controller: descriptionController,
-                  decoration: const InputDecoration(
+                  style: const TextStyle(color: _ancientGold),
+                  decoration: InputDecoration(
                     labelText: 'Description (Optional)',
+                    labelStyle: TextStyle(color: Colors.grey[500]),
                     hintText: 'Enter room description',
-                    border: OutlineInputBorder(),
+                    hintStyle: TextStyle(color: Colors.grey[700]),
+                    enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: _ancientGold.withValues(alpha: 0.3))),
+                    focusedBorder: const OutlineInputBorder(borderSide: BorderSide(color: _ancientGold)),
                   ),
                 ),
-                const SizedBox(height: 16),
-                const Text('Select Icon:'),
-                const SizedBox(height: 8),
+                const SizedBox(height: 20),
+                const Text('Select Icon:', style: TextStyle(color: _ancientGold, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 12),
                 Wrap(
                   spacing: 8,
                   runSpacing: 8,
@@ -240,9 +265,11 @@ class _RoomListScreenState extends State<RoomListScreen> {
                         });
                       },
                       child: Container(
-                        padding: const EdgeInsets.all(8),
+                        width: 70,
+                        padding: const EdgeInsets.symmetric(vertical: 8),
                         decoration: BoxDecoration(
-                          color: isSelected ? Colors.blue : Colors.grey[200],
+                          color: isSelected ? _ancientGold.withValues(alpha: 0.2) : Colors.black,
+                          border: Border.all(color: isSelected ? _ancientGold : Colors.white24),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Column(
@@ -250,17 +277,17 @@ class _RoomListScreenState extends State<RoomListScreen> {
                           children: [
                             Icon(
                               iconData['icon'],
-                              color: isSelected ? Colors.white : Colors.black54,
+                              color: isSelected ? _ancientGold : Colors.white54,
                               size: 24,
                             ),
                             const SizedBox(height: 4),
                             Text(
                               iconData['label'],
+                              textAlign: TextAlign.center,
                               style: TextStyle(
-                                fontSize: 10,
-                                color: isSelected
-                                    ? Colors.white
-                                    : Colors.black54,
+                                fontSize: 9,
+                                color: isSelected ? _ancientGold : Colors.white54,
+                                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                               ),
                             ),
                           ],
@@ -275,9 +302,13 @@ class _RoomListScreenState extends State<RoomListScreen> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel'),
+              child: const Text('Cancel', style: TextStyle(color: Colors.white54)),
             ),
             ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: _ancientGold,
+                foregroundColor: Colors.black,
+              ),
               onPressed: () {
                 final name = nameController.text.trim();
                 final description = descriptionController.text.trim();
@@ -290,7 +321,7 @@ class _RoomListScreenState extends State<RoomListScreen> {
                   );
                 }
               },
-              child: const Text('Add'),
+              child: const Text('Add', style: TextStyle(fontWeight: FontWeight.bold)),
             ),
           ],
         ),
@@ -301,7 +332,13 @@ class _RoomListScreenState extends State<RoomListScreen> {
   void _showRoomOptionsDialog(Room room) {
     showModalBottomSheet(
       context: context,
-      builder: (context) => Padding(
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        decoration: BoxDecoration(
+          color: Colors.black,
+          border: Border.all(color: _ancientGold.withValues(alpha: 0.3)),
+          borderRadius: const BorderRadius.only(topLeft: Radius.circular(20), topRight: Radius.circular(20)),
+        ),
         padding: const EdgeInsets.all(16),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -310,24 +347,24 @@ class _RoomListScreenState extends State<RoomListScreen> {
               width: 40,
               height: 4,
               decoration: BoxDecoration(
-                color: Colors.grey[300],
+                color: _ancientGold.withValues(alpha: 0.5),
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
             const SizedBox(height: 16),
-            Text(room.name, style: Theme.of(context).textTheme.titleLarge),
+            Text(room.name, style: const TextStyle(color: _ancientGold, fontSize: 20, fontWeight: FontWeight.bold)),
             const SizedBox(height: 16),
             ListTile(
-              leading: const Icon(Icons.edit),
-              title: const Text('Edit'),
+              leading: const Icon(Icons.edit, color: _ancientGold),
+              title: const Text('Edit Room', style: TextStyle(color: Colors.white)),
               onTap: () {
                 Navigator.pop(context);
                 _showEditRoomDialog(room);
               },
             ),
             ListTile(
-              leading: const Icon(Icons.delete, color: Colors.red),
-              title: const Text('Delete', style: TextStyle(color: Colors.red)),
+              leading: const Icon(Icons.delete, color: Colors.redAccent),
+              title: const Text('Delete Room', style: TextStyle(color: Colors.redAccent)),
               onTap: () {
                 Navigator.pop(context);
                 _showDeleteConfirmDialog(room);
@@ -342,17 +379,11 @@ class _RoomListScreenState extends State<RoomListScreen> {
 
   void _showEditRoomDialog(Room room) {
     final nameController = TextEditingController(text: room.name);
-    final descriptionController = TextEditingController(
-      text: room.description ?? '',
-    );
+    final descriptionController = TextEditingController(text: room.description ?? '');
     String selectedIcon = room.icon ?? 'meeting_room';
 
     final List<Map<String, dynamic>> roomIcons = [
-      {
-        'icon': Icons.meeting_room,
-        'name': 'meeting_room',
-        'label': 'Living Room',
-      },
+      {'icon': Icons.meeting_room, 'name': 'meeting_room', 'label': 'Living Room'},
       {'icon': Icons.bed, 'name': 'bed', 'label': 'Bedroom'},
       {'icon': Icons.kitchen, 'name': 'kitchen', 'label': 'Kitchen'},
       {'icon': Icons.bathtub, 'name': 'bathtub', 'label': 'Bathroom'},
@@ -368,30 +399,42 @@ class _RoomListScreenState extends State<RoomListScreen> {
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
-          title: const Text('Edit Room'),
+          backgroundColor: Colors.black,
+          shape: RoundedRectangleBorder(
+            side: const BorderSide(color: _ancientGold, width: 1),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          title: const Text('Edit Room', style: TextStyle(color: _ancientGold, fontWeight: FontWeight.bold)),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 TextField(
                   controller: nameController,
-                  decoration: const InputDecoration(
+                  style: const TextStyle(color: _ancientGold),
+                  decoration: InputDecoration(
                     labelText: 'Room Name',
-                    border: OutlineInputBorder(),
+                    labelStyle: TextStyle(color: Colors.grey[500]),
+                    enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: _ancientGold.withValues(alpha: 0.3))),
+                    focusedBorder: const OutlineInputBorder(borderSide: BorderSide(color: _ancientGold)),
                   ),
                   autofocus: true,
                 ),
                 const SizedBox(height: 16),
                 TextField(
                   controller: descriptionController,
-                  decoration: const InputDecoration(
+                  style: const TextStyle(color: _ancientGold),
+                  decoration: InputDecoration(
                     labelText: 'Description (Optional)',
-                    border: OutlineInputBorder(),
+                    labelStyle: TextStyle(color: Colors.grey[500]),
+                    enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: _ancientGold.withValues(alpha: 0.3))),
+                    focusedBorder: const OutlineInputBorder(borderSide: BorderSide(color: _ancientGold)),
                   ),
                 ),
-                const SizedBox(height: 16),
-                const Text('Select Icon:'),
-                const SizedBox(height: 8),
+                const SizedBox(height: 20),
+                const Text('Select Icon:', style: TextStyle(color: _ancientGold, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 12),
                 Wrap(
                   spacing: 8,
                   runSpacing: 8,
@@ -404,9 +447,11 @@ class _RoomListScreenState extends State<RoomListScreen> {
                         });
                       },
                       child: Container(
-                        padding: const EdgeInsets.all(8),
+                        width: 70,
+                        padding: const EdgeInsets.symmetric(vertical: 8),
                         decoration: BoxDecoration(
-                          color: isSelected ? Colors.blue : Colors.grey[200],
+                          color: isSelected ? _ancientGold.withValues(alpha: 0.2) : Colors.black,
+                          border: Border.all(color: isSelected ? _ancientGold : Colors.white24),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Column(
@@ -414,17 +459,17 @@ class _RoomListScreenState extends State<RoomListScreen> {
                           children: [
                             Icon(
                               iconData['icon'],
-                              color: isSelected ? Colors.white : Colors.black54,
+                              color: isSelected ? _ancientGold : Colors.white54,
                               size: 24,
                             ),
                             const SizedBox(height: 4),
                             Text(
                               iconData['label'],
+                              textAlign: TextAlign.center,
                               style: TextStyle(
-                                fontSize: 10,
-                                color: isSelected
-                                    ? Colors.white
-                                    : Colors.black54,
+                                fontSize: 9,
+                                color: isSelected ? _ancientGold : Colors.white54,
+                                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                               ),
                             ),
                           ],
@@ -439,9 +484,13 @@ class _RoomListScreenState extends State<RoomListScreen> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel'),
+              child: const Text('Cancel', style: TextStyle(color: Colors.white54)),
             ),
             ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: _ancientGold,
+                foregroundColor: Colors.black,
+              ),
               onPressed: () {
                 final name = nameController.text.trim();
                 final description = descriptionController.text.trim();
@@ -455,7 +504,7 @@ class _RoomListScreenState extends State<RoomListScreen> {
                   );
                 }
               },
-              child: const Text('Save'),
+              child: const Text('Save', style: TextStyle(fontWeight: FontWeight.bold)),
             ),
           ],
         ),
@@ -467,16 +516,22 @@ class _RoomListScreenState extends State<RoomListScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Delete Room'),
+        backgroundColor: Colors.black,
+        shape: RoundedRectangleBorder(
+          side: const BorderSide(color: _ancientGold, width: 1),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        title: const Text('Delete Room', style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
         content: Text(
           'Are you sure you want to delete "${room.name}"?\n\n'
           'This will move all boards in this room to unassigned. '
           'This action cannot be undone.',
+          style: const TextStyle(color: Colors.white70),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
+            child: const Text('Cancel', style: TextStyle(color: Colors.white54)),
           ),
           ElevatedButton(
             onPressed: () {
@@ -484,10 +539,10 @@ class _RoomListScreenState extends State<RoomListScreen> {
               _deleteRoom(room);
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-              foregroundColor: Colors.white,
+              backgroundColor: Colors.redAccent,
+              foregroundColor: Colors.black,
             ),
-            child: const Text('Delete'),
+            child: const Text('Delete', style: TextStyle(fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -496,24 +551,15 @@ class _RoomListScreenState extends State<RoomListScreen> {
 
   IconData _getIconFromName(String? iconName) {
     switch (iconName) {
-      case 'meeting_room':
-        return Icons.meeting_room;
-      case 'bed':
-        return Icons.bed;
-      case 'kitchen':
-        return Icons.kitchen;
-      case 'bathtub':
-        return Icons.bathtub;
-      case 'dining_room':
-        return Icons.restaurant;
-      case 'work':
-        return Icons.work;
-      case 'garage':
-        return Icons.garage;
-      case 'stairs':
-        return Icons.stairs;
-      case 'balcony':
-        return Icons.balcony;
+      case 'meeting_room': return Icons.meeting_room;
+      case 'bed': return Icons.bed;
+      case 'kitchen': return Icons.kitchen;
+      case 'bathtub': return Icons.bathtub;
+      case 'dining_room': return Icons.restaurant;
+      case 'work': return Icons.work;
+      case 'garage': return Icons.garage;
+      case 'stairs': return Icons.stairs;
+      case 'balcony': return Icons.balcony;
       case 'room':
       default:
         return Icons.room;
@@ -523,7 +569,10 @@ class _RoomListScreenState extends State<RoomListScreen> {
   void _showError(String message) {
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(message), backgroundColor: Colors.red),
+        SnackBar(
+          content: Text(message, style: const TextStyle(color: Colors.black)),
+          backgroundColor: Colors.redAccent,
+        ),
       );
     }
   }
@@ -532,300 +581,229 @@ class _RoomListScreenState extends State<RoomListScreen> {
   Widget build(BuildContext context) {
     return Consumer<DynamicThemeProvider>(
       builder: (context, themeProvider, child) {
-        final isBasicTheme = themeProvider.backgroundType == 'basic';
-        final isDark = themeProvider.isDarkMode;
-
         return Scaffold(
-          backgroundColor: const Color.fromRGBO(6, 23, 43, 1),
+          backgroundColor: _darkBg,
+          extendBodyBehindAppBar: true,
           appBar: AppBar(
             title: Text(
               widget.homeName,
               style: const TextStyle(
-                color: Colors.white,
+                color: _ancientGold,
                 fontWeight: FontWeight.bold,
               ),
             ),
-            backgroundColor: const Color.fromRGBO(6, 23, 43, 1),
+            backgroundColor: Colors.black.withValues(alpha: 0.7),
             elevation: 0,
-            iconTheme: IconThemeData(color: isBasicTheme ? null : Colors.white),
+            iconTheme: const IconThemeData(color: _ancientGold),
+            bottom: PreferredSize(
+              preferredSize: const Size.fromHeight(1.0),
+              child: Container(color: _ancientGold.withValues(alpha: 0.2), height: 1.0),
+            ),
             actions: [
               IconButton(
                 icon: const Icon(
                   Icons.developer_board_off,
-                  color: Colors.white,
+                  color: _ancientGold,
                 ),
                 tooltip: 'View Unassigned Boards',
                 onPressed: () {
-                  // UNASSIGNED BOARDS NAVIGATION: Uses null for roomId
                   Navigator.push(
                     context,
                     PageRouteBuilder(
                       pageBuilder: (context, animation, secondaryAnimation) {
                         return ChangeNotifierProvider.value(
                           value: themeProvider,
-                          child: DynamicBackgroundWidget(
-                            child: BoardListScreen(
-                              homeName: '${widget.homeName} (Unassigned)',
-                              homeId: widget.homeId,
-                              roomId: null, // <-- Explicitly null here
-                            ),
+                          child: BoardListScreen(
+                            homeName: '${widget.homeName} (Unassigned)',
+                            homeId: widget.homeId,
+                            roomId: null, 
                           ),
                         );
                       },
-                      transitionsBuilder:
-                          (context, animation, secondaryAnimation, child) {
-                            return FadeTransition(
-                              opacity: animation,
-                              child: child,
-                            );
-                          },
+                      transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                        return FadeTransition(opacity: animation, child: child);
+                      },
                     ),
                   );
                 },
               ),
             ],
           ),
-          body: _isLoading
-              ? Center(
-                  child: CircularProgressIndicator(
-                    valueColor: AlwaysStoppedAnimation<Color>(
-                      isBasicTheme
-                          ? Theme.of(context).primaryColor
-                          : Colors.white,
-                    ),
-                  ),
-                )
-              : _rooms.isEmpty
-              ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.meeting_room_outlined,
-                        size: 64,
-                        color: isBasicTheme
-                            ? (isDark ? Colors.white70 : Colors.black54)
-                            : Colors.white.withValues(alpha: 0.7),
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        'No rooms added yet',
-                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          color: isBasicTheme
-                              ? (isDark ? Colors.white : Colors.black87)
-                              : Colors.white,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Tap + to add your first room',
-                        style: TextStyle(
-                          color: isBasicTheme
-                              ? (isDark ? Colors.white70 : Colors.black54)
-                              : Colors.white.withValues(alpha: 0.8),
-                        ),
-                      ),
-                    ],
-                  ),
-                )
-              : GridView.builder(
-                  padding: const EdgeInsets.all(16),
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2,
-                    mainAxisSpacing: 16,
-                    crossAxisSpacing: 16,
-                    childAspectRatio: 1.0,
-                  ),
-                  itemCount: _rooms.length,
-                  itemBuilder: (context, index) {
-                    final room = _rooms[index]; // <-- Room is defined here!
-                    return Hero(
-                      tag: 'room-${room.id}',
-                      child: Card(
-                        elevation: 8,
-                        shadowColor: const Color.fromARGB(255, 14, 15, 12).withValues(alpha: 0.3),
-                        clipBehavior: Clip.hardEdge,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        child: Container(
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              colors: isDark
-                                  ? [
-                                      Colors.blue[300]!.withValues(alpha: 0.9),
-                                      Colors.purple[300]!.withValues(alpha: 0.9),
-                                    ]
-                                  : [
-                                      Colors.white.withValues(alpha: 0.9),
-                                      Colors.grey[100]!.withValues(alpha: 0.9),
-                                    ],
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                            ),
+          body: Stack(
+            children: [
+              // Cinematic Nebula Background
+              const Positioned.fill(child: AnimatedNebulaBackground()),
+
+              // Main Content
+              _isLoading
+                  ? const Center(child: CircularProgressIndicator(color: _ancientGold))
+                  : _rooms.isEmpty
+                  ? Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.meeting_room_outlined,
+                            size: 64,
+                            color: _ancientGold.withValues(alpha: 0.8),
                           ),
-                          child: InkWell(
-                            borderRadius: BorderRadius.circular(16),
-                            onTap: () {
-                              // SPECIFIC ROOM NAVIGATION: Uses room.name and room.id
-                              Navigator.push(
-                                context,
-                                PageRouteBuilder(
-                                  pageBuilder:
-                                      (context, animation, secondaryAnimation) {
+                          const SizedBox(height: 16),
+                          const Text(
+                            'No rooms added yet',
+                            style: TextStyle(color: _ancientGold, fontSize: 20, fontWeight: FontWeight.bold),
+                          ),
+                          const SizedBox(height: 8),
+                          const Text(
+                            'Tap + to add your first room',
+                            style: TextStyle(color: Colors.white54),
+                          ),
+                        ],
+                      ),
+                    )
+                  : GridView.builder(
+                      padding: const EdgeInsets.fromLTRB(16, 100, 16, 16),
+                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 2,
+                        mainAxisSpacing: 16,
+                        crossAxisSpacing: 16,
+                        childAspectRatio: 1.0,
+                      ),
+                      itemCount: _rooms.length,
+                      itemBuilder: (context, index) {
+                        final room = _rooms[index];
+                        return Hero(
+                          tag: 'room-${room.id}',
+                          child: Card(
+                            color: Colors.transparent,
+                            elevation: 8,
+                            shadowColor: _ancientGold.withValues(alpha: 0.2),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: Colors.black.withValues(alpha: 0.6),
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(color: _ancientGold.withValues(alpha: 0.4), width: 1.5),
+                              ),
+                              child: InkWell(
+                                borderRadius: BorderRadius.circular(16),
+                                onTap: () {
+                                  Navigator.push(
+                                    context,
+                                    PageRouteBuilder(
+                                      pageBuilder: (context, animation, secondaryAnimation) {
                                         return ChangeNotifierProvider.value(
                                           value: themeProvider,
-                                          child: DynamicBackgroundWidget(
-                                            child: BoardListScreen(
-                                              homeName: room.name, // <-- Uses room name
-                                              homeId: widget.homeId,
-                                              roomId: room.id, // <-- Uses room ID
-                                            ),
+                                          child: BoardListScreen(
+                                            homeName: room.name, 
+                                            homeId: widget.homeId,
+                                            roomId: room.id, 
                                           ),
                                         );
                                       },
-                                  transitionsBuilder:
-                                      (
-                                        context,
-                                        animation,
-                                        secondaryAnimation,
-                                        child,
-                                      ) {
-                                        return FadeTransition(
-                                          opacity: animation,
-                                          child: child,
-                                        );
+                                      transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                                        return FadeTransition(opacity: animation, child: child);
                                       },
-                                ),
-                              );
-                            },
-                            child: Padding(
-                              padding: const EdgeInsets.all(16),
-                              child: Column(
-                                children: [
-                                  // Top row with menu button
-                                  Row(
-                                    mainAxisAlignment: MainAxisAlignment.end,
-                                    children: [
-                                      Container(
-                                        decoration: BoxDecoration(
-                                          color: isDark
-                                              ? Colors.grey[800]!.withValues(
-                                                  alpha: 0.5,
-                                                )
-                                              : Colors.grey[200]!.withValues(
-                                                  alpha: 0.5,
-                                                ),
-
-                                          borderRadius: BorderRadius.circular(
-                                            20,
-                                          ),
-                                        ),
-                                        child: IconButton(
-                                          icon: Icon(
-                                            Icons.more_vert,
-                                            color: isDark
-                                                ? Colors.white
-                                                : Colors.black87,
-                                          ),
-                                          onPressed: () =>
-                                              _showRoomOptionsDialog(room),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-
-                                  // Center icon
-                                  Expanded(
-                                    child: Center(
-                                      child: Container(
-                                        width: 60,
-                                        height: 60,
-                                        decoration: BoxDecoration(
-                                          gradient: LinearGradient(
-                                            colors: isDark
-                                                ? [
-                                                    Colors.blue[800]!,
-                                                    Colors.purple[800]!,
-                                                  ]
-                                                : [
-                                                    Colors.blue[600]!,
-                                                    Colors.purple[600]!,
-                                                  ],
-                                            begin: Alignment.topLeft,
-                                            end: Alignment.bottomRight,
-                                          ),
-                                          borderRadius: BorderRadius.circular(
-                                            20,
-                                          ),
-                                          boxShadow: [
-                                            BoxShadow(
-                                              color: Colors.black.withValues(
-                                                alpha: 0.3,
-                                              ),
-                                              blurRadius: 8,
-                                              offset: const Offset(0, 4),
-                                            ),
-                                          ],
-                                        ),
-                                        child: Icon(
-                                          _getIconFromName(room.icon),
-                                          size: 32,
-                                          color: Colors.white,
-                                        ),
-                                      ),
                                     ),
-                                  ),
-
-                                  // Room name and board count
-                                  Column(
+                                  );
+                                },
+                                child: Padding(
+                                  padding: const EdgeInsets.all(12),
+                                  child: Column(
                                     children: [
-                                      Text(
-                                        room.name,
-                                        style: Theme.of(context)
-                                            .textTheme
-                                            .titleMedium
-                                            ?.copyWith(
-                                              fontWeight: FontWeight.bold,
-                                              color: isDark
-                                                  ? Colors.white
-                                                  : Colors.black87,
+                                      // Top row with menu button
+                                      Row(
+                                        mainAxisAlignment: MainAxisAlignment.end,
+                                        children: [
+                                          SizedBox(
+                                            width: 30,
+                                            height: 30,
+                                            child: IconButton(
+                                              padding: EdgeInsets.zero,
+                                              icon: const Icon(
+                                                Icons.more_vert,
+                                                color: _ancientGold,
+                                                size: 20,
+                                              ),
+                                              onPressed: () => _showRoomOptionsDialog(room),
                                             ),
-                                        overflow: TextOverflow.ellipsis,
-                                        textAlign: TextAlign.center,
+                                          ),
+                                        ],
                                       ),
-                                      const SizedBox(height: 4),
-                                      Text(
-                                        '${room.boards.length} boards',
-                                        style: Theme.of(context)
-                                            .textTheme
-                                            .bodySmall
-                                            ?.copyWith(
-                                              color: isDark
-                                                  ? Colors.white70
-                                                  : Colors.grey[600],
+
+                                      // Center icon
+                                      Expanded(
+                                        child: Center(
+                                          child: Container(
+                                            width: 60,
+                                            height: 60,
+                                            decoration: BoxDecoration(
+                                              color: Colors.black.withValues(alpha: 0.5),
+                                              border: Border.all(color: _ancientGold.withValues(alpha: 0.5)),
+                                              borderRadius: BorderRadius.circular(20),
+                                              boxShadow: [
+                                                BoxShadow(
+                                                  color: _ancientGold.withValues(alpha: 0.1),
+                                                  blurRadius: 8,
+                                                  offset: const Offset(0, 4),
+                                                ),
+                                              ],
                                             ),
+                                            child: Icon(
+                                              _getIconFromName(room.icon),
+                                              size: 30,
+                                              color: _ancientGold,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+
+                                      // Room name and board count
+                                      Column(
+                                        children: [
+                                          const SizedBox(height: 8),
+                                          Text(
+                                            room.name,
+                                            style: const TextStyle(
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.bold,
+                                              color: _ancientGold,
+                                            ),
+                                            overflow: TextOverflow.ellipsis,
+                                            textAlign: TextAlign.center,
+                                          ),
+                                          const SizedBox(height: 4),
+                                          Text(
+                                            '${room.boards.length} boards',
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              color: Colors.grey[500],
+                                            ),
+                                          ),
+                                        ],
                                       ),
                                     ],
                                   ),
-                                ],
+                                ),
                               ),
                             ),
                           ),
-                        ),
-                      ),
-                    );
-                  },
-                ),
+                        );
+                      },
+                    ),
+            ],
+          ),
           floatingActionButton: FloatingActionButton.extended(
             onPressed: _showAddRoomDialog,
-            icon: const Icon(Icons.add),
-            label: const Text('Add Room'),
-            backgroundColor: isDark
-                ? Colors.white.withValues(alpha: 0.2)
-                : Colors.blue.withValues(alpha: 0.8),
-            foregroundColor: Colors.white,
+            icon: const Icon(Icons.add, color: Colors.black),
+            label: const Text('Add Room', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+            backgroundColor: _ancientGold,
             elevation: 8,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+              side: BorderSide(color: Colors.white.withValues(alpha: 0.2), width: 1),
+            ),
           ),
         );
       },

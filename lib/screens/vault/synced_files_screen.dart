@@ -1,12 +1,17 @@
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart'; // REQUIRED FOR CLIPBOARD
 import 'dart:math'; // REQUIRED FOR TOKEN GENERATION
 import 'package:guptik/services/vault/sync_tracker.dart';
 import 'package:guptik/services/vault/vault_sync_service.dart';
+import 'package:guptik/widgets/home/animated_nebula_background.dart';
 import 'package:photo_manager/photo_manager.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+
+
+// Ancient Gold Theme Constants
+const Color _ancientGold = Color(0xFFD4AF37);
+const Color _darkBg = Color(0xFF0A0A0A);
 
 class SyncedFilesScreen extends StatefulWidget {
   const SyncedFilesScreen({super.key});
@@ -53,10 +58,14 @@ class _SyncedFilesScreenState extends State<SyncedFilesScreen> {
         return StatefulBuilder(
           builder: (context, setDialogState) {
             return AlertDialog(
-              backgroundColor: const Color(0xFF1E293B),
+              backgroundColor: Colors.black,
+              shape: RoundedRectangleBorder(
+                side: const BorderSide(color: _ancientGold, width: 1.5),
+                borderRadius: BorderRadius.circular(16),
+              ),
               title: const Text(
                 "Share Securely",
-                style: TextStyle(color: Colors.white),
+                style: TextStyle(color: _ancientGold, fontWeight: FontWeight.bold),
               ),
               content: SingleChildScrollView(
                 child: Column(
@@ -67,36 +76,42 @@ class _SyncedFilesScreenState extends State<SyncedFilesScreen> {
                         "Make Public Link",
                         style: TextStyle(color: Colors.white),
                       ),
-                      subtitle: const Text(
+                      subtitle: Text(
                         "Anyone with the link can view",
-                        style: TextStyle(color: Colors.grey, fontSize: 12),
+                        style: TextStyle(color: Colors.grey[500], fontSize: 12),
                       ),
-                      activeThumbColor: Colors.cyanAccent,
+                      activeColor: Colors.black,
+                      activeTrackColor: _ancientGold,
+                      inactiveThumbColor: Colors.grey[400],
+                      inactiveTrackColor: Colors.white24,
                       value: isPublic,
                       onChanged: (val) {
                         setDialogState(() => isPublic = val);
                       },
                     ),
 
+                    Divider(color: _ancientGold.withValues(alpha: 0.2)),
+
                     // 📅 DATE PICKER UI
                     ListTile(
                       contentPadding: EdgeInsets.zero,
-                      title: const Text(
+                      title: Text(
                         "Expires On:",
-                        style: TextStyle(color: Colors.grey, fontSize: 14),
+                        style: TextStyle(color: Colors.grey[500], fontSize: 14),
                       ),
                       subtitle: Text(
                         selectedExpiryDate != null
                             ? "${selectedExpiryDate!.year}-${selectedExpiryDate!.month.toString().padLeft(2, '0')}-${selectedExpiryDate!.day.toString().padLeft(2, '0')}"
                             : "Never",
                         style: const TextStyle(
-                          color: Colors.cyanAccent,
+                          color: _ancientGold,
                           fontSize: 16,
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
                       trailing: const Icon(
                         Icons.calendar_month,
-                        color: Colors.cyanAccent,
+                        color: _ancientGold,
                       ),
                       onTap: () async {
                         DateTime? picked = await showDatePicker(
@@ -113,11 +128,12 @@ class _SyncedFilesScreenState extends State<SyncedFilesScreen> {
                             return Theme(
                               data: ThemeData.dark().copyWith(
                                 colorScheme: const ColorScheme.dark(
-                                  primary: Colors.cyanAccent,
+                                  primary: _ancientGold,
                                   onPrimary: Colors.black,
-                                  surface: Color(0xFF1E293B),
-                                  onSurface: Colors.white,
+                                  surface: Colors.black,
+                                  onSurface: _ancientGold,
                                 ),
+                                dialogBackgroundColor: Colors.black,
                               ),
                               child: child!,
                             );
@@ -134,15 +150,15 @@ class _SyncedFilesScreenState extends State<SyncedFilesScreen> {
                       const SizedBox(height: 15),
                       TextField(
                         controller: emailController,
-                        style: const TextStyle(color: Colors.white),
+                        style: const TextStyle(color: _ancientGold),
                         decoration: InputDecoration(
                           labelText: "Allowed Email Address",
-                          labelStyle: const TextStyle(color: Colors.grey),
+                          labelStyle: TextStyle(color: Colors.grey[500]),
                           enabledBorder: OutlineInputBorder(
-                            borderSide: BorderSide(color: Colors.grey.shade700),
+                            borderSide: BorderSide(color: _ancientGold.withValues(alpha: 0.3)),
                           ),
                           focusedBorder: const OutlineInputBorder(
-                            borderSide: BorderSide(color: Colors.cyanAccent),
+                            borderSide: BorderSide(color: _ancientGold),
                           ),
                         ),
                       ),
@@ -155,12 +171,13 @@ class _SyncedFilesScreenState extends State<SyncedFilesScreen> {
                   onPressed: () => Navigator.pop(context),
                   child: const Text(
                     "Cancel",
-                    style: TextStyle(color: Colors.grey),
+                    style: TextStyle(color: Colors.white54),
                   ),
                 ),
                 ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.cyanAccent,
+                    backgroundColor: _ancientGold,
+                    foregroundColor: Colors.black,
                   ),
                   onPressed: () async {
                     Navigator.pop(context);
@@ -173,10 +190,7 @@ class _SyncedFilesScreenState extends State<SyncedFilesScreen> {
                   },
                   child: const Text(
                     "Generate Link",
-                    style: TextStyle(
-                      color: Colors.black,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: TextStyle(fontWeight: FontWeight.bold),
                   ),
                 ),
               ],
@@ -246,15 +260,18 @@ class _SyncedFilesScreenState extends State<SyncedFilesScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text("✅ Secure Link Copied!"),
-            backgroundColor: Colors.green,
+            content: Text("✅ Secure Link Copied!", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+            backgroundColor: Colors.greenAccent,
           ),
         );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("❌ Failed: $e"), backgroundColor: Colors.red),
+          SnackBar(
+            content: Text("❌ Failed: $e", style: const TextStyle(color: Colors.black)), 
+            backgroundColor: Colors.redAccent,
+          ),
         );
       }
     }
@@ -315,24 +332,29 @@ class _SyncedFilesScreenState extends State<SyncedFilesScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: _darkBg,
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
         title: const Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text("Desktop Cloud", style: TextStyle(color: Colors.black)),
+            Text("Desktop Cloud", style: TextStyle(color: _ancientGold, fontWeight: FontWeight.bold, fontSize: 18)),
             Text(
               "Successfully Synced",
-              style: TextStyle(color: Colors.green, fontSize: 12),
+              style: TextStyle(color: Colors.greenAccent, fontSize: 12),
             ),
           ],
         ),
-        backgroundColor: Colors.white,
-        elevation: 1,
-        iconTheme: const IconThemeData(color: Colors.black),
+        backgroundColor: Colors.black.withValues(alpha: 0.7),
+        elevation: 0,
+        iconTheme: const IconThemeData(color: _ancientGold),
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(1.0),
+          child: Container(color: _ancientGold.withValues(alpha: 0.2), height: 1.0),
+        ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.refresh),
+            icon: const Icon(Icons.refresh, color: _ancientGold),
             onPressed: () {
               setState(() => _isLoading = true);
               _loadSyncedAssets();
@@ -340,42 +362,50 @@ class _SyncedFilesScreenState extends State<SyncedFilesScreen> {
           ),
         ],
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : _syncedAssets.isEmpty
-          ? Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.cloud_off, size: 80, color: Colors.grey[300]),
-                  const SizedBox(height: 20),
-                  const Text(
-                    "No files synced yet",
-                    style: TextStyle(color: Colors.grey),
+      body: Stack(
+        children: [
+          // The Shared Cinematic Nebula Background
+          const Positioned.fill(child: AnimatedNebulaBackground()),
+
+          // Main Content
+          _isLoading
+              ? const Center(child: CircularProgressIndicator(color: _ancientGold))
+              : _syncedAssets.isEmpty
+              ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.cloud_off, size: 80, color: _ancientGold.withValues(alpha: 0.8)),
+                      const SizedBox(height: 20),
+                      const Text(
+                        "No files synced yet",
+                        style: TextStyle(color: Colors.white54, fontSize: 18),
+                      ),
+                    ],
                   ),
-                ],
-              ),
-            )
-          : GridView.builder(
-              padding: const EdgeInsets.all(2),
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 3,
-                crossAxisSpacing: 2,
-                mainAxisSpacing: 2,
-              ),
-              itemCount: _syncedAssets.length,
-              itemBuilder: (context, index) {
-                final asset = _syncedAssets[index];
-                return _SyncedTile(
-                  asset: asset,
-                  // 🔗 Trigger the share dialog and pass the file name!
-                  onShare: () {
-                    final fileName = asset.title ?? 'unknown_${asset.id}';
-                    _showShareDialog(fileName);
+                )
+              : GridView.builder(
+                  padding: const EdgeInsets.fromLTRB(4, 100, 4, 16),
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 3,
+                    crossAxisSpacing: 4,
+                    mainAxisSpacing: 4,
+                  ),
+                  itemCount: _syncedAssets.length,
+                  itemBuilder: (context, index) {
+                    final asset = _syncedAssets[index];
+                    return _SyncedTile(
+                      asset: asset,
+                      // 🔗 Trigger the share dialog and pass the file name!
+                      onShare: () {
+                        final fileName = asset.title ?? 'unknown_${asset.id}';
+                        _showShareDialog(fileName);
+                      },
+                    );
                   },
-                );
-              },
-            ),
+                ),
+        ],
+      ),
     );
   }
 }
@@ -388,40 +418,59 @@ class _SyncedTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      fit: StackFit.expand,
-      children: [
-        FutureBuilder<Uint8List?>(
-          future: asset.thumbnailDataWithSize(const ThumbnailSize.square(200)),
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.done &&
-                snapshot.data != null) {
-              return Image.memory(snapshot.data!, fit: BoxFit.cover);
-            }
-            return Container(color: Colors.grey[100]);
-          },
-        ),
-        // Share Icon (Top Right)
-        Positioned(
-          top: 0,
-          right: 0,
-          child: IconButton(
-            icon: const Icon(Icons.share, color: Colors.white),
-            style: IconButton.styleFrom(
-              backgroundColor: Colors.black.withOpacity(
-                0.4,
-              ), // Dark background so it's visible over photos
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: _ancientGold.withValues(alpha: 0.3), width: 1.5),
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(6),
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            FutureBuilder<Uint8List?>(
+              future: asset.thumbnailDataWithSize(const ThumbnailSize.square(200)),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.done &&
+                    snapshot.data != null) {
+                  return Image.memory(snapshot.data!, fit: BoxFit.cover);
+                }
+                return Container(color: Colors.black);
+              },
             ),
-            onPressed: onShare,
-          ),
+            // Share Icon (Top Right)
+            Positioned(
+              top: 4,
+              right: 4,
+              child: SizedBox(
+                width: 32,
+                height: 32,
+                child: IconButton(
+                  padding: EdgeInsets.zero,
+                  icon: const Icon(Icons.share, color: _ancientGold, size: 18),
+                  style: IconButton.styleFrom(
+                    backgroundColor: Colors.black.withValues(alpha: 0.7), 
+                    side: BorderSide(color: _ancientGold.withValues(alpha: 0.5), width: 1),
+                  ),
+                  onPressed: onShare,
+                ),
+              ),
+            ),
+            // Checkmark (Bottom Right)
+            Positioned(
+              bottom: 4,
+              right: 4,
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: 0.6),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.check_circle, color: Colors.greenAccent, size: 20),
+              ),
+            ),
+          ],
         ),
-        // Checkmark (Bottom Right)
-        const Positioned(
-          bottom: 5,
-          right: 5,
-          child: Icon(Icons.check_circle, color: Colors.green, size: 20),
-        ),
-      ],
+      ),
     );
   }
 }

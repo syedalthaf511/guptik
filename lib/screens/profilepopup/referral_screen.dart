@@ -1,5 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:guptik/widgets/home/animated_nebula_background.dart';
+
+
+// Ancient Gold Theme Constants
+const Color _ancientGold = Color(0xFFD4AF37);
+const Color _darkBg = Color(0xFF0A0A0A);
 
 class ReferralScreen extends StatefulWidget {
   const ReferralScreen({super.key});
@@ -39,294 +45,335 @@ class _ReferralScreenState extends State<ReferralScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FA),
+      backgroundColor: _darkBg,
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
         title: const Text(
           'Referral Program',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+          style: TextStyle(color: _ancientGold, fontWeight: FontWeight.bold),
         ),
-        backgroundColor: const Color(0xFF17A2B8),
-        iconTheme: const IconThemeData(color: Colors.white),
+        backgroundColor: Colors.black.withValues(alpha: 0.7),
+        elevation: 0,
+        iconTheme: const IconThemeData(color: _ancientGold),
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(1.0),
+          child: Container(color: _ancientGold.withValues(alpha: 0.2), height: 1.0),
+        ),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+      // THE FIX: Wrap the body in an expanding Container so the background covers all scrolling
+      body: Container(
+        width: double.infinity,
+        height: double.infinity,
+        child: Stack(
           children: [
-            // Header
-            const Text(
-              'Earn Money by Referring Friends',
-              style: TextStyle(
-                fontSize: 28,
-                fontWeight: FontWeight.bold,
-                color: Colors.black87,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Get 25% commission for each successful referral. Your friends get 20% discount too!',
-              style: TextStyle(
-                fontSize: 16,
-                color: Colors.grey[600],
-              ),
-            ),
+            // The Shared Cinematic Nebula Background
+            const Positioned.fill(child: AnimatedNebulaBackground()),
             
-            const SizedBox(height: 30),
-            
-            // Stats Cards
-            Row(
-              children: [
-                Expanded(
-                  child: _buildStatCard(
-                    'Total Referrals',
-                    _referrals.length.toString(),
-                    Icons.people,
-                    Colors.blue,
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: _buildStatCard(
-                    'Total Earnings',
-                    '\$${_referrals.fold(0.0, (sum, r) => sum + r['commission']).toStringAsFixed(2)}',
-                    Icons.attach_money,
-                    Colors.green,
-                  ),
-                ),
-              ],
-            ),
-            
-            const SizedBox(width: 16),
-            
-            Row(
-              children: [
-                Expanded(
-                  child: _buildStatCard(
-                    'Active Referrals',
-                    _referrals.where((r) => r['status'] == 'Active').length.toString(),
-                    Icons.check_circle,
-                    Colors.teal,
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: _buildStatCard(
-                    'Pending',
-                    _referrals.where((r) => r['status'] == 'Pending').length.toString(),
-                    Icons.pending,
-                    Colors.orange,
-                  ),
-                ),
-              ],
-            ),
-            
-            const SizedBox(height: 30),
-            
-            // Referral Tools
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Share Your Referral Link',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w600,
-                      ),
+            SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(20, 100, 20, 40),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Header
+                  const Text(
+                    'Earn Money by Referring Friends',
+                    style: TextStyle(
+                      fontSize: 28,
+                      fontWeight: FontWeight.bold,
+                      color: _ancientGold,
                     ),
-                    const SizedBox(height: 16),
-                    
-                    // Referral Code
-                    Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: Colors.grey[100],
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: Colors.grey[300]!),
-                      ),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Text(
-                                  'Your Referral Code',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w500,
-                                    color: Colors.grey,
-                                  ),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  _referralCode,
-                                  style: const TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.bold,
-                                    color: Color(0xFF17A2B8),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          IconButton(
-                            onPressed: () => _copyToClipboard(_referralCode, 'Referral code'),
-                            icon: const Icon(Icons.copy),
-                            tooltip: 'Copy Code',
-                          ),
-                        ],
-                      ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Get 25% commission for each successful referral. Your friends get 20% discount too!',
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: Colors.grey[400],
                     ),
-                    
-                    const SizedBox(height: 16),
-                    
-                    // Referral Link
-                    Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: Colors.grey[100],
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: Colors.grey[300]!),
-                      ),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Text(
-                                  'Your Referral Link',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w500,
-                                    color: Colors.grey,
-                                  ),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  _referralLink,
-                                  style: const TextStyle(
-                                    fontSize: 14,
-                                    color: Color(0xFF17A2B8),
-                                  ),
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ],
-                            ),
-                          ),
-                          IconButton(
-                            onPressed: () => _copyToClipboard(_referralLink, 'Referral link'),
-                            icon: const Icon(Icons.copy),
-                            tooltip: 'Copy Link',
-                          ),
-                        ],
-                      ),
-                    ),
-                    
-                    const SizedBox(height: 20),
-                    
-                    // Share Buttons
-                    Row(
-                      children: [
-                        Expanded(
-                          child: ElevatedButton.icon(
-                            onPressed: _shareViaEmail,
-                            icon: const Icon(Icons.email),
-                            label: const Text('Share via Email'),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.blue,
-                              foregroundColor: Colors.white,
-                            ),
-                          ),
+                  ),
+                  
+                  const SizedBox(height: 30),
+                  
+                  // Stats Cards
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _buildStatCard(
+                          'Total Referrals',
+                          _referrals.length.toString(),
+                          Icons.people,
+                          Colors.blueAccent,
                         ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: ElevatedButton.icon(
-                            onPressed: _shareViaSocial,
-                            icon: const Icon(Icons.share),
-                            label: const Text('Share Social'),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF17A2B8),
-                              foregroundColor: Colors.white,
-                            ),
-                          ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: _buildStatCard(
+                          'Total Earnings',
+                          '\$${_referrals.fold(0.0, (sum, r) => sum + r['commission']).toStringAsFixed(2)}',
+                          Icons.attach_money,
+                          Colors.greenAccent,
                         ),
+                      ),
+                    ],
+                  ),
+                  
+                  const SizedBox(height: 16),
+                  
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _buildStatCard(
+                          'Active Referrals',
+                          _referrals.where((r) => r['status'] == 'Active').length.toString(),
+                          Icons.check_circle,
+                          Colors.tealAccent,
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: _buildStatCard(
+                          'Pending',
+                          _referrals.where((r) => r['status'] == 'Pending').length.toString(),
+                          Icons.pending,
+                          Colors.orangeAccent,
+                        ),
+                      ),
+                    ],
+                  ),
+                  
+                  const SizedBox(height: 30),
+                  
+                  // Referral Tools
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.6),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: _ancientGold.withValues(alpha: 0.4), width: 1.5),
+                      boxShadow: [
+                        BoxShadow(color: Colors.black.withValues(alpha: 0.4), blurRadius: 10, offset: const Offset(0, 4)),
                       ],
                     ),
-                  ],
-                ),
-              ),
-            ),
-            
-            const SizedBox(height: 30),
-            
-            // How It Works
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'How It Works',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w600,
+                    child: Padding(
+                      padding: const EdgeInsets.all(20),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Share Your Referral Link',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: _ancientGold,
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          
+                          // Referral Code
+                          Container(
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: Colors.black.withValues(alpha: 0.5),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: _ancientGold.withValues(alpha: 0.3)),
+                            ),
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      const Text(
+                                        'Your Referral Code',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w500,
+                                          color: Colors.white54,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        _referralCode,
+                                        style: const TextStyle(
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.bold,
+                                          color: _ancientGold,
+                                          fontFamily: 'monospace',
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                IconButton(
+                                  onPressed: () => _copyToClipboard(_referralCode, 'Referral code'),
+                                  icon: const Icon(Icons.copy, color: _ancientGold),
+                                  tooltip: 'Copy Code',
+                                ),
+                              ],
+                            ),
+                          ),
+                          
+                          const SizedBox(height: 16),
+                          
+                          // Referral Link
+                          Container(
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: Colors.black.withValues(alpha: 0.5),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: _ancientGold.withValues(alpha: 0.3)),
+                            ),
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      const Text(
+                                        'Your Referral Link',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w500,
+                                          color: Colors.white54,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        _referralLink,
+                                        style: const TextStyle(
+                                          fontSize: 14,
+                                          color: _ancientGold,
+                                        ),
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                IconButton(
+                                  onPressed: () => _copyToClipboard(_referralLink, 'Referral link'),
+                                  icon: const Icon(Icons.copy, color: _ancientGold),
+                                  tooltip: 'Copy Link',
+                                ),
+                              ],
+                            ),
+                          ),
+                          
+                          const SizedBox(height: 20),
+                          
+                          // Share Buttons
+                          Row(
+                            children: [
+                              Expanded(
+                                child: ElevatedButton.icon(
+                                  onPressed: _shareViaEmail,
+                                  icon: const Icon(Icons.email, color: Colors.white),
+                                  label: const Text('Share via Email', style: TextStyle(color: Colors.white)),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.blueAccent.withValues(alpha: 0.2),
+                                    side: const BorderSide(color: Colors.blueAccent),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: ElevatedButton.icon(
+                                  onPressed: _shareViaSocial,
+                                  icon: const Icon(Icons.share, color: Colors.black),
+                                  label: const Text('Share Social', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: _ancientGold,
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
                       ),
                     ),
-                    const SizedBox(height: 16),
-                    _buildHowItWorksStep(
-                      '1',
-                      'Share Your Link',
-                      'Send your referral link to friends and colleagues who might benefit from WhatsApp Business automation.',
+                  ),
+                  
+                  const SizedBox(height: 30),
+                  
+                  // How It Works
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.6),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: _ancientGold.withValues(alpha: 0.4), width: 1.5),
                     ),
-                    const SizedBox(height: 16),
-                    _buildHowItWorksStep(
-                      '2',
-                      'They Sign Up',
-                      'When someone signs up using your link, they get a 20% discount on their first subscription.',
-                    ),
-                    const SizedBox(height: 16),
-                    _buildHowItWorksStep(
-                      '3',
-                      'You Earn Commission',
-                      'You receive 25% commission on their subscription payments for as long as they remain a customer.',
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            
-            const SizedBox(height: 30),
-            
-            // Referrals List
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Your Referrals',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w600,
+                    child: Padding(
+                      padding: const EdgeInsets.all(20),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'How It Works',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: _ancientGold,
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          _buildHowItWorksStep(
+                            '1',
+                            'Share Your Link',
+                            'Send your referral link to friends and colleagues who might benefit from WhatsApp Business automation.',
+                          ),
+                          const SizedBox(height: 16),
+                          _buildHowItWorksStep(
+                            '2',
+                            'They Sign Up',
+                            'When someone signs up using your link, they get a 20% discount on their first subscription.',
+                          ),
+                          const SizedBox(height: 16),
+                          _buildHowItWorksStep(
+                            '3',
+                            'You Earn Commission',
+                            'You receive 25% commission on their subscription payments for as long as they remain a customer.',
+                          ),
+                        ],
                       ),
                     ),
-                    const SizedBox(height: 16),
-                    ListView.builder(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      itemCount: _referrals.length,
-                      itemBuilder: (context, index) {
-                        return _buildReferralItem(_referrals[index]);
-                      },
+                  ),
+                  
+                  const SizedBox(height: 30),
+                  
+                  // Referrals List
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.6),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: _ancientGold.withValues(alpha: 0.4), width: 1.5),
                     ),
-                  ],
-                ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(20),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Your Referrals',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: _ancientGold,
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          ListView.builder(
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            itemCount: _referrals.length,
+                            itemBuilder: (context, index) {
+                              return _buildReferralItem(_referrals[index]);
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
           ],
@@ -336,7 +383,19 @@ class _ReferralScreenState extends State<ReferralScreen> {
   }
 
   Widget _buildStatCard(String title, String value, IconData icon, Color color) {
-    return Card(
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: 0.6),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: _ancientGold.withValues(alpha: 0.4), width: 1.5),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.4),
+            blurRadius: 8,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
       child: Padding(
         padding: const EdgeInsets.all(20),
         child: Column(
@@ -348,13 +407,14 @@ class _ReferralScreenState extends State<ReferralScreen> {
               style: const TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
+                color: Colors.white,
               ),
             ),
             const SizedBox(height: 4),
             Text(
               title,
               style: TextStyle(
-                color: Colors.grey[600],
+                color: Colors.grey[400],
                 fontSize: 12,
               ),
               textAlign: TextAlign.center,
@@ -372,15 +432,16 @@ class _ReferralScreenState extends State<ReferralScreen> {
         Container(
           width: 32,
           height: 32,
-          decoration: const BoxDecoration(
-            color: Color(0xFF17A2B8),
+          decoration: BoxDecoration(
+            color: Colors.black,
             shape: BoxShape.circle,
+            border: Border.all(color: _ancientGold, width: 1.5),
           ),
           child: Center(
             child: Text(
               number,
               style: const TextStyle(
-                color: Colors.white,
+                color: _ancientGold,
                 fontWeight: FontWeight.bold,
               ),
             ),
@@ -395,7 +456,8 @@ class _ReferralScreenState extends State<ReferralScreen> {
                 title,
                 style: const TextStyle(
                   fontSize: 16,
-                  fontWeight: FontWeight.w600,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
                 ),
               ),
               const SizedBox(height: 4),
@@ -403,7 +465,7 @@ class _ReferralScreenState extends State<ReferralScreen> {
                 description,
                 style: TextStyle(
                   fontSize: 14,
-                  color: Colors.grey[600],
+                  color: Colors.grey[400],
                 ),
               ),
             ],
@@ -418,7 +480,8 @@ class _ReferralScreenState extends State<ReferralScreen> {
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        border: Border.all(color: Colors.grey[300]!),
+        color: Colors.black.withValues(alpha: 0.4),
+        border: Border.all(color: _ancientGold.withValues(alpha: 0.2)),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Row(
@@ -431,7 +494,8 @@ class _ReferralScreenState extends State<ReferralScreen> {
                   referral['name'],
                   style: const TextStyle(
                     fontSize: 16,
-                    fontWeight: FontWeight.w600,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
                   ),
                 ),
                 const SizedBox(height: 4),
@@ -439,7 +503,7 @@ class _ReferralScreenState extends State<ReferralScreen> {
                   referral['email'],
                   style: TextStyle(
                     fontSize: 14,
-                    color: Colors.grey[600],
+                    color: Colors.grey[500],
                   ),
                 ),
                 const SizedBox(height: 4),
@@ -447,7 +511,7 @@ class _ReferralScreenState extends State<ReferralScreen> {
                   'Joined: ${_formatDate(referral['joined_date'])}',
                   style: TextStyle(
                     fontSize: 12,
-                    color: Colors.grey[500],
+                    color: Colors.grey[600],
                   ),
                 ),
               ],
@@ -457,17 +521,24 @@ class _ReferralScreenState extends State<ReferralScreen> {
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
-                  color: referral['status'] == 'Active' ? Colors.green[100] : Colors.orange[100],
+                  color: referral['status'] == 'Active' 
+                      ? Colors.greenAccent.withValues(alpha: 0.15) 
+                      : Colors.orangeAccent.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: referral['status'] == 'Active' 
+                        ? Colors.greenAccent.withValues(alpha: 0.5) 
+                        : Colors.orangeAccent.withValues(alpha: 0.5),
+                  ),
                 ),
                 child: Text(
                   referral['status'],
                   style: TextStyle(
                     fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                    color: referral['status'] == 'Active' ? Colors.green[700] : Colors.orange[700],
+                    fontWeight: FontWeight.bold,
+                    color: referral['status'] == 'Active' ? Colors.greenAccent : Colors.orangeAccent,
                   ),
                 ),
               ),
@@ -477,7 +548,7 @@ class _ReferralScreenState extends State<ReferralScreen> {
                 style: const TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
-                  color: Color(0xFF17A2B8),
+                  color: _ancientGold,
                 ),
               ),
             ],
@@ -488,25 +559,34 @@ class _ReferralScreenState extends State<ReferralScreen> {
   }
 
   String _formatDate(DateTime date) {
-    return '${date.day}/${date.month}/${date.year}';
+    return '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}';
   }
 
   void _copyToClipboard(String text, String type) {
     Clipboard.setData(ClipboardData(text: text));
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('$type copied to clipboard')),
+      SnackBar(
+        content: Text('$type copied to clipboard', style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+        backgroundColor: _ancientGold,
+      ),
     );
   }
 
   void _shareViaEmail() {
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Opening email client...')),
+      const SnackBar(
+        content: Text('Opening email client...', style: TextStyle(color: Colors.black)),
+        backgroundColor: _ancientGold,
+      ),
     );
   }
 
   void _shareViaSocial() {
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Opening share dialog...')),
+      const SnackBar(
+        content: Text('Opening share dialog...', style: TextStyle(color: Colors.black)),
+        backgroundColor: _ancientGold,
+      ),
     );
   }
 }

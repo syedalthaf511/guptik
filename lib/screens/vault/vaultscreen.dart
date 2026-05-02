@@ -11,6 +11,13 @@ import 'package:share_plus/share_plus.dart';
 import 'package:video_player/video_player.dart';
 import 'synced_files_screen.dart';
 
+// IMPORT THE SHARED BACKGROUND
+import 'package:guptik/widgets/home/animated_nebula_background.dart';
+
+// Ancient Gold Theme Constants
+const Color _ancientGold = Color(0xFFD4AF37);
+const Color _darkBg = Color(0xFF0A0A0A);
+
 class VaultScreen extends StatefulWidget {
   const VaultScreen({super.key});
 
@@ -38,7 +45,6 @@ class _VaultScreenState extends State<VaultScreen> {
   bool _isSyncing = false;
   bool _hasUnsyncedItems = false;
   
-  // 🚀 ADDED: Flag to kill the sync loop instantly
   bool _cancelSync = false; 
 
   // ==========================================
@@ -50,7 +56,6 @@ class _VaultScreenState extends State<VaultScreen> {
   final ValueNotifier<double> _syncProgressNotifier = ValueNotifier<double>(0.0);
   final ValueNotifier<String> _liveDataNotifier = ValueNotifier<String>("0.00 MB");
   
-  // 🚀 ADDED: Tracks if we are doing the 40-second math, or actually uploading
   final ValueNotifier<bool> _isPreparingNotifier = ValueNotifier<bool>(true);
 
   @override
@@ -68,7 +73,7 @@ class _VaultScreenState extends State<VaultScreen> {
     _syncTextNotifier.dispose();
     _syncProgressNotifier.dispose();
     _liveDataNotifier.dispose();
-    _isPreparingNotifier.dispose(); // 🚀 Clean up memory
+    _isPreparingNotifier.dispose(); 
     super.dispose();
   }
 
@@ -116,10 +121,11 @@ class _VaultScreenState extends State<VaultScreen> {
           if (item is Map) {
             if (item['id'] != null) {
               val = item['id'].toString();
-            } else if (item['filename'] != null)
+            } else if (item['filename'] != null) {
               val = item['filename'].toString();
-            else if (item['title'] != null)
+            } else if (item['title'] != null) {
               val = item['title'].toString();
+            }
           } else {
             val = item.toString();
           }
@@ -258,31 +264,25 @@ class _VaultScreenState extends State<VaultScreen> {
     return DateFormat('EEE, d MMM yyyy').format(date);
   }
 
-  // ==========================================
-  // 🚀 FIXED: INSTANT DIALOG & STOPPABLE QUEUE
-  // ==========================================
   Future<void> _handleSync() async {
     if (_isSyncing) return;
     if (_currentAlbum == null) return;
 
     setState(() => _isSyncing = true);
     
-    // 1. Reset our flags for the new session
     _cancelSync = false; 
-    _isPreparingNotifier.value = true; // Show the spinner mode
+    _isPreparingNotifier.value = true; 
     _syncTextNotifier.value = "Scanning library & checking desktop...";
     _syncProgressNotifier.value = 0.0;
     _liveSyncedNotifier.value = 0;
     _liveRemainingNotifier.value = 0;
     _liveDataNotifier.value = "0.00 MB";
 
-    // 2. 🚀 INSTANT RESPONSE: Show the dialog immediately before doing math!
     if (mounted) {
       showDialog(
         context: context,
         barrierDismissible: false,
         builder: (dialogCtx) {
-          // 🚀 ADDED: PopScope catches the Android Back Button so we can cancel!
           return PopScope(
             canPop: false,
             onPopInvoked: (didPop) {
@@ -291,24 +291,35 @@ class _VaultScreenState extends State<VaultScreen> {
               Navigator.pop(dialogCtx);
             },
             child: AlertDialog(
-              title: const Text("Syncing Vault"),
+              backgroundColor: Colors.black,
+              shape: RoundedRectangleBorder(
+                side: const BorderSide(color: _ancientGold, width: 1.5),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              title: const Row(
+                children: [
+                  Icon(Icons.cloud_sync, color: _ancientGold),
+                  SizedBox(width: 10),
+                  Text("Syncing Vault", style: TextStyle(color: _ancientGold, fontWeight: FontWeight.bold)),
+                ],
+              ),
               content: ValueListenableBuilder<bool>(
                 valueListenable: _isPreparingNotifier,
                 builder: (context, isPreparing, child) {
                   
-                  // STATE A: Scanning the files (The 40 second wait)
+                  // STATE A: Scanning the files
                   if (isPreparing) {
                     return Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const CircularProgressIndicator(color: Colors.deepPurple),
+                        const CircularProgressIndicator(color: _ancientGold),
                         const SizedBox(height: 20),
                         ValueListenableBuilder<String>(
                           valueListenable: _syncTextNotifier,
                           builder: (context, text, child) => Text(
                             text,
                             textAlign: TextAlign.center,
-                            style: const TextStyle(fontSize: 14, color: Colors.grey),
+                            style: TextStyle(fontSize: 14, color: Colors.grey[400]),
                           ),
                         ),
                       ],
@@ -321,24 +332,32 @@ class _VaultScreenState extends State<VaultScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Container(
-                        padding: const EdgeInsets.all(12),
+                        padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
-                          color: Colors.grey[100],
-                          borderRadius: BorderRadius.circular(8),
+                          color: Colors.black,
+                          border: Border.all(color: _ancientGold.withValues(alpha: 0.3)),
+                          borderRadius: BorderRadius.circular(12),
+                          boxShadow: [
+                            BoxShadow(
+                              color: _ancientGold.withValues(alpha: 0.05),
+                              blurRadius: 10,
+                              spreadRadius: 2,
+                            )
+                          ],
                         ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
                               "Total Files: $_totalAssetCount",
-                              style: const TextStyle(fontWeight: FontWeight.bold),
+                              style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
                             ),
-                            const SizedBox(height: 4),
+                            const SizedBox(height: 8),
                             ValueListenableBuilder<int>(
                               valueListenable: _liveSyncedNotifier,
                               builder: (context, value, child) => Text(
                                 "Already Synced: $value",
-                                style: const TextStyle(color: Colors.green),
+                                style: const TextStyle(color: Colors.greenAccent),
                               ),
                             ),
                             const SizedBox(height: 4),
@@ -346,17 +365,20 @@ class _VaultScreenState extends State<VaultScreen> {
                               valueListenable: _liveRemainingNotifier,
                               builder: (context, value, child) => Text(
                                 "Remaining to Sync: $value",
-                                style: const TextStyle(color: Colors.blue),
+                                style: const TextStyle(color: Colors.orangeAccent),
                               ),
                             ),
+                            const SizedBox(height: 8),
+                            Divider(color: _ancientGold.withValues(alpha: 0.2)),
                             const SizedBox(height: 4),
                             ValueListenableBuilder<String>(
                               valueListenable: _liveDataNotifier,
                               builder: (context, value, child) => Text(
                                 "Data Uploaded: $value",
                                 style: const TextStyle(
-                                  color: Colors.deepPurple,
+                                  color: _ancientGold,
                                   fontWeight: FontWeight.bold,
+                                  fontSize: 16,
                                 ),
                               ),
                             ),
@@ -366,17 +388,24 @@ class _VaultScreenState extends State<VaultScreen> {
                       const SizedBox(height: 20),
                       ValueListenableBuilder<double>(
                         valueListenable: _syncProgressNotifier,
-                        builder: (context, value, child) =>
-                            LinearProgressIndicator(value: value),
+                        builder: (context, value, child) => ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: LinearProgressIndicator(
+                            value: value,
+                            backgroundColor: Colors.white12,
+                            color: _ancientGold,
+                            minHeight: 8,
+                          ),
+                        ),
                       ),
-                      const SizedBox(height: 10),
+                      const SizedBox(height: 12),
                       ValueListenableBuilder<String>(
                         valueListenable: _syncTextNotifier,
                         builder: (context, value, child) => Center(
                           child: Text(
                             value,
                             textAlign: TextAlign.center,
-                            style: const TextStyle(fontSize: 12),
+                            style: TextStyle(fontSize: 12, color: Colors.grey[400]),
                           ),
                         ),
                       ),
@@ -385,7 +414,6 @@ class _VaultScreenState extends State<VaultScreen> {
                 },
               ),
               actions: [
-                // 🚀 ADDED: Manual Cancel Button
                 TextButton(
                   onPressed: () {
                     _cancelSync = true;
@@ -413,18 +441,15 @@ class _VaultScreenState extends State<VaultScreen> {
         throw Exception("Desktop Offline.");
       }
 
-      // STEP 1: Ask desktop exactly what it has
       Set<String> currentlyOnDesktop = await _fetchActualDesktopFiles();
       
-      // Stop early if user canceled during fetching
       if (_cancelSync) throw Exception("Sync cancelled by user.");
 
-      // STEP 2: BUILD QUEUE IN BATCHES (The 40 second math)
       List<AssetEntity> missingFilesQueue = [];
       int safeBatchSize = 500;
 
       for (int i = 0; i < _totalAssetCount; i += safeBatchSize) {
-        if (_cancelSync) throw Exception("Sync cancelled by user."); // Check inside loop
+        if (_cancelSync) throw Exception("Sync cancelled by user."); 
 
         int end = (i + safeBatchSize < _totalAssetCount) ? i + safeBatchSize : _totalAssetCount;
         
@@ -451,32 +476,31 @@ class _VaultScreenState extends State<VaultScreen> {
         }
       }
 
-      // STEP 3: EXACT MATH
       int totalLocalFiles = _totalAssetCount;
       int targetUploadCount = missingFilesQueue.length;
       int alreadyOnDesktopCount = totalLocalFiles - targetUploadCount;
 
       if (targetUploadCount == 0) {
-        if (mounted && Navigator.canPop(context)) Navigator.pop(context); // Close dialog early
+        if (mounted && Navigator.canPop(context)) Navigator.pop(context); 
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Everything is already up to date! ☁️✓')),
+          const SnackBar(
+            content: Text('Everything is already up to date! ☁️✓', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+            backgroundColor: _ancientGold,
+          ),
         );
         setState(() => _isSyncing = false);
         return;
       }
 
-      // 🚀 The math is done! Tell the dialog to switch from "Spinner" to "Progress Bar"
       _liveSyncedNotifier.value = alreadyOnDesktopCount;
       _liveRemainingNotifier.value = targetUploadCount;
       _syncProgressNotifier.value = 0.0;
       _isPreparingNotifier.value = false;
 
-      // STEP 4: Iterate ONLY through the exact missing files!
       int successCount = 0;
       double totalMegabytesUploaded = 0.0;
 
       for (int i = 0; i < missingFilesQueue.length; i++) {
-        // 🚀 THE FIX: If back button was pressed, STOP the loop instantly!
         if (!mounted || _cancelSync) {
           break; 
         }
@@ -520,15 +544,15 @@ class _VaultScreenState extends State<VaultScreen> {
       }
 
       if (mounted) {
-        if (!_cancelSync) Navigator.pop(context); // Close dialog if it finished normally
+        if (!_cancelSync) Navigator.pop(context); 
         
         if (_cancelSync) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Sync cancelled. Partial upload saved. 🛑'), backgroundColor: Colors.orange),
+            const SnackBar(content: Text('Sync cancelled. Partial upload saved. 🛑', style: TextStyle(color: Colors.black)), backgroundColor: Colors.orangeAccent),
           );
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Sync Complete! Uploaded $successCount missing files.'), backgroundColor: Colors.green),
+            SnackBar(content: Text('Sync Complete! Uploaded $successCount missing files.', style: TextStyle(color: Colors.black)), backgroundColor: Colors.greenAccent),
           );
         }
         
@@ -540,7 +564,7 @@ class _VaultScreenState extends State<VaultScreen> {
     } catch (e) {
       if (mounted) {
         if (!_cancelSync) Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e"), backgroundColor: Colors.red));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e", style: const TextStyle(color: Colors.black)), backgroundColor: Colors.redAccent));
       }
     } finally {
       if (mounted) setState(() => _isSyncing = false);
@@ -557,131 +581,144 @@ class _VaultScreenState extends State<VaultScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
-      body: CustomScrollView(
-        controller: _scrollController,
-        slivers: [
-          SliverAppBar(
-            floating: true,
-            pinned: true,
-            title: const Text(
-              "Guptik Vault",
-              style: TextStyle(color: Colors.black),
-            ),
-            backgroundColor: Colors.white,
-            elevation: 0.5,
-            iconTheme: const IconThemeData(color: Colors.black),
-            actions: [
-              IconButton(
-                icon: Icon(
-                  Icons.cloud_upload,
-                  color: _hasUnsyncedItems
-                      ? Colors.deepPurpleAccent
-                      : Colors.grey,
+      backgroundColor: _darkBg,
+      body: Stack(
+        children: [
+          // Cinematic Nebula Background
+          const Positioned.fill(child: AnimatedNebulaBackground()),
+          
+          CustomScrollView(
+            controller: _scrollController,
+            slivers: [
+              SliverAppBar(
+                floating: true,
+                pinned: true,
+                title: const Text(
+                  "Guptik Vault",
+                  style: TextStyle(color: _ancientGold, fontWeight: FontWeight.bold),
                 ),
-                onPressed: _handleSync,
-                tooltip: "Sync to Desktop",
-              ),
-              const SizedBox(width: 5),
-              IconButton(
-                icon: const Icon(Icons.desktop_mac, color: Colors.black),
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => const SyncedFilesScreen(),
+                backgroundColor: Colors.black.withValues(alpha: 0.7),
+                elevation: 0,
+                iconTheme: const IconThemeData(color: _ancientGold),
+                actions: [
+                  IconButton(
+                    icon: Icon(
+                      Icons.cloud_upload,
+                      color: _hasUnsyncedItems ? _ancientGold : Colors.grey[700],
                     ),
+                    onPressed: _handleSync,
+                    tooltip: "Sync to Desktop",
+                  ),
+                  const SizedBox(width: 5),
+                  IconButton(
+                    icon: const Icon(Icons.desktop_mac, color: _ancientGold),
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const SyncedFilesScreen(),
+                        ),
+                      );
+                    },
+                    tooltip: "View Desktop Files",
+                  ),
+                  const SizedBox(width: 10),
+                  Container(
+                    margin: const EdgeInsets.only(right: 15),
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(color: _ancientGold, width: 2),
+                    ),
+                    child: const CircleAvatar(
+                      radius: 14,
+                      backgroundColor: Colors.black,
+                      child: Text("G", style: TextStyle(color: _ancientGold, fontSize: 14, fontWeight: FontWeight.bold)),
+                    ),
+                  ),
+                ],
+                bottom: PreferredSize(
+                  preferredSize: const Size.fromHeight(1.0),
+                  child: Container(color: _ancientGold.withValues(alpha: 0.2), height: 1.0),
+                ),
+              ),
+
+              if (!_hasPermission && !_isLoading)
+                SliverFillRemaining(
+                  child: Center(
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(backgroundColor: _ancientGold, foregroundColor: Colors.black),
+                      onPressed: PhotoManager.openSetting,
+                      child: const Text("Open Settings", style: TextStyle(fontWeight: FontWeight.bold)),
+                    ),
+                  ),
+                ),
+
+              if (_isLoading)
+                const SliverFillRemaining(
+                  child: Center(child: CircularProgressIndicator(color: _ancientGold)),
+                ),
+
+              if (_hasPermission && !_isLoading)
+                ..._groupedAssets.entries.map((entry) {
+                  return SliverMainAxisGroup(
+                    slivers: [
+                      SliverPersistentHeader(
+                        pinned: true,
+                        delegate: _DateHeaderDelegate(title: entry.key),
+                      ),
+                      SliverPadding(
+                        padding: const EdgeInsets.symmetric(horizontal: 2),
+                        sliver: SliverGrid(
+                          gridDelegate:
+                              const SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount: 3,
+                                crossAxisSpacing: 2,
+                                mainAxisSpacing: 2,
+                              ),
+                          delegate: SliverChildBuilderDelegate((context, index) {
+                            final asset = entry.value[index];
+
+                            String titleNoExt = "";
+                            if (asset.title != null && asset.title!.contains('.')) {
+                              titleNoExt = asset.title!.substring(
+                                0,
+                                asset.title!.lastIndexOf('.'),
+                              );
+                            } else if (asset.title != null) {
+                              titleNoExt = asset.title!;
+                            }
+
+                            final bool isOnDesktop =
+                                _liveDesktopIds.contains(asset.id) ||
+                                (asset.title != null && _liveDesktopIds.contains(asset.title)) ||
+                                (titleNoExt.isNotEmpty && _liveDesktopIds.contains(titleNoExt));
+
+                            return GestureDetector(
+                              onTap: () => _openFullScreen(asset),
+                              child: _RealMediaTile(
+                                asset: asset,
+                                isSynced: isOnDesktop,
+                              ),
+                            );
+                          }, childCount: entry.value.length),
+                        ),
+                      ),
+                      const SliverToBoxAdapter(child: SizedBox(height: 10)),
+                    ],
                   );
-                },
-                tooltip: "View Desktop Files",
-              ),
-              const SizedBox(width: 10),
-              const CircleAvatar(
-                radius: 16,
-                backgroundColor: Colors.purple,
-                child: Text("G", style: TextStyle(color: Colors.white)),
-              ),
-              const SizedBox(width: 15),
+                }),
+
+              if (_isLoadingMore)
+                const SliverToBoxAdapter(
+                  child: Padding(
+                    padding: EdgeInsets.all(20),
+                    child: Center(child: CircularProgressIndicator(color: _ancientGold)),
+                  ),
+                ),
+
+              const SliverToBoxAdapter(child: SizedBox(height: 50)),
             ],
           ),
-
-          if (!_hasPermission && !_isLoading)
-            SliverFillRemaining(
-              child: Center(
-                child: TextButton(
-                  onPressed: PhotoManager.openSetting,
-                  child: const Text("Open Settings"),
-                ),
-              ),
-            ),
-
-          if (_isLoading)
-            const SliverFillRemaining(
-              child: Center(child: CircularProgressIndicator()),
-            ),
-
-          if (_hasPermission && !_isLoading)
-            ..._groupedAssets.entries.map((entry) {
-              return SliverMainAxisGroup(
-                slivers: [
-                  SliverPersistentHeader(
-                    pinned: true,
-                    delegate: _DateHeaderDelegate(title: entry.key),
-                  ),
-                  SliverPadding(
-                    padding: const EdgeInsets.symmetric(horizontal: 2),
-                    sliver: SliverGrid(
-                      gridDelegate:
-                          const SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: 3,
-                            crossAxisSpacing: 2,
-                            mainAxisSpacing: 2,
-                          ),
-                      delegate: SliverChildBuilderDelegate((context, index) {
-                        final asset = entry.value[index];
-
-                        String titleNoExt = "";
-                        if (asset.title != null && asset.title!.contains('.')) {
-                          titleNoExt = asset.title!.substring(
-                            0,
-                            asset.title!.lastIndexOf('.'),
-                          );
-                        } else if (asset.title != null) {
-                          titleNoExt = asset.title!;
-                        }
-
-                        // UI SMART MATCH
-                        final bool isOnDesktop =
-                            _liveDesktopIds.contains(asset.id) ||
-                            (asset.title != null &&
-                                _liveDesktopIds.contains(asset.title)) ||
-                            (titleNoExt.isNotEmpty &&
-                                _liveDesktopIds.contains(titleNoExt));
-
-                        return GestureDetector(
-                          onTap: () => _openFullScreen(asset),
-                          child: _RealMediaTile(
-                            asset: asset,
-                            isSynced: isOnDesktop,
-                          ),
-                        );
-                      }, childCount: entry.value.length),
-                    ),
-                  ),
-                  const SliverToBoxAdapter(child: SizedBox(height: 10)),
-                ],
-              );
-            }),
-
-          if (_isLoadingMore)
-            const SliverToBoxAdapter(
-              child: Padding(
-                padding: EdgeInsets.all(20),
-                child: Center(child: CircularProgressIndicator()),
-              ),
-            ),
-
-          const SliverToBoxAdapter(child: SizedBox(height: 50)),
         ],
       ),
     );
@@ -733,31 +770,32 @@ class _MediaViewerPageState extends State<MediaViewerPage> {
 
     showModalBottomSheet(
       context: context,
-      backgroundColor: Colors.grey[900],
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
+      backgroundColor: Colors.transparent,
       builder: (context) {
         return Container(
           padding: const EdgeInsets.all(20),
-          color: Colors.white,
+          decoration: BoxDecoration(
+            color: Colors.black,
+            border: Border.all(color: _ancientGold.withValues(alpha: 0.5)),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+          ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Text(
                 "Info",
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: _ancientGold),
               ),
               const SizedBox(height: 20),
               _infoRow(Icons.calendar_today, "Date", date),
-              const Divider(),
+              Divider(color: _ancientGold.withValues(alpha: 0.2)),
               _infoRow(
                 Icons.image,
                 "Details",
                 "${widget.asset.title ?? 'Unknown'}\n$resolution • ${sizeString}MB",
               ),
-              const Divider(),
+              Divider(color: _ancientGold.withValues(alpha: 0.2)),
               _infoRow(Icons.folder_open, "Path on Device", path),
             ],
           ),
@@ -772,7 +810,7 @@ class _MediaViewerPageState extends State<MediaViewerPage> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, color: Colors.grey[600]),
+          Icon(icon, color: _ancientGold),
           const SizedBox(width: 15),
           Expanded(
             child: Column(
@@ -780,7 +818,7 @@ class _MediaViewerPageState extends State<MediaViewerPage> {
               children: [
                 Text(
                   label,
-                  style: const TextStyle(fontSize: 12, color: Colors.grey),
+                  style: TextStyle(fontSize: 12, color: Colors.grey[500]),
                 ),
                 const SizedBox(height: 2),
                 Text(
@@ -788,6 +826,7 @@ class _MediaViewerPageState extends State<MediaViewerPage> {
                   style: const TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w500,
+                    color: Colors.white,
                   ),
                 ),
               ],
@@ -803,24 +842,26 @@ class _MediaViewerPageState extends State<MediaViewerPage> {
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(
-        backgroundColor: Colors.black.withAlpha(150),
-        iconTheme: const IconThemeData(color: Colors.white),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        iconTheme: const IconThemeData(color: _ancientGold),
         actions: [
           _isSharing
               ? const Padding(
                   padding: EdgeInsets.only(right: 16),
-                  child: CircularProgressIndicator(color: Colors.white),
+                  child: Center(child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: _ancientGold, strokeWidth: 2))),
                 )
               : IconButton(
-                  icon: const Icon(Icons.share),
+                  icon: const Icon(Icons.share, color: _ancientGold),
                   onPressed: _shareAsset,
                 ),
           IconButton(
-            icon: const Icon(Icons.info_outline),
+            icon: const Icon(Icons.info_outline, color: _ancientGold),
             onPressed: _showInfo,
           ),
         ],
       ),
+      extendBodyBehindAppBar: true,
       body: Center(
         child: widget.asset.type == AssetType.video
             ? _VideoPlayerItem(asset: widget.asset)
@@ -828,7 +869,7 @@ class _MediaViewerPageState extends State<MediaViewerPage> {
                 future: widget.asset.originBytes,
                 builder: (context, snapshot) {
                   if (!snapshot.hasData) {
-                    return const CircularProgressIndicator(color: Colors.white);
+                    return const CircularProgressIndicator(color: _ancientGold);
                   }
                   return InteractiveViewer(
                     child: Image.memory(snapshot.data!, fit: BoxFit.contain),
@@ -878,7 +919,7 @@ class _VideoPlayerItemState extends State<_VideoPlayerItem> {
   @override
   Widget build(BuildContext context) {
     if (!_initialized || _controller == null) {
-      return const CircularProgressIndicator(color: Colors.white);
+      return const CircularProgressIndicator(color: _ancientGold);
     }
     return GestureDetector(
       onTap: () {
@@ -898,13 +939,14 @@ class _VideoPlayerItemState extends State<_VideoPlayerItem> {
           if (!_controller!.value.isPlaying)
             Container(
               padding: const EdgeInsets.all(12),
-              decoration: const BoxDecoration(
-                color: Colors.black45,
+              decoration: BoxDecoration(
+                color: Colors.black.withValues(alpha: 0.6),
                 shape: BoxShape.circle,
+                border: Border.all(color: _ancientGold.withValues(alpha: 0.5)),
               ),
               child: const Icon(
                 Icons.play_arrow,
-                color: Colors.white,
+                color: _ancientGold,
                 size: 50,
               ),
             ),
@@ -935,22 +977,31 @@ class _RealMediaTile extends StatelessWidget {
                 fit: BoxFit.cover,
                 gaplessPlayback: true,
                 errorBuilder: (context, error, stackTrace) => Container(
-                  color: Colors.grey[300],
-                  child: const Icon(Icons.broken_image, color: Colors.grey),
+                  color: Colors.black,
+                  child: const Icon(Icons.broken_image, color: Colors.white24),
                 ),
               );
             }
-            return Container(color: Colors.grey[200]);
+            return Container(color: Colors.black);
           },
         ),
+
+        // Unsynced Overlay (Gold border + tint)
+        if (!isSynced)
+          Container(
+            decoration: BoxDecoration(
+              color: Colors.black.withValues(alpha: 0.4),
+              border: Border.all(color: _ancientGold.withValues(alpha: 0.6), width: 1.5),
+            ),
+          ),
 
         if (!isSynced)
           Positioned(
             bottom: 5,
             left: 5,
             child: Icon(
-              Icons.cloud_off,
-              color: Colors.white.withAlpha(200),
+              Icons.cloud_upload_outlined, // Changed to outline for better visibility
+              color: _ancientGold,
               size: 16,
             ),
           ),
@@ -961,7 +1012,7 @@ class _RealMediaTile extends StatelessWidget {
             right: 5,
             child: Icon(
               Icons.play_circle_fill,
-              color: Colors.white70,
+              color: Colors.white,
               size: 20,
             ),
           ),
@@ -972,12 +1023,13 @@ class _RealMediaTile extends StatelessWidget {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
               decoration: BoxDecoration(
-                color: Colors.black54,
+                color: Colors.black.withValues(alpha: 0.7),
                 borderRadius: BorderRadius.circular(4),
+                border: Border.all(color: Colors.white24),
               ),
               child: Text(
                 _formatDuration(asset.duration),
-                style: const TextStyle(color: Colors.white, fontSize: 10),
+                style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
               ),
             ),
           ),
@@ -1003,15 +1055,21 @@ class _DateHeaderDelegate extends SliverPersistentHeaderDelegate {
     bool overlapsContent,
   ) {
     return Container(
-      color: Colors.white.withAlpha(245),
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: 0.85),
+        border: Border(
+          bottom: BorderSide(color: _ancientGold.withValues(alpha: 0.3)),
+          top: BorderSide(color: _ancientGold.withValues(alpha: 0.1)),
+        ),
+      ),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       alignment: Alignment.centerLeft,
       child: Text(
         title,
         style: const TextStyle(
-          color: Colors.black87,
+          color: _ancientGold,
           fontSize: 14,
-          fontWeight: FontWeight.w600,
+          fontWeight: FontWeight.bold,
         ),
       ),
     );

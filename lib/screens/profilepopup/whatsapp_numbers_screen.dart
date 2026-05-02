@@ -1,6 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:guptik/widgets/home/animated_nebula_background.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+
+// Ancient Gold Theme Constants
+const Color _ancientGold = Color(0xFFD4AF37);
+const Color _darkBg = Color(0xFF0A0A0A);
 
 class WhatsAppNumbersScreen extends StatefulWidget {
   const WhatsAppNumbersScreen({super.key});
@@ -119,14 +124,20 @@ class _WhatsAppNumbersScreenState extends State<WhatsAppNumbersScreen> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Account settings saved successfully')),
+          const SnackBar(
+            content: Text('Account settings saved successfully', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+            backgroundColor: Colors.greenAccent,
+          ),
         );
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Error saving: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error saving: $e', style: const TextStyle(color: Colors.black)),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -146,68 +157,98 @@ class _WhatsAppNumbersScreenState extends State<WhatsAppNumbersScreen> {
       setState(() {
         _accounts.removeAt(index);
       });
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Configuration deleted', style: TextStyle(color: Colors.black)),
+            backgroundColor: _ancientGold,
+          ),
+        );
+      }
     } catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Error deleting: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error deleting: $e', style: const TextStyle(color: Colors.black)),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FA),
+      backgroundColor: _darkBg,
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
         title: const Text(
-          'WhatsApp Business Settings',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+          'Meta API Settings',
+          style: TextStyle(color: _ancientGold, fontWeight: FontWeight.bold),
         ),
-        backgroundColor: const Color(0xFF17A2B8),
-        iconTheme: const IconThemeData(color: Colors.white),
+        backgroundColor: Colors.black.withValues(alpha: 0.7),
+        elevation: 0,
+        iconTheme: const IconThemeData(color: _ancientGold),
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(1.0),
+          child: Container(color: _ancientGold.withValues(alpha: 0.2), height: 1.0),
+        ),
         actions: [
           if (_accounts.isEmpty)
             IconButton(
-              icon: const Icon(Icons.add),
+              icon: const Icon(Icons.add, color: _ancientGold),
               onPressed: _showAddAccountDialog,
             ),
         ],
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : SingleChildScrollView(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'WhatsApp Business Configuration',
-                    style: TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black87,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Manage your Meta API keys.',
-                    style: TextStyle(fontSize: 16, color: Colors.grey[600]),
-                  ),
-                  const SizedBox(height: 30),
+      // THE FIX: Wrap the body in an expanding Container so the background covers all scrolling
+      body: Container(
+        width: double.infinity,
+        height: double.infinity,
+        child: Stack(
+          children: [
+            // The Shared Cinematic Nebula Background
+            const Positioned.fill(child: AnimatedNebulaBackground()),
+            
+            _isLoading
+                ? const Center(child: CircularProgressIndicator(color: _ancientGold))
+                : SingleChildScrollView(
+                    padding: const EdgeInsets.fromLTRB(20, 100, 20, 40),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'WhatsApp Business Configuration',
+                          style: TextStyle(
+                            fontSize: 22,
+                            fontWeight: FontWeight.bold,
+                            color: _ancientGold,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Manage your Meta API keys and tokens for WhatsApp integration.',
+                          style: TextStyle(fontSize: 14, color: Colors.grey[400]),
+                        ),
+                        const SizedBox(height: 30),
 
-                  if (_accounts.isEmpty)
-                    _buildEmptyState()
-                  else
-                    ListView.builder(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      itemCount: _accounts.length,
-                      itemBuilder: (context, index) {
-                        return _buildAccountCard(_accounts[index], index);
-                      },
+                        if (_accounts.isEmpty)
+                          _buildEmptyState()
+                        else
+                          ListView.builder(
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            itemCount: _accounts.length,
+                            itemBuilder: (context, index) {
+                              return _buildAccountCard(_accounts[index], index);
+                            },
+                          ),
+                      ],
                     ),
-                ],
-              ),
-            ),
+                  ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -217,24 +258,34 @@ class _WhatsAppNumbersScreenState extends State<WhatsAppNumbersScreen> {
         padding: const EdgeInsets.symmetric(vertical: 40),
         child: Column(
           children: [
-            Icon(
-              Icons.account_tree_outlined,
-              size: 64,
-              color: Colors.grey[300],
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.black.withValues(alpha: 0.4),
+                border: Border.all(color: _ancientGold.withValues(alpha: 0.3), width: 2),
+              ),
+              child: Icon(
+                Icons.api_rounded,
+                size: 64,
+                color: _ancientGold.withValues(alpha: 0.8),
+              ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 24),
             Text(
               'No API keys configured.',
-              style: TextStyle(color: Colors.grey[500]),
+              style: TextStyle(color: Colors.grey[400], fontSize: 16),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 24),
             ElevatedButton(
               onPressed: _showAddAccountDialog,
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF17A2B8),
-                foregroundColor: Colors.white,
+                backgroundColor: _ancientGold,
+                foregroundColor: Colors.black,
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
               ),
-              child: const Text("Configure Now"),
+              child: const Text("Configure Now", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
             ),
           ],
         ),
@@ -243,10 +294,20 @@ class _WhatsAppNumbersScreenState extends State<WhatsAppNumbersScreen> {
   }
 
   Widget _buildAccountCard(Map<String, dynamic> account, int index) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 16),
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+    return Container(
+      margin: const EdgeInsets.only(bottom: 20),
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: 0.6),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: _ancientGold.withValues(alpha: 0.4), width: 1.5),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.4),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
       child: Padding(
         padding: const EdgeInsets.all(20),
         child: Column(
@@ -255,17 +316,50 @@ class _WhatsAppNumbersScreenState extends State<WhatsAppNumbersScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text(
-                  "Active Configuration",
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                const Row(
+                  children: [
+                    Icon(Icons.check_circle, color: Colors.greenAccent, size: 20),
+                    SizedBox(width: 8),
+                    Text(
+                      "Active Configuration",
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: _ancientGold),
+                    ),
+                  ],
                 ),
                 IconButton(
-                  icon: const Icon(Icons.delete_outline, color: Colors.red),
-                  onPressed: () => _deleteAccount(index),
+                  icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
+                  onPressed: () {
+                    showDialog(
+                      context: context,
+                      builder: (context) => AlertDialog(
+                        backgroundColor: Colors.black,
+                        shape: RoundedRectangleBorder(
+                          side: const BorderSide(color: _ancientGold, width: 1.5),
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        title: const Text('Delete Config?', style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
+                        content: const Text('Are you sure you want to remove these API keys?', style: TextStyle(color: Colors.white70)),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(context),
+                            child: const Text('Cancel', style: TextStyle(color: Colors.white54)),
+                          ),
+                          ElevatedButton(
+                            style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent, foregroundColor: Colors.black),
+                            onPressed: () {
+                              Navigator.pop(context);
+                              _deleteAccount(index);
+                            },
+                            child: const Text('Delete', style: TextStyle(fontWeight: FontWeight.bold)),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
                 ),
               ],
             ),
-            const Divider(),
+            Divider(color: _ancientGold.withValues(alpha: 0.2), height: 20),
             _buildInfoRow("App ID", account['app_id'] ?? ''),
             _buildInfoRow("Phone ID", account['phone_id'] ?? ''),
             _buildInfoRow("Business ID", account['business_id'] ?? ''),
@@ -282,18 +376,69 @@ class _WhatsAppNumbersScreenState extends State<WhatsAppNumbersScreen> {
 
   Widget _buildInfoRow(String label, String value) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
+      padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text("$label: ", style: const TextStyle(fontWeight: FontWeight.w600)),
-          Expanded(
-            child: Text(value, style: TextStyle(color: Colors.grey[700])),
+          SizedBox(
+            width: 100,
+            child: Text(label, style: const TextStyle(fontWeight: FontWeight.w600, color: Colors.white70)),
           ),
-          IconButton(
-            icon: const Icon(Icons.copy, size: 16),
-            onPressed: () => Clipboard.setData(ClipboardData(text: value)),
+          Expanded(
+            child: Text(value, style: const TextStyle(color: Colors.white, fontFamily: 'monospace')),
+          ),
+          SizedBox(
+            width: 32,
+            height: 24,
+            child: IconButton(
+              padding: EdgeInsets.zero,
+              icon: const Icon(Icons.copy, size: 16, color: _ancientGold),
+              tooltip: 'Copy to clipboard',
+              onPressed: () {
+                Clipboard.setData(ClipboardData(text: value));
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Copied to clipboard', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+                    backgroundColor: _ancientGold,
+                    duration: Duration(seconds: 1),
+                  ),
+                );
+              },
+            ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildDialogTextField({
+    required TextEditingController controller,
+    required String label,
+    String? hint,
+    TextInputType? keyboardType,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16.0),
+      child: TextField(
+        controller: controller,
+        keyboardType: keyboardType,
+        style: const TextStyle(color: _ancientGold, fontFamily: 'monospace'),
+        decoration: InputDecoration(
+          labelText: label,
+          labelStyle: TextStyle(color: Colors.grey[500], fontFamily: 'sans-serif'),
+          hintText: hint,
+          hintStyle: TextStyle(color: Colors.grey[700]),
+          filled: true,
+          fillColor: Colors.black.withValues(alpha: 0.3),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8),
+            borderSide: BorderSide(color: _ancientGold.withValues(alpha: 0.3)),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8),
+            borderSide: const BorderSide(color: _ancientGold, width: 2),
+          ),
+        ),
       ),
     );
   }
@@ -302,53 +447,40 @@ class _WhatsAppNumbersScreenState extends State<WhatsAppNumbersScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Configure WhatsApp'),
+        backgroundColor: Colors.black,
+        shape: RoundedRectangleBorder(
+          side: const BorderSide(color: _ancientGold, width: 1.5),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        title: const Text('Configure Meta API', style: TextStyle(color: _ancientGold, fontWeight: FontWeight.bold)),
         content: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              TextField(
+              const SizedBox(height: 8),
+              _buildDialogTextField(
                 controller: _tokenController,
-                decoration: const InputDecoration(
-                  labelText: 'WhatsApp Access Token',
-                  border: OutlineInputBorder(),
-                  hintText: 'EAAG...',
-                ),
+                label: 'WhatsApp Access Token',
+                hint: 'EAAG...',
               ),
-              const SizedBox(height: 16),
-              TextField(
+              _buildDialogTextField(
                 controller: _appIdController,
-                decoration: const InputDecoration(
-                  labelText: 'Meta App ID',
-                  border: OutlineInputBorder(),
-                ),
+                label: 'Meta App ID',
                 keyboardType: TextInputType.number,
               ),
-              const SizedBox(height: 16),
-              TextField(
+              _buildDialogTextField(
                 controller: _phoneIdController,
-                decoration: const InputDecoration(
-                  labelText: 'Phone Number ID (Meta)',
-                  border: OutlineInputBorder(),
-                ),
+                label: 'Phone Number ID (Meta)',
                 keyboardType: TextInputType.number,
               ),
-              const SizedBox(height: 16),
-              TextField(
+              _buildDialogTextField(
                 controller: _businessIdController,
-                decoration: const InputDecoration(
-                  labelText: 'Business Account ID (Meta)',
-                  border: OutlineInputBorder(),
-                ),
+                label: 'Business Account ID (Meta)',
                 keyboardType: TextInputType.number,
               ),
-              const SizedBox(height: 16),
-              TextField(
+              _buildDialogTextField(
                 controller: _mobileNumberController,
-                decoration: const InputDecoration(
-                  labelText: 'Mobile Number',
-                  border: OutlineInputBorder(),
-                ),
+                label: 'Mobile Number',
                 keyboardType: TextInputType.phone,
               ),
             ],
@@ -357,11 +489,15 @@ class _WhatsAppNumbersScreenState extends State<WhatsAppNumbersScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
+            child: const Text('Cancel', style: TextStyle(color: Colors.white54)),
           ),
           ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: _ancientGold,
+              foregroundColor: Colors.black,
+            ),
             onPressed: _addAccountToSupabase,
-            child: const Text('Save'),
+            child: const Text('Save', style: TextStyle(fontWeight: FontWeight.bold)),
           ),
         ],
       ),
