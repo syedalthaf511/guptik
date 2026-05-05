@@ -10,6 +10,11 @@ import 'package:video_player/video_player.dart';
 import 'package:http/http.dart' as http; 
 import 'package:emoji_picker_flutter/emoji_picker_flutter.dart'; 
 import '../../services/trustme/trust_me_service.dart'; 
+import 'package:guptik/utils/theme/dynamic_app_background.dart';
+
+// Ancient Gold Theme Constants
+const Color _ancientGold = Color(0xFFD4AF37);
+const Color _darkBg = Color(0xFF0A0A0A);
 
 // ─── HELPER FUNCTIONS ────────────────────────────────────────────────────
 String _formatTime(DateTime dt) {
@@ -196,28 +201,34 @@ class _MobileActiveChatScreenState extends State<MobileActiveChatScreen> {
 
     showModalBottomSheet(
       context: context,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
+      backgroundColor: Colors.grey[900],
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+        side: BorderSide(color: _ancientGold, width: 1.5),
+      ),
       builder: (context) => SafeArea(
         child: Wrap(
           children: [
             // Option 1: Copy Text
             if (type == 'text')
               ListTile(
-                leading: const Icon(Icons.copy, color: Colors.black87),
-                title: const Text('Copy'),
+                leading: const Icon(Icons.copy, color: Colors.white),
+                title: const Text('Copy', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                 onTap: () {
                   Clipboard.setData(ClipboardData(text: msg['content']));
                   Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Copied to clipboard')));
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                    content: Text('Copied to clipboard', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+                    backgroundColor: _ancientGold,
+                  ));
                 },
               ),
               
             // Option 2: Edit Message (Only if you sent it, and it's text)
             if (isMe && type == 'text')
               ListTile(
-                leading: const Icon(Icons.edit, color: Color.fromARGB(255, 115, 11, 134)),
-                title: const Text('Edit'),
+                leading: const Icon(Icons.edit, color: _ancientGold),
+                title: const Text('Edit', style: TextStyle(color: _ancientGold, fontWeight: FontWeight.bold)),
                 onTap: () {
                   Navigator.pop(context);
                   setState(() {
@@ -231,7 +242,7 @@ class _MobileActiveChatScreenState extends State<MobileActiveChatScreen> {
             // Option 3: Delete Message
             ListTile(
               leading: const Icon(Icons.delete_outline, color: Colors.redAccent),
-              title: const Text('Delete', style: TextStyle(color: Colors.redAccent)),
+              title: const Text('Delete', style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
               onTap: () {
                 Navigator.pop(context);
                 _showDeleteDialog(msg);
@@ -250,17 +261,21 @@ class _MobileActiveChatScreenState extends State<MobileActiveChatScreen> {
     showDialog(
       context: context,
       builder: (dialogCtx) => AlertDialog(
-        backgroundColor: Colors.white,
-        title: const Text("Delete message?", style: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold)),
-        content: const Text("This action cannot be undone.", style: TextStyle(color: Colors.black54)),
+        backgroundColor: Colors.black,
+        shape: RoundedRectangleBorder(
+          side: const BorderSide(color: _ancientGold, width: 1.5),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        title: const Text("Delete message?", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        content: const Text("This action cannot be undone.", style: TextStyle(color: Colors.white70)),
         actions: [
           TextButton(
-            child: const Text("Cancel", style: TextStyle(color: Colors.grey)),
+            child: const Text("Cancel", style: TextStyle(color: Colors.white54)),
             onPressed: () => Navigator.pop(dialogCtx),
           ),
           
           TextButton(
-            child: const Text("Delete for me", style: TextStyle(color: Color.fromARGB(255, 115, 11, 134))),
+            child: const Text("Delete for me", style: TextStyle(color: _ancientGold, fontWeight: FontWeight.bold)),
             onPressed: () async {
               Navigator.pop(dialogCtx);
               setState(() => _activeMessages.removeWhere((m) => m['id'] == msg['id'])); // Optimistic UI update
@@ -294,7 +309,10 @@ class _MobileActiveChatScreenState extends State<MobileActiveChatScreen> {
       await TrustMeService.instance.streamMediaFile(conversationId: widget.chat.id, filePath: pickedFile.path, contentType: isVideo ? 'video/mp4' : 'image/jpeg');
       _loadMessages(); 
     } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Upload Failed: $e")));
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text("Upload Failed: $e", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        backgroundColor: Colors.redAccent,
+      ));
     } finally {
       if (mounted) setState(() => _isUploading = false);
     }
@@ -302,13 +320,17 @@ class _MobileActiveChatScreenState extends State<MobileActiveChatScreen> {
 
   void _showAttachmentMenu() {
     showModalBottomSheet(
-      context: context, backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
+      context: context, 
+      backgroundColor: Colors.grey[900],
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+        side: BorderSide(color: _ancientGold, width: 1.5),
+      ),
       builder: (context) => SafeArea(
         child: Wrap(
           children: [
-            ListTile(leading: const Icon(Icons.image, color: Color.fromARGB(255, 115, 11, 134)), title: const Text('Send Photo'), onTap: () { Navigator.pop(context); _pickAndSendMedia(ImageSource.gallery, isVideo: false); }),
-            ListTile(leading: const Icon(Icons.videocam, color: Color.fromARGB(255, 115, 11, 134)), title: const Text('Send Video'), onTap: () { Navigator.pop(context); _pickAndSendMedia(ImageSource.gallery, isVideo: true); }),
+            ListTile(leading: const Icon(Icons.image, color: _ancientGold), title: const Text('Send Photo', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)), onTap: () { Navigator.pop(context); _pickAndSendMedia(ImageSource.gallery, isVideo: false); }),
+            ListTile(leading: const Icon(Icons.videocam, color: _ancientGold), title: const Text('Send Video', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)), onTap: () { Navigator.pop(context); _pickAndSendMedia(ImageSource.gallery, isVideo: true); }),
           ],
         ),
       ),
@@ -323,12 +345,16 @@ class _MobileActiveChatScreenState extends State<MobileActiveChatScreen> {
     showDialog(
       context: context,
       builder: (dialogCtx) => AlertDialog(
-        backgroundColor: Colors.white,
+        backgroundColor: Colors.black,
+        shape: RoundedRectangleBorder(
+          side: const BorderSide(color: _ancientGold, width: 1.5),
+          borderRadius: BorderRadius.circular(16),
+        ),
         title: const Row(
           children: [
-            Icon(Icons.edit, color: Color.fromARGB(255, 115, 11, 134), size: 20),
+            Icon(Icons.edit, color: _ancientGold, size: 20),
             SizedBox(width: 10),
-            Text('Rename Contact', style: TextStyle(color: Colors.black87, fontSize: 17, fontWeight: FontWeight.bold)),
+            Text('Rename Contact', style: TextStyle(color: _ancientGold, fontSize: 17, fontWeight: FontWeight.bold)),
           ],
         ),
         content: SizedBox(
@@ -337,20 +363,20 @@ class _MobileActiveChatScreenState extends State<MobileActiveChatScreen> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Original name: $originalName', style: const TextStyle(color: Colors.grey, fontSize: 12)),
+              Text('Original name: $originalName', style: const TextStyle(color: Colors.white54, fontSize: 12)),
               const SizedBox(height: 14),
               TextField(
                 controller: controller,
                 autofocus: true,
-                style: const TextStyle(color: Colors.black87),
+                style: const TextStyle(color: Colors.white),
                 decoration: InputDecoration(
                   hintText: 'Enter a custom name...',
-                  hintStyle: TextStyle(color: Colors.grey.shade400),
+                  hintStyle: TextStyle(color: Colors.grey.shade500),
                   filled: true,
-                  fillColor: Colors.grey.shade100,
+                  fillColor: Colors.black.withValues(alpha: 0.5),
                   contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                  enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: Colors.grey.shade300), borderRadius: BorderRadius.circular(8)),
-                  focusedBorder: OutlineInputBorder(borderSide: const BorderSide(color: Color.fromARGB(255, 115, 11, 134)), borderRadius: BorderRadius.circular(8)),
+                  enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: _ancientGold.withValues(alpha: 0.3)), borderRadius: BorderRadius.circular(8)),
+                  focusedBorder: OutlineInputBorder(borderSide: const BorderSide(color: _ancientGold, width: 2), borderRadius: BorderRadius.circular(8)),
                   suffixIcon: IconButton(
                     icon: const Icon(Icons.clear, color: Colors.grey, size: 18),
                     onPressed: () => controller.clear(),
@@ -358,17 +384,20 @@ class _MobileActiveChatScreenState extends State<MobileActiveChatScreen> {
                 ),
               ),
               const SizedBox(height: 8),
-              const Text('Clear the field to revert to the original name.', style: TextStyle(color: Colors.grey, fontSize: 11)),
+              const Text('Clear the field to revert to the original name.', style: TextStyle(color: Colors.white54, fontSize: 11)),
             ],
           ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogCtx),
-            child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+            child: const Text('Cancel', style: TextStyle(color: Colors.white54)),
           ),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: const Color.fromARGB(255, 115, 11, 134)),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: _ancientGold,
+              foregroundColor: Colors.black,
+            ),
             onPressed: () async {
               final newName = controller.text.trim();
               Navigator.pop(dialogCtx); 
@@ -384,13 +413,16 @@ class _MobileActiveChatScreenState extends State<MobileActiveChatScreen> {
                 });
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                    content: Text(newName.isEmpty ? 'Name reverted to "$originalName"' : 'Contact renamed to "$newName"'),
-                    backgroundColor: Colors.green,
+                    content: Text(
+                      newName.isEmpty ? 'Name reverted to "$originalName"' : 'Contact renamed to "$newName"',
+                      style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
+                    ),
+                    backgroundColor: Colors.greenAccent,
                   ),
                 );
               }
             },
-            child: const Text('Save', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            child: const Text('Save', style: TextStyle(fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -409,18 +441,37 @@ class _MobileActiveChatScreenState extends State<MobileActiveChatScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFECE5DD), 
+      backgroundColor: _darkBg, 
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
-        backgroundColor: const Color.fromARGB(255, 115, 11, 134), 
-        iconTheme: const IconThemeData(color: Colors.white),
+        backgroundColor: Colors.black.withValues(alpha: 0.7), 
+        iconTheme: const IconThemeData(color: _ancientGold),
+        elevation: 0,
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(1.0),
+          child: Container(color: _ancientGold.withValues(alpha: 0.2), height: 1.0),
+        ),
         titleSpacing: 0,
         title: Row(
           children: [
             Stack(
               children: [
-                const CircleAvatar(radius: 18, backgroundColor: Color(0xFFDFDFDF), child: Icon(Icons.person, color: Colors.white)),
+                Container(
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(color: _ancientGold.withValues(alpha: 0.5), width: 1.5),
+                    color: _ancientGold.withValues(alpha: 0.15),
+                  ),
+                  child: const CircleAvatar(radius: 18, backgroundColor: Colors.transparent, child: Icon(Icons.person, color: _ancientGold)),
+                ),
                 if (widget.chat.isOnline)
-                  Positioned(bottom: 0, right: 0, child: Container(width: 10, height: 10, decoration: BoxDecoration(color: Colors.greenAccent, shape: BoxShape.circle, border: Border.all(color: const Color.fromARGB(255, 115, 11, 134), width: 2)))),
+                  Positioned(
+                    bottom: 0, right: 0, 
+                    child: Container(
+                      width: 10, height: 10, 
+                      decoration: BoxDecoration(color: Colors.greenAccent, shape: BoxShape.circle, border: Border.all(color: Colors.black, width: 2))
+                    )
+                  ),
               ],
             ),
             const SizedBox(width: 10),
@@ -428,10 +479,10 @@ class _MobileActiveChatScreenState extends State<MobileActiveChatScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(_displayName, style: const TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.w500)),
+                  Text(_displayName, style: const TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.bold)),
                   Row(
                     children: [
-                      Icon(Icons.lock, color: Colors.white70, size: 10),
+                      const Icon(Icons.lock, color: Colors.white70, size: 10),
                       const SizedBox(width: 4),
                       Text(widget.chat.isOnline ? "Online" : "Offline", style: TextStyle(color: widget.chat.isOnline ? Colors.greenAccent : Colors.white70, fontSize: 12)),
                     ],
@@ -444,47 +495,71 @@ class _MobileActiveChatScreenState extends State<MobileActiveChatScreen> {
         actions: [
           IconButton(icon: const Icon(Icons.videocam), onPressed: () {}), 
           IconButton(icon: const Icon(Icons.call), onPressed: () {}), 
-          PopupMenuButton<String>(
-            icon: const Icon(Icons.more_vert, color: Colors.white),
-            color: Colors.white,
-            onSelected: (value) {
-              if (value == 'rename') _showRenameDialog(); 
-            },
-            itemBuilder: (_) => [
-              const PopupMenuItem(
-                value: 'rename',
-                child: Row(
-                  children: [
-                    Icon(Icons.edit, color: Color.fromARGB(255, 115, 11, 134), size: 18),
-                    SizedBox(width: 12),
-                    Text('Rename Contact', style: TextStyle(color: Colors.black87)),
-                  ],
-                ),
+          Theme(
+            data: Theme.of(context).copyWith(
+              cardColor: Colors.black,
+              iconTheme: const IconThemeData(color: _ancientGold),
+            ),
+            child: PopupMenuButton<String>(
+              icon: const Icon(Icons.more_vert, color: _ancientGold),
+              shape: RoundedRectangleBorder(
+                side: BorderSide(color: _ancientGold.withValues(alpha: 0.5)),
+                borderRadius: BorderRadius.circular(12),
               ),
-            ],
+              onSelected: (value) {
+                if (value == 'rename') _showRenameDialog(); 
+              },
+              itemBuilder: (_) => [
+                const PopupMenuItem(
+                  value: 'rename',
+                  child: Row(
+                    children: [
+                      Icon(Icons.edit, color: _ancientGold, size: 18),
+                      SizedBox(width: 12),
+                      Text('Rename Contact', style: TextStyle(color: _ancientGold, fontWeight: FontWeight.bold)),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),
-      body: PopScope(
-        canPop: !_showEmojiPicker,
-        onPopInvokedWithResult: (didPop, _) {
-          if (didPop) return;
-          if (_showEmojiPicker) {
-            setState(() => _showEmojiPicker = false);
-          }
-        },
-        child: Column(
+      body: SizedBox(
+        width: double.infinity,
+        height: double.infinity,
+        child: Stack(
           children: [
-            Expanded(child: _buildMessageList()), 
-            _buildInputBar(), 
+            // The Shared Cinematic Nebula Background
+            const Positioned.fill(child: DynamicAppBackground()),
             
-            if (_showEmojiPicker)
-              SizedBox(
-                height: 250, 
-                child: EmojiPicker(
-                  textEditingController: _messageController,
+            PopScope(
+              canPop: !_showEmojiPicker,
+              onPopInvokedWithResult: (didPop, _) {
+                if (didPop) return;
+                if (_showEmojiPicker) {
+                  setState(() => _showEmojiPicker = false);
+                }
+              },
+              child: SafeArea(
+                bottom: false,
+                child: Column(
+                  children: [
+                    Expanded(child: _buildMessageList()), 
+                    _buildInputBar(), 
+                    
+                    if (_showEmojiPicker)
+                      Container(
+                        color: Colors.black,
+                        height: 250, 
+                        child: EmojiPicker(
+                          textEditingController: _messageController,
+                        ),
+                      ),
+                  ],
                 ),
               ),
+            ),
           ],
         ),
       ),
@@ -495,7 +570,17 @@ class _MobileActiveChatScreenState extends State<MobileActiveChatScreen> {
 
   Widget _buildMessageList() {
     if (_activeMessages.isEmpty) {
-      return Center(child: Text("Send a message to start the secure chat.", style: TextStyle(color: Colors.grey[600])));
+      return Center(
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          decoration: BoxDecoration(
+            color: Colors.black.withValues(alpha: 0.5),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: _ancientGold.withValues(alpha: 0.3)),
+          ),
+          child: const Text("Send a message to start the secure chat.", style: TextStyle(color: _ancientGold, fontWeight: FontWeight.bold)),
+        )
+      );
     }
 
     final List<Widget> items = [];
@@ -519,10 +604,17 @@ class _MobileActiveChatScreenState extends State<MobileActiveChatScreen> {
   Widget _buildDateSeparator(String label) {
     return Center(
       child: Container(
-        margin: const EdgeInsets.symmetric(vertical: 12),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-        decoration: BoxDecoration(color: const Color(0xFFD4EAF7), borderRadius: BorderRadius.circular(8), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), spreadRadius: 1, blurRadius: 1)]),
-        child: Text(label, style: TextStyle(color: Colors.grey[700], fontSize: 12, fontWeight: FontWeight.w500)),
+        margin: const EdgeInsets.symmetric(vertical: 16),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+        decoration: BoxDecoration(
+          color: Colors.black.withValues(alpha: 0.6), 
+          borderRadius: BorderRadius.circular(12), 
+          border: Border.all(color: _ancientGold.withValues(alpha: 0.3)),
+          boxShadow: [
+            BoxShadow(color: Colors.black.withValues(alpha: 0.4), spreadRadius: 1, blurRadius: 4)
+          ]
+        ),
+        child: Text(label, style: const TextStyle(color: _ancientGold, fontSize: 12, fontWeight: FontWeight.bold)),
       ),
     );
   }
@@ -548,28 +640,36 @@ class _MobileActiveChatScreenState extends State<MobileActiveChatScreen> {
       child: GestureDetector(
         onLongPress: () => _showMessageOptions(msg),
         child: Container(
-          margin: const EdgeInsets.only(bottom: 4),
+          margin: const EdgeInsets.only(bottom: 8),
           constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.75), 
           decoration: BoxDecoration(
-            color: isMedia ? Colors.transparent : (isMe ? const Color.fromARGB(255, 235, 187, 245) : Colors.white), 
-            borderRadius: BorderRadius.only(topLeft: const Radius.circular(12), topRight: const Radius.circular(12), bottomLeft: Radius.circular(isMe ? 12 : 4), bottomRight: Radius.circular(isMe ? 4 : 12)),
-            boxShadow: isMedia ? [] : [BoxShadow(color: Colors.black.withOpacity(0.05), spreadRadius: 1, blurRadius: 1, offset: const Offset(0, 1))],
+            color: isMedia ? Colors.transparent : (isMe ? _ancientGold.withValues(alpha: 0.15) : Colors.black.withValues(alpha: 0.6)), 
+            border: isMedia ? null : Border.all(color: isMe ? _ancientGold.withValues(alpha: 0.5) : Colors.white10),
+            borderRadius: BorderRadius.only(
+              topLeft: const Radius.circular(16), 
+              topRight: const Radius.circular(16), 
+              bottomLeft: Radius.circular(isMe ? 16 : 4), 
+              bottomRight: Radius.circular(isMe ? 4 : 16)
+            ),
+            boxShadow: isMedia ? [] : [
+              BoxShadow(color: Colors.black.withValues(alpha: 0.2), spreadRadius: 1, blurRadius: 4, offset: const Offset(0, 2))
+            ],
           ),
           child: Stack(
             children: [
               Padding(
-                padding: isMedia ? EdgeInsets.zero : const EdgeInsets.fromLTRB(10, 8, 10, 6),
+                padding: isMedia ? EdgeInsets.zero : const EdgeInsets.fromLTRB(14, 10, 14, 8),
                 child: content,
               ),
               Positioned(
-                bottom: 4, right: 6,
+                bottom: 4, right: 8,
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
-                  decoration: isMedia ? BoxDecoration(color: Colors.black54, borderRadius: BorderRadius.circular(8)) : null,
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: isMedia ? BoxDecoration(color: Colors.black.withValues(alpha: 0.6), borderRadius: BorderRadius.circular(8)) : null,
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Text(_formatTime(time), style: TextStyle(color: isMedia ? Colors.white : Colors.grey[700], fontSize: 10)),
+                      Text(_formatTime(time), style: TextStyle(color: isMedia ? Colors.white : Colors.grey[400], fontSize: 10, fontWeight: FontWeight.bold)),
                       if (isMe) ...[
                         const SizedBox(width: 4),
                         _buildStatusTick(msg['is_read'] as bool? ?? false, msg['is_delivered'] as bool? ?? false),
@@ -586,14 +686,14 @@ class _MobileActiveChatScreenState extends State<MobileActiveChatScreen> {
   }
 
   Widget _buildStatusTick(bool isRead, bool isDelivered) {
-    if (isRead) return const Icon(Icons.done_all, size: 14, color: Colors.blue); 
-    if (isDelivered) return const Icon(Icons.done_all, size: 14, color: Colors.grey); 
-    return const Icon(Icons.access_time, size: 12, color: Colors.grey); 
+    if (isRead) return const Icon(Icons.done_all, size: 14, color: _ancientGold); 
+    if (isDelivered) return const Icon(Icons.done_all, size: 14, color: Colors.white54); 
+    return const Icon(Icons.access_time, size: 12, color: Colors.white54); 
   }
 
-  Widget _buildDeletedBubble() => Padding(padding: const EdgeInsets.only(right: 48, bottom: 8), child: Row(mainAxisSize: MainAxisSize.min, children: [const Icon(Icons.block, color: Colors.grey, size: 14), const SizedBox(width: 6), Text('This message was deleted', style: TextStyle(color: Colors.grey.shade600, fontSize: 14, fontStyle: FontStyle.italic))]));
+  Widget _buildDeletedBubble() => Padding(padding: const EdgeInsets.only(right: 48, bottom: 8), child: Row(mainAxisSize: MainAxisSize.min, children: [const Icon(Icons.block, color: Colors.white54, size: 14), const SizedBox(width: 6), Text('This message was deleted', style: TextStyle(color: Colors.white54, fontSize: 14, fontStyle: FontStyle.italic))]));
 
-  Widget _buildTextContent(String content) => Padding(padding: const EdgeInsets.only(right: 64, bottom: 8), child: Text(content, style: TextStyle(color: Colors.grey[900], fontSize: 15)));
+  Widget _buildTextContent(String content) => Padding(padding: const EdgeInsets.only(right: 64, bottom: 12), child: Text(content, style: const TextStyle(color: Colors.white, fontSize: 15, height: 1.3)));
 
   Widget _buildImageContent(Map<String, dynamic> msg, String ipBase) {
     final url = msg['content'].toString().replaceFirst('[media]', ipBase).replaceFirst('[vault]', ipBase);
@@ -601,7 +701,13 @@ class _MobileActiveChatScreenState extends State<MobileActiveChatScreen> {
       onTap: () => showDialog(context: context, builder: (_) => Dialog(backgroundColor: Colors.transparent, child: InteractiveViewer(child: Image.network(url)))),
       child: Column(
         children: [
-          ClipRRect(borderRadius: BorderRadius.circular(12), child: Image.network(url, width: 260, height: 220, fit: BoxFit.cover)),
+          Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: _ancientGold.withValues(alpha: 0.5), width: 1.5),
+            ),
+            child: ClipRRect(borderRadius: BorderRadius.circular(14), child: Image.network(url, width: 260, height: 220, fit: BoxFit.cover)),
+          ),
           const SizedBox(height: 20), 
         ],
       ),
@@ -644,7 +750,16 @@ class _MobileActiveChatScreenState extends State<MobileActiveChatScreen> {
       },
       child: Column(
         children: [
-          Container(width: 260, height: 200, decoration: BoxDecoration(color: Colors.black87, borderRadius: BorderRadius.circular(12)), child: const Icon(Icons.play_circle_fill, color: Colors.white, size: 60)),
+          Container(
+            width: 260, 
+            height: 200, 
+            decoration: BoxDecoration(
+              color: Colors.black.withValues(alpha: 0.6), 
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: _ancientGold.withValues(alpha: 0.5), width: 1.5)
+            ), 
+            child: const Icon(Icons.play_circle_fill, color: _ancientGold, size: 60)
+          ),
           const SizedBox(height: 20), 
         ],
       ),
@@ -654,11 +769,11 @@ class _MobileActiveChatScreenState extends State<MobileActiveChatScreen> {
   Widget _buildDocumentContent(Map<String, dynamic> msg, String ipBase) {
     final fileName = msg['content'].toString().replaceAll(RegExp(r'^\[(document|media|vault)\]'), '').split('/').last;
     return Container(
-      width: 220, padding: const EdgeInsets.fromLTRB(4, 4, 12, 24),
+      width: 220, padding: const EdgeInsets.fromLTRB(4, 4, 12, 28),
       child: Row(
         children: [
-          const Icon(Icons.insert_drive_file, color: Color.fromARGB(255, 115, 11, 134), size: 30), const SizedBox(width: 8),
-          Expanded(child: Text(fileName, style: TextStyle(color: Colors.grey[900], fontSize: 14, fontWeight: FontWeight.w500), maxLines: 2, overflow: TextOverflow.ellipsis)),
+          const Icon(Icons.insert_drive_file, color: _ancientGold, size: 30), const SizedBox(width: 8),
+          Expanded(child: Text(fileName, style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold), maxLines: 2, overflow: TextOverflow.ellipsis)),
         ],
       ),
     );
@@ -671,15 +786,18 @@ class _MobileActiveChatScreenState extends State<MobileActiveChatScreen> {
         // The "Editing Message" Banner that appears above the keyboard
         if (_editingMessageId != null)
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            color: Colors.grey.shade200,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              color: Colors.black.withValues(alpha: 0.8),
+              border: Border(top: BorderSide(color: _ancientGold.withValues(alpha: 0.5))),
+            ),
             child: Row(
               children: [
-                const Icon(Icons.edit, color: Color.fromARGB(255, 115, 11, 134), size: 18),
-                const SizedBox(width: 8),
-                const Expanded(child: Text("Editing message...", style: TextStyle(color: Colors.black87, fontWeight: FontWeight.w500))),
+                const Icon(Icons.edit, color: _ancientGold, size: 18),
+                const SizedBox(width: 12),
+                const Expanded(child: Text("Editing message...", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
                 IconButton(
-                  icon: const Icon(Icons.close, color: Colors.grey, size: 20),
+                  icon: const Icon(Icons.close, color: Colors.white54, size: 20),
                   onPressed: () {
                     setState(() {
                       _editingMessageId = null; // Cancel editing
@@ -693,17 +811,25 @@ class _MobileActiveChatScreenState extends State<MobileActiveChatScreen> {
 
         // The normal input bar
         Container(
-          padding: EdgeInsets.only(left: 8, right: 8, top: 8, bottom: MediaQuery.of(context).padding.bottom + 8), color: Colors.transparent,
+          padding: EdgeInsets.only(left: 12, right: 12, top: 8, bottom: MediaQuery.of(context).padding.bottom + 12), 
+          color: Colors.transparent,
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Expanded(
                 child: Container(
-                  decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(24), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), spreadRadius: 1, blurRadius: 1, offset: const Offset(0, 1))]),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.6), 
+                    borderRadius: BorderRadius.circular(24), 
+                    border: Border.all(color: _ancientGold.withValues(alpha: 0.4), width: 1.5),
+                    boxShadow: [
+                      BoxShadow(color: Colors.black.withValues(alpha: 0.4), spreadRadius: 1, blurRadius: 4, offset: const Offset(0, 2))
+                    ]
+                  ),
                   child: Row(
                     children: [
                       IconButton(
-                        icon: Icon(_showEmojiPicker ? Icons.keyboard : Icons.emoji_emotions_outlined, color: Colors.black54), 
+                        icon: Icon(_showEmojiPicker ? Icons.keyboard : Icons.emoji_emotions_outlined, color: _ancientGold), 
                         onPressed: () {
                           if (_showEmojiPicker) {
                             _focusNode.requestFocus(); 
@@ -718,16 +844,22 @@ class _MobileActiveChatScreenState extends State<MobileActiveChatScreen> {
                         child: TextField(
                           controller: _messageController, 
                           focusNode: _focusNode, 
-                          style: const TextStyle(color: Colors.black, fontSize: 16), 
+                          style: const TextStyle(color: Colors.white, fontSize: 16), 
                           maxLines: 5, minLines: 1, 
-                          decoration: const InputDecoration(hintText: "Message", hintStyle: TextStyle(color: Colors.black38, fontSize: 16), border: InputBorder.none, contentPadding: EdgeInsets.symmetric(vertical: 12))
+                          decoration: InputDecoration(
+                            hintText: "Message", 
+                            hintStyle: TextStyle(color: Colors.grey[500], fontSize: 16), 
+                            border: InputBorder.none, 
+                            contentPadding: const EdgeInsets.symmetric(vertical: 12)
+                          )
                         )
                       ),
                       
                       // Hide camera/attachment icons if we are editing text
                       if (_editingMessageId == null) ...[
-                        IconButton(icon: const Icon(Icons.attach_file, color: Colors.black54), onPressed: _showAttachmentMenu),
-                        IconButton(icon: const Icon(Icons.camera_alt, color: Colors.black54), onPressed: () => _pickAndSendMedia(ImageSource.camera, isVideo: false)),
+                        IconButton(icon: const Icon(Icons.attach_file, color: Colors.white70), onPressed: _showAttachmentMenu),
+                        IconButton(icon: const Icon(Icons.camera_alt, color: Colors.white70), onPressed: () => _pickAndSendMedia(ImageSource.camera, isVideo: false)),
+                        const SizedBox(width: 4),
                       ],
                     ],
                   ),
@@ -735,10 +867,17 @@ class _MobileActiveChatScreenState extends State<MobileActiveChatScreen> {
               ),
               const SizedBox(width: 8),
               Container(
-                margin: const EdgeInsets.only(bottom: 4), decoration: const BoxDecoration(color: Color.fromARGB(255, 115, 11, 134), shape: BoxShape.circle),
+                margin: const EdgeInsets.only(bottom: 4), 
+                decoration: BoxDecoration(
+                  color: _ancientGold, 
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(color: _ancientGold.withValues(alpha: 0.4), blurRadius: 8, spreadRadius: 1)
+                  ]
+                ),
                 child: _isUploading 
-                  ? const Padding(padding: EdgeInsets.all(12), child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))) 
-                  : IconButton(icon: const Icon(Icons.send, color: Colors.white, size: 20), onPressed: _sendMessage),
+                  ? const Padding(padding: EdgeInsets.all(12), child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.black, strokeWidth: 2))) 
+                  : IconButton(icon: const Icon(Icons.send, color: Colors.black, size: 20), onPressed: _sendMessage),
               ),
             ],
           ),
@@ -790,19 +929,28 @@ class _MobileVideoPlayerDialogState extends State<_MobileVideoPlayerDialog> {
             ]
           ),
           if (!_init) 
-            const Padding(padding: EdgeInsets.all(40), child: CircularProgressIndicator(color: Color.fromARGB(255, 115, 11, 134)))
+            const Padding(padding: EdgeInsets.all(40), child: CircularProgressIndicator(color: _ancientGold))
           else 
             Flexible(
               child: AspectRatio(
                 aspectRatio: _controller.value.aspectRatio, 
-                child: VideoPlayer(_controller)
+                child: Container(
+                  decoration: BoxDecoration(
+                    border: Border.all(color: _ancientGold.withValues(alpha: 0.5), width: 2),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(10),
+                    child: VideoPlayer(_controller)
+                  ),
+                )
               ),
             ),
           if (_init) 
-            VideoProgressIndicator(_controller, allowScrubbing: true, colors: const VideoProgressColors(playedColor: Color.fromARGB(255, 115, 11, 134))),
+            VideoProgressIndicator(_controller, allowScrubbing: true, colors: const VideoProgressColors(playedColor: _ancientGold, backgroundColor: Colors.white24)),
           if (_init) 
             IconButton(
-              icon: Icon(_controller.value.isPlaying ? Icons.pause_circle_filled : Icons.play_circle_fill, color: Colors.white, size: 50), 
+              icon: Icon(_controller.value.isPlaying ? Icons.pause_circle_filled : Icons.play_circle_fill, color: _ancientGold, size: 60), 
               onPressed: () => setState(() { _controller.value.isPlaying ? _controller.pause() : _controller.play(); })
             ),
           const SizedBox(height: 10),

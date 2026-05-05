@@ -1,7 +1,6 @@
 import 'dart:io';
-import 'dart:math';
 import 'package:flutter/material.dart';
-import 'package:guptik/widgets/home/animated_nebula_background.dart';
+import 'package:guptik/utils/theme/dynamic_app_background.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
@@ -10,7 +9,6 @@ import 'package:provider/provider.dart';
 import '../../models/home_control/home_model.dart';
 import '../../services/home_control/home_control_services.dart';
 import '../../providers/home_control/dynamic_theme_provider.dart';
-import '../../widgets/home_control/home_control_widgets.dart'; // Kept for your other widgets
 import 'rooms_list_screen.dart';
 
 // Ancient Gold Theme Constants
@@ -264,7 +262,7 @@ class _HomeControlBodyState extends State<HomeControlBody> {
       body: Stack(
         children: [
           // The Cinematic Nebula Background
-          const Positioned.fill(child: AnimatedNebulaBackground()),
+          const Positioned.fill(child: DynamicAppBackground()),
           
           // The Main Content
           _isLoading

@@ -4,6 +4,11 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../services/trustme/trust_me_service.dart';
 import 'mobile_chat_list_screen.dart';
+import 'package:guptik/utils/theme/dynamic_app_background.dart';
+
+// Ancient Gold Theme Constants
+const Color _ancientGold = Color(0xFFD4AF37);
+const Color _darkBg = Color(0xFF0A0A0A);
 
 class MobileConnectionScreen extends StatefulWidget {
   final bool autoLaunchChats; // 🚀 Added this variable!
@@ -37,14 +42,20 @@ class _MobileConnectionScreenState extends State<MobileConnectionScreen> {
     }
   }
 
-
   Future<void> _autoFetchMyCloudflareUrl() async {
-    setState(() => _isLoading = true);
+    setState(() {
+      _isLoading = true;
+    });
     const storage = FlutterSecureStorage();
     String? savedUrl = await storage.read(key: 'public_url');
     
     if (savedUrl != null && savedUrl.isNotEmpty) {
-      if (mounted) setState(() { _myUrlController.text = savedUrl; _isLoading = false; });
+      if (mounted) {
+        setState(() { 
+          _myUrlController.text = savedUrl; 
+          _isLoading = false; 
+        });
+      }
       return;
     }
 
@@ -78,20 +89,26 @@ class _MobileConnectionScreenState extends State<MobileConnectionScreen> {
           }
         }
 
-        // 3. THE FIX: Add the "!" to tell Dart it is 100% safe to use!
         if (fetchedUrl != null && fetchedUrl.isNotEmpty) {
-          if (mounted) setState(() => _myUrlController.text = fetchedUrl!);
+          if (mounted) {
+            setState(() {
+              _myUrlController.text = fetchedUrl!;
+            });
+          }
           await storage.write(key: 'public_url', value: fetchedUrl);
         }
       }
     } catch (e) { 
       debugPrint("URL fetch error: $e"); 
     } finally { 
-      if (mounted) setState(() => _isLoading = false); 
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        }); 
+      }
     }
   }
 
-  
   Future<void> _saveMyUrl(String url) async => await const FlutterSecureStorage().write(key: 'public_url', value: url);
 
   Future<void> _generateCode() async {
@@ -99,14 +116,27 @@ class _MobileConnectionScreenState extends State<MobileConnectionScreen> {
     await _saveMyUrl(_myUrlController.text);
     TrustMeService.instance.setGatewayUrl(_myUrlController.text);
     
-    setState(() => _isLoading = true);
+    setState(() {
+      _isLoading = true;
+    });
     try {
       final data = await TrustMeService.instance.generateHandshakeCode("Mobile_User");
-      setState(() => _generatedCode = data['code']);
+      setState(() {
+        _generatedCode = data['code'];
+      });
     } catch (e) { 
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e"))); 
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text("Error: $e", style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+          backgroundColor: _ancientGold,
+        )); 
+      }
     } finally { 
-      if (mounted) setState(() => _isLoading = false); 
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        }); 
+      }
     }
   }
 
@@ -115,7 +145,9 @@ class _MobileConnectionScreenState extends State<MobileConnectionScreen> {
     await _saveMyUrl(_myUrlController.text);
     TrustMeService.instance.setGatewayUrl(_myUrlController.text);
     
-    setState(() => _isLoading = true);
+    setState(() {
+      _isLoading = true;
+    });
     try {
       await TrustMeService.instance.initiatePeerConnection(peerUrl: _peerUrlController.text, code: _codeController.text, myUsername: "Mobile_User", myUrl: _myUrlController.text);
       if (mounted) {
@@ -123,26 +155,40 @@ class _MobileConnectionScreenState extends State<MobileConnectionScreen> {
         Navigator.push(context, MaterialPageRoute(builder: (context) => const MobileChatListScreen()));
       }
     } catch (e) { 
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Failed: $e"))); 
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text("Failed: $e", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+          backgroundColor: Colors.redAccent,
+        )); 
+      }
     } finally { 
-      if (mounted) setState(() => _isLoading = false); 
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        }); 
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF0F2F5), 
+      backgroundColor: _darkBg, 
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: const Text("Secure Connection", style: TextStyle(color: Colors.white)), 
-        backgroundColor: Color.fromARGB(255, 115, 11, 134), 
-        iconTheme: const IconThemeData(color: Colors.white),
+        title: const Text("Secure Connection", style: TextStyle(color: _ancientGold, fontWeight: FontWeight.bold)), 
+        backgroundColor: Colors.black.withValues(alpha: 0.7), 
+        elevation: 0,
+        iconTheme: const IconThemeData(color: _ancientGold),
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(1.0),
+          child: Container(color: _ancientGold.withValues(alpha: 0.2), height: 1.0),
+        ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.chat, color: Colors.white),
+            icon: const Icon(Icons.chat, color: _ancientGold),
             tooltip: 'Open Secure Chats',
             onPressed: () {
-              // 🚀 THE FIX: Uses standard push so back arrow works perfectly
               Navigator.push(
                 context, 
                 MaterialPageRoute(builder: (context) => const MobileChatListScreen())
@@ -152,78 +198,279 @@ class _MobileConnectionScreenState extends State<MobileConnectionScreen> {
           const SizedBox(width: 8),
         ],
       ),
-      body: _isLoading && _myUrlController.text.isEmpty
-          ? const Center(child: CircularProgressIndicator(color: Color.fromARGB(255, 115, 11, 134)))
-          : SingleChildScrollView(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(20), 
-                    decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), spreadRadius: 1, blurRadius: 5)]),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text("Your Desktop's Cloudflare URL", style: TextStyle(color: Colors.black87, fontSize: 16, fontWeight: FontWeight.bold)),
-                        const SizedBox(height: 8),
-                        TextField(
-                          controller: _myUrlController, style: const TextStyle(color: Colors.black),
-                          decoration: InputDecoration(
-                            hintText: "Fetching your secure tunnel...", hintStyle: TextStyle(color: Colors.grey.shade500), filled: true, fillColor: Colors.grey.shade100, border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
-                            suffixIcon: IconButton(
-                              icon: const Icon(Icons.copy, color: Colors.grey),
-                              onPressed: () { Clipboard.setData(ClipboardData(text: _myUrlController.text)); ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("URL Copied!"))); },
-                            ),
-                          ),
-                          onChanged: _saveMyUrl,
+      body: SizedBox(
+        width: double.infinity,
+        height: double.infinity,
+        child: Stack(
+          children: [
+            // The Shared Cinematic Nebula Background
+            const Positioned.fill(child: DynamicAppBackground()),
+            
+            _isLoading && _myUrlController.text.isEmpty
+              ? const Center(child: CircularProgressIndicator(color: _ancientGold))
+              : SingleChildScrollView(
+                  padding: const EdgeInsets.fromLTRB(24, 110, 24, 40), 
+                  child: Column(
+                    children: [
+                      // My Cloudflare URL Container
+                      Container(
+                        padding: const EdgeInsets.all(20), 
+                        decoration: BoxDecoration(
+                          color: Colors.black.withValues(alpha: 0.6), 
+                          borderRadius: BorderRadius.circular(16), 
+                          border: Border.all(color: _ancientGold.withValues(alpha: 0.4), width: 1.5),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.4), 
+                              spreadRadius: 1, 
+                              blurRadius: 10,
+                              offset: const Offset(0, 4),
+                            )
+                          ]
                         ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  Container(
-                    padding: const EdgeInsets.all(20), 
-                    decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), spreadRadius: 1, blurRadius: 5)]),
-                    child: Column(
-                      children: [
-                        const Text("Start a Chat", style: TextStyle(color: Colors.black87, fontSize: 18, fontWeight: FontWeight.bold)),
-                        const SizedBox(height: 10),
-                        _generatedCode.isEmpty
-                            ? ElevatedButton(onPressed: _isLoading ? null : _generateCode, style: ElevatedButton.styleFrom(backgroundColor: Color.fromARGB(255, 115, 11, 134), minimumSize: const Size(double.infinity, 45)), child: _isLoading ? const CircularProgressIndicator(color: Colors.white) : const Text("Generate 6-Digit Code", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)))
-                            : Column(
-                                children: [
-                                  Text(_generatedCode, style: const TextStyle(fontSize: 40, fontWeight: FontWeight.bold, color: Color.fromARGB(255, 115, 11, 134), letterSpacing: 8)),
-                                  const SizedBox(height: 8),
-                                  ElevatedButton.icon(
-                                    onPressed: () { Clipboard.setData(ClipboardData(text: "Join my Guptik chat! URL: ${_myUrlController.text} | Code: $_generatedCode")); ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Copied Invite to Clipboard!"))); },
-                                    icon: const Icon(Icons.copy, color: Colors.white), label: const Text("Copy Invite", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)), style: ElevatedButton.styleFrom(backgroundColor: Color.fromARGB(255, 115, 11, 134)),
-                                  ),
-                                ],
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Row(
+                              children: [
+                                Icon(Icons.link, color: _ancientGold, size: 20),
+                                SizedBox(width: 8),
+                                Text(
+                                  "Your Desktop's Cloudflare URL", 
+                                  style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 16),
+                            TextField(
+                              controller: _myUrlController, 
+                              style: const TextStyle(color: Colors.white, fontFamily: 'monospace'),
+                              decoration: InputDecoration(
+                                hintText: "Fetching your secure tunnel...", 
+                                hintStyle: TextStyle(color: Colors.grey.shade500), 
+                                filled: true, 
+                                fillColor: Colors.black.withValues(alpha: 0.5), 
+                                enabledBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12), 
+                                  borderSide: BorderSide(color: _ancientGold.withValues(alpha: 0.3))
+                                ),
+                                focusedBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12), 
+                                  borderSide: const BorderSide(color: _ancientGold, width: 2)
+                                ),
+                                suffixIcon: IconButton(
+                                  icon: const Icon(Icons.copy, color: _ancientGold),
+                                  onPressed: () { 
+                                    Clipboard.setData(ClipboardData(text: _myUrlController.text)); 
+                                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                                      content: Text("URL Copied!", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+                                      backgroundColor: _ancientGold,
+                                    )); 
+                                  },
+                                ),
                               ),
-                      ],
-                    ),
+                              onChanged: _saveMyUrl,
+                            ),
+                          ],
+                        ),
+                      ),
+                      
+                      const SizedBox(height: 24),
+                      
+                      // Start a Chat Container
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(24), 
+                        decoration: BoxDecoration(
+                          color: Colors.black.withValues(alpha: 0.6), 
+                          borderRadius: BorderRadius.circular(16), 
+                          border: Border.all(color: _ancientGold.withValues(alpha: 0.4), width: 1.5),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.4), 
+                              spreadRadius: 1, 
+                              blurRadius: 10,
+                              offset: const Offset(0, 4),
+                            )
+                          ]
+                        ),
+                        child: Column(
+                          children: [
+                            const Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.vpn_key, color: _ancientGold, size: 24),
+                                SizedBox(width: 8),
+                                Text(
+                                  "Start a Chat", 
+                                  style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 20),
+                            _generatedCode.isEmpty
+                                ? ElevatedButton(
+                                    onPressed: _isLoading ? null : _generateCode, 
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: _ancientGold, 
+                                      foregroundColor: Colors.black,
+                                      minimumSize: const Size(double.infinity, 50),
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                      elevation: 8,
+                                    ), 
+                                    child: _isLoading 
+                                        ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.black, strokeWidth: 2)) 
+                                        : const Text("Generate 6-Digit Code", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16))
+                                  )
+                                : Column(
+                                    children: [
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                                        decoration: BoxDecoration(
+                                          color: _ancientGold.withValues(alpha: 0.1),
+                                          borderRadius: BorderRadius.circular(12),
+                                          border: Border.all(color: _ancientGold.withValues(alpha: 0.5), width: 2),
+                                        ),
+                                        child: Text(
+                                          _generatedCode, 
+                                          style: const TextStyle(fontSize: 44, fontWeight: FontWeight.bold, color: _ancientGold, letterSpacing: 12)
+                                        ),
+                                      ),
+                                      const SizedBox(height: 16),
+                                      ElevatedButton.icon(
+                                        onPressed: () { 
+                                          Clipboard.setData(ClipboardData(text: "Join my Guptik chat! URL: ${_myUrlController.text} | Code: $_generatedCode")); 
+                                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                                            content: Text("Copied Invite to Clipboard!", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+                                            backgroundColor: _ancientGold,
+                                          )); 
+                                        },
+                                        icon: const Icon(Icons.copy, color: Colors.black), 
+                                        label: const Text("Copy Invite", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)), 
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: _ancientGold,
+                                          foregroundColor: Colors.black,
+                                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                          ],
+                        ),
+                      ),
+                      
+                      const SizedBox(height: 30),
+                      
+                      Row(
+                        children: [
+                          Expanded(child: Container(height: 1, color: _ancientGold.withValues(alpha: 0.3))),
+                          const Padding(
+                            padding: EdgeInsets.symmetric(horizontal: 16),
+                            child: Text("OR", style: TextStyle(color: _ancientGold, fontWeight: FontWeight.bold, letterSpacing: 2)),
+                          ),
+                          Expanded(child: Container(height: 1, color: _ancientGold.withValues(alpha: 0.3))),
+                        ],
+                      ),
+                      
+                      const SizedBox(height: 30),
+                      
+                      // Join a Chat Container
+                      Container(
+                        padding: const EdgeInsets.all(24), 
+                        decoration: BoxDecoration(
+                          color: Colors.black.withValues(alpha: 0.6), 
+                          borderRadius: BorderRadius.circular(16), 
+                          border: Border.all(color: _ancientGold.withValues(alpha: 0.4), width: 1.5),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.4), 
+                              spreadRadius: 1, 
+                              blurRadius: 10,
+                              offset: const Offset(0, 4),
+                            )
+                          ]
+                        ),
+                        child: Column(
+                          children: [
+                            const Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.login, color: _ancientGold, size: 24),
+                                SizedBox(width: 8),
+                                Text(
+                                  "Join a Chat", 
+                                  style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 20),
+                            TextField(
+                              controller: _codeController, 
+                              // THE FIX 1: Removed textAlign from TextStyle
+                              style: const TextStyle(color: Colors.white, fontSize: 20, letterSpacing: 4, fontWeight: FontWeight.bold), 
+                              keyboardType: TextInputType.number, 
+                              // THE FIX 2: textAlign belongs directly to the TextField
+                              textAlign: TextAlign.center,
+                              decoration: InputDecoration(
+                                labelText: "Enter Peer's 6-Digit Code", 
+                                labelStyle: TextStyle(color: Colors.grey.shade400, letterSpacing: 0, fontSize: 14), 
+                                floatingLabelAlignment: FloatingLabelAlignment.center,
+                                alignLabelWithHint: true,
+                                filled: true, 
+                                fillColor: Colors.black.withValues(alpha: 0.5), 
+                                enabledBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12), 
+                                  borderSide: BorderSide(color: _ancientGold.withValues(alpha: 0.3))
+                                ),
+                                focusedBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12), 
+                                  borderSide: const BorderSide(color: _ancientGold, width: 2)
+                                )
+                              )
+                            ),
+                            const SizedBox(height: 16),
+                            TextField(
+                              controller: _peerUrlController, 
+                              style: const TextStyle(color: Colors.white, fontFamily: 'monospace'), 
+                              decoration: InputDecoration(
+                                labelText: "Peer's Cloudflare URL", 
+                                labelStyle: TextStyle(color: Colors.grey.shade400), 
+                                filled: true, 
+                                fillColor: Colors.black.withValues(alpha: 0.5), 
+                                enabledBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12), 
+                                  borderSide: BorderSide(color: _ancientGold.withValues(alpha: 0.3))
+                                ),
+                                focusedBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12), 
+                                  borderSide: const BorderSide(color: _ancientGold, width: 2)
+                                )
+                              )
+                            ),
+                            const SizedBox(height: 24),
+                            ElevatedButton(
+                              onPressed: _isLoading ? null : _joinWithCode, 
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: _ancientGold, 
+                                foregroundColor: Colors.black,
+                                minimumSize: const Size(double.infinity, 50),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                elevation: 8,
+                              ), 
+                              child: _isLoading 
+                                  ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.black, strokeWidth: 2)) 
+                                  : const Text("Connect Securely", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16))
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 30),
-                  const Text("— OR —", style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 30),
-                  Container(
-                    padding: const EdgeInsets.all(20), 
-                    decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), spreadRadius: 1, blurRadius: 5)]),
-                    child: Column(
-                      children: [
-                        const Text("Join a Chat", style: TextStyle(color: Colors.black87, fontSize: 18, fontWeight: FontWeight.bold)),
-                        const SizedBox(height: 16),
-                        TextField(controller: _codeController, style: const TextStyle(color: Colors.black), keyboardType: TextInputType.number, decoration: InputDecoration(labelText: "Enter Peer's 6-Digit Code", labelStyle: const TextStyle(color: Colors.grey), filled: true, fillColor: Colors.grey.shade100, border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none))),
-                        const SizedBox(height: 12),
-                        TextField(controller: _peerUrlController, style: const TextStyle(color: Colors.black), decoration: InputDecoration(labelText: "Peer's Cloudflare URL", labelStyle: const TextStyle(color: Colors.grey), filled: true, fillColor: Colors.grey.shade100, border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none))),
-                        const SizedBox(height: 20),
-                        ElevatedButton(onPressed: _isLoading ? null : _joinWithCode, style: ElevatedButton.styleFrom(backgroundColor: Color.fromARGB(255, 115, 11, 134), minimumSize: const Size(double.infinity, 50)), child: _isLoading ? const CircularProgressIndicator(color: Colors.white) : const Text("Connect securely", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
+                ),
+          ],
+        ),
+      ),
     );
   }
 }

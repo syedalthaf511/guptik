@@ -12,7 +12,7 @@ import 'package:video_player/video_player.dart';
 import 'synced_files_screen.dart';
 
 // IMPORT THE SHARED BACKGROUND
-import 'package:guptik/widgets/home/animated_nebula_background.dart';
+import 'package:guptik/utils/theme/dynamic_app_background.dart';
 
 // Ancient Gold Theme Constants
 const Color _ancientGold = Color(0xFFD4AF37);
@@ -585,7 +585,7 @@ class _VaultScreenState extends State<VaultScreen> {
       body: Stack(
         children: [
           // Cinematic Nebula Background
-          const Positioned.fill(child: AnimatedNebulaBackground()),
+          const Positioned.fill(child: DynamicAppBackground()),
           
           CustomScrollView(
             controller: _scrollController,

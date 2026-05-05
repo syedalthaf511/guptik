@@ -1,4 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:guptik/utils/theme/dynamic_app_background.dart';
+
+// Ancient Gold Theme Constants
+const Color _ancientGold = Color(0xFFD4AF37);
+const Color _darkBg = Color(0xFF0A0A0A);
 
 class AnalyticsMessagingScreen extends StatefulWidget {
   const AnalyticsMessagingScreen({super.key});
@@ -14,242 +19,224 @@ class _AnalyticsMessagingScreenState extends State<AnalyticsMessagingScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[50],
+      backgroundColor: _darkBg,
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: const Text('Messaging Analytics'),
-        backgroundColor: const Color(0xFF17A2B8),
-        foregroundColor: Colors.white,
+        title: const Text(
+          'Messaging Analytics',
+          style: TextStyle(color: _ancientGold, fontWeight: FontWeight.bold),
+        ),
+        backgroundColor: Colors.black.withValues(alpha: 0.7),
         elevation: 0,
+        iconTheme: const IconThemeData(color: _ancientGold),
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(1.0),
+          child: Container(color: _ancientGold.withValues(alpha: 0.2), height: 1.0),
+        ),
         actions: [
-          PopupMenuButton<String>(
-            icon: const Icon(Icons.date_range),
-            onSelected: (value) {
-              setState(() {
-                selectedPeriod = value;
-              });
-            },
-            itemBuilder: (context) => periods.map((period) {
-              return PopupMenuItem<String>(
-                value: period,
-                child: Text(period),
-              );
-            }).toList(),
+          Theme(
+            data: Theme.of(context).copyWith(
+              cardColor: Colors.black,
+              iconTheme: const IconThemeData(color: _ancientGold),
+            ),
+            child: PopupMenuButton<String>(
+              icon: const Icon(Icons.date_range, color: _ancientGold),
+              shape: RoundedRectangleBorder(
+                side: BorderSide(color: _ancientGold.withValues(alpha: 0.5)),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              onSelected: (value) {
+                setState(() {
+                  selectedPeriod = value;
+                });
+              },
+              itemBuilder: (context) => periods.map((period) {
+                return PopupMenuItem<String>(
+                  value: period,
+                  child: Text(
+                    period,
+                    style: TextStyle(
+                      color: selectedPeriod == period ? _ancientGold : Colors.white,
+                      fontWeight: selectedPeriod == period ? FontWeight.bold : FontWeight.normal,
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
           ),
           IconButton(
-            icon: const Icon(Icons.refresh),
+            icon: const Icon(Icons.refresh, color: _ancientGold),
             onPressed: () {
               // Refresh analytics
             },
           ),
         ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+      // THE FIX: Full screen box ensures the background stretches safely without bottom overflow
+      body: SizedBox(
+        width: double.infinity,
+        height: double.infinity,
+        child: Stack(
           children: [
-            // Period Selector
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.grey.withValues(alpha: 0.1),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: Row(
+            // The Shared Cinematic Nebula Background
+            const Positioned.fill(child: DynamicAppBackground()),
+            
+            SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(16, 100, 16, 40), // Padded top to account for transparent AppBar
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Icon(Icons.calendar_today, color: Color(0xFF17A2B8)),
-                  const SizedBox(width: 12),
-                  const Text(
-                    'Analytics Period:',
-                    style: TextStyle(fontWeight: FontWeight.w600),
-                  ),
-                  const Spacer(),
+                  // Period Selector
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF17A2B8).withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(20),
+                      color: Colors.black.withValues(alpha: 0.6),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: _ancientGold.withValues(alpha: 0.4), width: 1.5),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.4),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
                     ),
-                    child: Text(
-                      selectedPeriod,
-                      style: const TextStyle(
-                        color: Color(0xFF17A2B8),
-                        fontWeight: FontWeight.w600,
+                    child: Row(
+                      children: [
+                        const Icon(Icons.calendar_today, color: _ancientGold, size: 24),
+                        const SizedBox(width: 12),
+                        const Text(
+                          'Analytics Period:',
+                          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 16),
+                        ),
+                        const Spacer(),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: _ancientGold.withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(color: _ancientGold.withValues(alpha: 0.4)),
+                          ),
+                          child: Text(
+                            selectedPeriod,
+                            style: const TextStyle(
+                              color: _ancientGold,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 24),
+
+                  // Overview Cards
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _buildMetricCard(
+                          'Messages Sent',
+                          '1,247',
+                          '+12.5%',
+                          Icons.send,
+                          Colors.blueAccent,
+                          true,
+                        ),
                       ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: _buildMetricCard(
+                          'Messages Delivered',
+                          '1,189',
+                          '+10.2%',
+                          Icons.check_circle,
+                          Colors.greenAccent,
+                          true,
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _buildMetricCard(
+                          'Messages Read',
+                          '892',
+                          '+8.7%',
+                          Icons.visibility,
+                          Colors.orangeAccent,
+                          true,
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: _buildMetricCard(
+                          'Failed Messages',
+                          '58',
+                          '-3.1%',
+                          Icons.error,
+                          Colors.redAccent,
+                          false,
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 24),
+
+                  // Message Status Breakdown
+                  _buildSectionContainer(
+                    title: 'Message Status Breakdown',
+                    child: Column(
+                      children: [
+                        _buildStatusRow('Delivered', 1189, 1247, Colors.greenAccent),
+                        _buildStatusRow('Read', 892, 1247, Colors.blueAccent),
+                        _buildStatusRow('Failed', 58, 1247, Colors.redAccent),
+                        _buildStatusRow('Pending', 0, 1247, Colors.orangeAccent),
+                      ],
                     ),
                   ),
-                ],
-              ),
-            ),
 
-            const SizedBox(height: 24),
+                  const SizedBox(height: 24),
 
-            // Overview Cards
-            Row(
-              children: [
-                Expanded(
-                  child: _buildMetricCard(
-                    'Messages Sent',
-                    '1,247',
-                    '+12.5%',
-                    Icons.send,
-                    Colors.blue,
-                    true,
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: _buildMetricCard(
-                    'Messages Delivered',
-                    '1,189',
-                    '+10.2%',
-                    Icons.check_circle,
-                    Colors.green,
-                    true,
-                  ),
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 16),
-
-            Row(
-              children: [
-                Expanded(
-                  child: _buildMetricCard(
-                    'Messages Read',
-                    '892',
-                    '+8.7%',
-                    Icons.visibility,
-                    Colors.orange,
-                    true,
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: _buildMetricCard(
-                    'Failed Messages',
-                    '58',
-                    '-3.1%',
-                    Icons.error,
-                    Colors.red,
-                    false,
-                  ),
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 24),
-
-            // Message Status Breakdown
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.grey.withValues(alpha: 0.1),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Message Status Breakdown',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.black87,
+                  // Message Types Analytics
+                  _buildSectionContainer(
+                    title: 'Message Types',
+                    child: Column(
+                      children: [
+                        _buildMessageTypeRow('Text Messages', 847, Icons.message),
+                        Divider(color: _ancientGold.withValues(alpha: 0.1), height: 16),
+                        _buildMessageTypeRow('Media Messages', 234, Icons.image),
+                        Divider(color: _ancientGold.withValues(alpha: 0.1), height: 16),
+                        _buildMessageTypeRow('Template Messages', 166, Icons.description),
+                        Divider(color: _ancientGold.withValues(alpha: 0.1), height: 16),
+                        _buildMessageTypeRow('Interactive Messages', 0, Icons.touch_app),
+                      ],
                     ),
                   ),
-                  const SizedBox(height: 20),
-                  _buildStatusRow('Delivered', 1189, 1247, Colors.green),
-                  _buildStatusRow('Read', 892, 1247, Colors.blue),
-                  _buildStatusRow('Failed', 58, 1247, Colors.red),
-                  _buildStatusRow('Pending', 0, 1247, Colors.orange),
-                ],
-              ),
-            ),
 
-            const SizedBox(height: 24),
+                  const SizedBox(height: 24),
 
-            // Message Types Analytics
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.grey.withValues(alpha: 0.1),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Message Types',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.black87,
+                  // Response Times
+                  _buildSectionContainer(
+                    title: 'Response Times',
+                    child: Column(
+                      children: [
+                        _buildResponseTimeRow('Average Response Time', '2m 34s'),
+                        Divider(color: _ancientGold.withValues(alpha: 0.1), height: 16),
+                        _buildResponseTimeRow('Fastest Response', '12s'),
+                        Divider(color: _ancientGold.withValues(alpha: 0.1), height: 16),
+                        _buildResponseTimeRow('Slowest Response', '45m 12s'),
+                        Divider(color: _ancientGold.withValues(alpha: 0.1), height: 16),
+                        _buildResponseTimeRow('Response Rate', '74.2%'),
+                      ],
                     ),
                   ),
-                  const SizedBox(height: 20),
-                  _buildMessageTypeRow('Text Messages', 847, Icons.message),
-                  _buildMessageTypeRow('Media Messages', 234, Icons.image),
-                  _buildMessageTypeRow('Template Messages', 166, Icons.description),
-                  _buildMessageTypeRow('Interactive Messages', 0, Icons.touch_app),
-                ],
-              ),
-            ),
-
-            const SizedBox(height: 24),
-
-            // Response Times
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.grey.withValues(alpha: 0.1),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Response Times',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.black87,
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  _buildResponseTimeRow('Average Response Time', '2m 34s'),
-                  _buildResponseTimeRow('Fastest Response', '12s'),
-                  _buildResponseTimeRow('Slowest Response', '45m 12s'),
-                  _buildResponseTimeRow('Response Rate', '74.2%'),
                 ],
               ),
             ),
@@ -259,17 +246,51 @@ class _AnalyticsMessagingScreenState extends State<AnalyticsMessagingScreen> {
     );
   }
 
-  Widget _buildMetricCard(String title, String value, String change, IconData icon, Color color, bool isPositive) {
+  Widget _buildSectionContainer({required String title, required Widget child}) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
+        color: Colors.black.withValues(alpha: 0.6),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: _ancientGold.withValues(alpha: 0.3), width: 1.5),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withValues(alpha: 0.1),
+            color: Colors.black.withValues(alpha: 0.4),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: _ancientGold,
+            ),
+          ),
+          const SizedBox(height: 24),
+          child,
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMetricCard(String title, String value, String change, IconData icon, Color color, bool isPositive) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: 0.6),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: _ancientGold.withValues(alpha: 0.3), width: 1.5),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.4),
             blurRadius: 8,
-            offset: const Offset(0, 2),
+            offset: const Offset(0, 4),
           ),
         ],
       ),
@@ -278,41 +299,50 @@ class _AnalyticsMessagingScreenState extends State<AnalyticsMessagingScreen> {
         children: [
           Row(
             children: [
-              Icon(icon, color: color, size: 24),
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: color.withValues(alpha: 0.3)),
+                ),
+                child: Icon(icon, color: color, size: 24),
+              ),
               const Spacer(),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: (isPositive ? Colors.green : Colors.red).withValues(alpha: 0.1),
+                  color: (isPositive ? Colors.greenAccent : Colors.redAccent).withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: (isPositive ? Colors.greenAccent : Colors.redAccent).withValues(alpha: 0.4)),
                 ),
                 child: Text(
                   change,
                   style: TextStyle(
-                    color: isPositive ? Colors.green : Colors.red,
+                    color: isPositive ? Colors.greenAccent : Colors.redAccent,
                     fontSize: 12,
-                    fontWeight: FontWeight.w600,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 16),
           Text(
             value,
             style: const TextStyle(
-              fontSize: 24,
+              fontSize: 26,
               fontWeight: FontWeight.bold,
-              color: Colors.black87,
+              color: Colors.white,
             ),
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 6),
           Text(
             title,
-            style: const TextStyle(
-              fontSize: 14,
-              color: Colors.grey,
-              fontWeight: FontWeight.w500,
+            style: TextStyle(
+              fontSize: 13,
+              color: Colors.grey[400],
+              fontWeight: FontWeight.bold,
             ),
           ),
         ],
@@ -325,7 +355,7 @@ class _AnalyticsMessagingScreenState extends State<AnalyticsMessagingScreen> {
     final progress = count / total;
 
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
+      padding: const EdgeInsets.symmetric(vertical: 10),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -335,25 +365,31 @@ class _AnalyticsMessagingScreenState extends State<AnalyticsMessagingScreen> {
               Text(
                 status,
                 style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
+                  fontSize: 15,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
                 ),
               ),
               Text(
                 '$count ($percentage%)',
                 style: TextStyle(
                   fontSize: 14,
-                  fontWeight: FontWeight.w600,
+                  fontWeight: FontWeight.bold,
+                  fontFamily: 'monospace',
                   color: color,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 4),
-          LinearProgressIndicator(
-            value: progress,
-            backgroundColor: Colors.grey[200],
-            valueColor: AlwaysStoppedAnimation<Color>(color),
+          const SizedBox(height: 8),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(4),
+            child: LinearProgressIndicator(
+              value: progress,
+              minHeight: 8,
+              backgroundColor: Colors.white10,
+              valueColor: AlwaysStoppedAnimation<Color>(color),
+            ),
           ),
         ],
       ),
@@ -365,23 +401,32 @@ class _AnalyticsMessagingScreenState extends State<AnalyticsMessagingScreen> {
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
         children: [
-          Icon(icon, color: Colors.grey[600], size: 20),
-          const SizedBox(width: 12),
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: Colors.white10,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(icon, color: _ancientGold, size: 20),
+          ),
+          const SizedBox(width: 16),
           Expanded(
             child: Text(
               type,
               style: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
+                fontSize: 15,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
               ),
             ),
           ),
           Text(
             count.toString(),
             style: const TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-              color: Colors.black87,
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: _ancientGold,
+              fontFamily: 'monospace',
             ),
           ),
         ],
@@ -398,16 +443,18 @@ class _AnalyticsMessagingScreenState extends State<AnalyticsMessagingScreen> {
           Text(
             metric,
             style: const TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w500,
+              fontSize: 15,
+              fontWeight: FontWeight.bold,
+              color: Colors.white70,
             ),
           ),
           Text(
             value,
             style: const TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-              color: Color(0xFF17A2B8),
+              fontSize: 15,
+              fontWeight: FontWeight.bold,
+              color: _ancientGold,
+              fontFamily: 'monospace',
             ),
           ),
         ],

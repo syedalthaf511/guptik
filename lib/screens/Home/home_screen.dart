@@ -8,9 +8,12 @@ import 'package:guptik/screens/dashboard/message_templates_screen.dart';
 import 'package:guptik/screens/facebook/fb_and_insta_screen.dart';
 import 'package:guptik/screens/guptik/guptik_screen.dart';
 import 'package:guptik/screens/home_control/homecontrol_screen.dart';
+import 'package:guptik/screens/media/media_player_screen.dart';
 import 'package:guptik/screens/trust_me/trust_me_mobile_wrapper.dart';
 import 'package:guptik/screens/vault/vaultscreen.dart';
 import 'package:guptik/services/dashboard/whatsapp_business_service.dart';
+import 'package:guptik/utils/theme/dynamic_app_background.dart';
+import 'package:guptik/utils/theme/theme_manager.dart';
 import 'package:guptik/widgets/home/animated_nebula_background.dart';
 import 'package:guptik/widgets/home/water_splash_button.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -295,6 +298,55 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  void _showThemePicker(BuildContext context) {
+  showModalBottomSheet(
+    context: context,
+    backgroundColor: Colors.black87,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      side: BorderSide(color: Color(0xFFD4AF37), width: 1.5),
+    ),
+    builder: (context) {
+      return ListenableBuilder(
+        listenable: ThemeManager.instance,
+        builder: (context, _) {
+          final current = ThemeManager.instance.currentMode;
+          return SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.all(20.0),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text("Select Theme", style: TextStyle(color: Color(0xFFD4AF37), fontSize: 20, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 20),
+                  ListTile(
+                    leading: const Icon(Icons.auto_awesome, color: Colors.purpleAccent),
+                    title: const Text("Animated Nebula", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                    trailing: current == AppThemeMode.nebula ? const Icon(Icons.check_circle, color: Color(0xFFD4AF37)) : null,
+                    onTap: () => ThemeManager.instance.changeTheme(AppThemeMode.nebula),
+                  ),
+                  ListTile(
+                    leading: const Icon(Icons.dark_mode, color: Colors.blueGrey),
+                    title: const Text("Solid Dark", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                    trailing: current == AppThemeMode.dark ? const Icon(Icons.check_circle, color: Color(0xFFD4AF37)) : null,
+                    onTap: () => ThemeManager.instance.changeTheme(AppThemeMode.dark),
+                  ),
+                  ListTile(
+                    leading: const Icon(Icons.light_mode, color: Colors.orangeAccent),
+                    title: const Text("Classic Light", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                    trailing: current == AppThemeMode.classic ? const Icon(Icons.check_circle, color: Color(0xFFD4AF37)) : null,
+                    onTap: () => ThemeManager.instance.changeTheme(AppThemeMode.classic),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
+      );
+    },
+  );
+}
+
   Widget _buildFeatureItem(String icon, String text) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
@@ -549,7 +601,7 @@ class _HomeScreenState extends State<HomeScreen> {
               drawer: _buildMobileDrawer(context),
               body: Stack(
                 children: [
-                  const Positioned.fill(child: AnimatedNebulaBackground()),
+                  const Positioned.fill(child: DynamicAppBackground()),
                   Column(
                     children: [
                       // Top Bar for Mobile
@@ -601,7 +653,12 @@ class _HomeScreenState extends State<HomeScreen> {
                               icon: const Icon(Icons.notifications_outlined, color: _ancientGold, size: 20),
                               onPressed: () {},
                             ),
-                            const SizedBox(width: 8),
+                            // const SizedBox(width: 0),
+                            IconButton(
+                            icon: const Icon(Icons.palette, color: _ancientGold, size: 20),
+                            tooltip: 'Change Theme',
+                            onPressed: () => _showThemePicker(context),
+                                  ),
                             InkWell(
                               onTap: () {
                                 showProfileMenu(
@@ -720,7 +777,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 Expanded(
                   child: Stack(
                     children: [
-                      const Positioned.fill(child: AnimatedNebulaBackground()),
+                      const Positioned.fill(child: DynamicAppBackground()),
                       Column(
                         children: [
                           // Top Bar
@@ -1159,6 +1216,35 @@ class _HomeScreenState extends State<HomeScreen> {
                                 ),
                               ],
                             ),
+                            const SizedBox(height: 20),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Flexible(
+                                  fit: FlexFit.tight,
+                                  child: WaterSplashButton(
+                                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const MediaPlayerScreen())),
+                                    child: Container(
+                                      margin: const EdgeInsets.symmetric(horizontal: 5),
+                                      padding: const EdgeInsets.all(12),
+                                      decoration: BoxDecoration(
+                                        color: Colors.black,
+                                        borderRadius: BorderRadius.circular(12),
+                                        border: Border.all(color: _ancientGold.withValues(alpha: 0.5)),
+                                      ),
+                                      child: const Column(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          FaIcon(FontAwesomeIcons.youtube, color: _ancientGold, size: 28),
+                                          SizedBox(height: 6),
+                                          Text('Media Player', style: TextStyle(fontSize: 10, color: _ancientGold, fontWeight: FontWeight.w600)),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
                             
                             const SizedBox(height: 40),
                             const Text('Connect with us', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: _ancientGold)),
@@ -1166,7 +1252,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             const Text('social media platforms', style: TextStyle(fontSize: 14, color: _ancientGold), textAlign: TextAlign.center),
                             const SizedBox(height: 24),
 
-                            // THIRD ROW
+                            // fourth ROW
                             Row(
                               children: [
                                 Expanded(
@@ -1230,8 +1316,9 @@ class _HomeScreenState extends State<HomeScreen> {
                             ),
                           ],
                         ),
-                      ),
+                        ),
                     ],
+                  
                   ),
                 ),
 

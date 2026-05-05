@@ -11,12 +11,14 @@ import 'package:guptik/screens/profilepopup/whatsapp_numbers_screen.dart';
 import 'package:guptik/services/profilepopup_service/deep_link_navigator.dart';
 import 'package:guptik/services/profilepopup_service/deep_link_service.dart';
 import 'package:guptik/services/profilepopup_service/web_deep_link_handler.dart';
+import 'package:guptik/utils/theme/theme_manager.dart';
 import 'package:guptik/widgets/auth_wrapper.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:guptik/config/app_config.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await ThemeManager.instance.init();
 
   debugPrint('==== APP START ====');
 

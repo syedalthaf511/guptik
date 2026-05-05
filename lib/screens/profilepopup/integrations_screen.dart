@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:guptik/widgets/home/animated_nebula_background.dart';
+import 'package:guptik/utils/theme/dynamic_app_background.dart';
 
 // Ancient Gold Theme Constants
 const Color _ancientGold = Color(0xFFD4AF37);
@@ -124,7 +124,7 @@ class _IntegrationsScreenState extends State<IntegrationsScreen> {
         child: Stack(
           children: [
             // The Shared Cinematic Nebula Background
-            const Positioned.fill(child: AnimatedNebulaBackground()),
+            const Positioned.fill(child: DynamicAppBackground()),
             
             SingleChildScrollView(
               padding: const EdgeInsets.fromLTRB(20, 100, 20, 40),

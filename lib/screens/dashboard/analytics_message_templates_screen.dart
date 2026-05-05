@@ -1,4 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:guptik/utils/theme/dynamic_app_background.dart';
+  
+// Ancient Gold Theme Constants
+const Color _ancientGold = Color(0xFFD4AF37);
+const Color _darkBg = Color(0xFF0A0A0A);
 
 class AnalyticsMessageTemplatesScreen extends StatefulWidget {
   const AnalyticsMessageTemplatesScreen({super.key});
@@ -14,289 +19,249 @@ class _AnalyticsMessageTemplatesScreenState extends State<AnalyticsMessageTempla
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[50],
+      backgroundColor: _darkBg,
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: const Text('Template Analytics'),
-        backgroundColor: const Color(0xFF17A2B8),
-        foregroundColor: Colors.white,
+        title: const Text(
+          'Template Analytics',
+          style: TextStyle(color: _ancientGold, fontWeight: FontWeight.bold),
+        ),
+        backgroundColor: Colors.black.withValues(alpha: 0.7),
         elevation: 0,
+        iconTheme: const IconThemeData(color: _ancientGold),
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(1.0),
+          child: Container(color: _ancientGold.withValues(alpha: 0.2), height: 1.0),
+        ),
         actions: [
-          PopupMenuButton<String>(
-            icon: const Icon(Icons.date_range),
-            onSelected: (value) {
-              setState(() {
-                selectedPeriod = value;
-              });
-            },
-            itemBuilder: (context) => periods.map((period) {
-              return PopupMenuItem<String>(
-                value: period,
-                child: Text(period),
-              );
-            }).toList(),
+          Theme(
+            data: Theme.of(context).copyWith(
+              cardColor: Colors.black,
+              iconTheme: const IconThemeData(color: _ancientGold),
+            ),
+            child: PopupMenuButton<String>(
+              icon: const Icon(Icons.date_range, color: _ancientGold),
+              shape: RoundedRectangleBorder(
+                side: BorderSide(color: _ancientGold.withValues(alpha: 0.5)),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              onSelected: (value) {
+                setState(() {
+                  selectedPeriod = value;
+                });
+              },
+              itemBuilder: (context) => periods.map((period) {
+                return PopupMenuItem<String>(
+                  value: period,
+                  child: Text(
+                    period,
+                    style: TextStyle(
+                      color: selectedPeriod == period ? _ancientGold : Colors.white,
+                      fontWeight: selectedPeriod == period ? FontWeight.bold : FontWeight.normal,
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
           ),
           IconButton(
-            icon: const Icon(Icons.refresh),
+            icon: const Icon(Icons.refresh, color: _ancientGold),
             onPressed: () {
               // Refresh analytics
             },
           ),
         ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+      // THE FIX: Full screen box ensures the background stretches safely without bottom overflow
+      body: SizedBox(
+        width: double.infinity,
+        height: double.infinity,
+        child: Stack(
           children: [
-            // Period Selector
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.grey.withValues(alpha: 0.1),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: Row(
+            // The Shared Cinematic Nebula Background
+            const Positioned.fill(child: DynamicAppBackground()),
+            
+            SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(16, 100, 16, 40), // Padded top to account for transparent AppBar
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Icon(Icons.description, color: Color(0xFF17A2B8)),
-                  const SizedBox(width: 12),
-                  const Text(
-                    'Template Analytics Period:',
-                    style: TextStyle(fontWeight: FontWeight.w600),
-                  ),
-                  const Spacer(),
+                  // Period Selector
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF17A2B8).withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(20),
+                      color: Colors.black.withValues(alpha: 0.6),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: _ancientGold.withValues(alpha: 0.4), width: 1.5),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.4),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
                     ),
-                    child: Text(
-                      selectedPeriod,
-                      style: const TextStyle(
-                        color: Color(0xFF17A2B8),
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            const SizedBox(height: 24),
-
-            // Template Overview
-            Row(
-              children: [
-                Expanded(
-                  child: _buildMetricCard(
-                    'Total Templates',
-                    '12',
-                    '+3',
-                    Icons.description,
-                    Colors.blue,
-                    true,
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: _buildMetricCard(
-                    'Approved Templates',
-                    '9',
-                    '+2',
-                    Icons.check_circle,
-                    Colors.green,
-                    true,
-                  ),
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 16),
-
-            Row(
-              children: [
-                Expanded(
-                  child: _buildMetricCard(
-                    'Template Usage',
-                    '2,847',
-                    '+24.3%',
-                    Icons.send,
-                    Colors.purple,
-                    true,
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: _buildMetricCard(
-                    'Success Rate',
-                    '96.8%',
-                    '+1.2%',
-                    Icons.trending_up,
-                    Colors.green,
-                    true,
-                  ),
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 24),
-
-            // Template Performance Ranking
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.grey.withValues(alpha: 0.1),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Template Performance Ranking',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.black87,
+                    child: Row(
+                      children: [
+                        const Icon(Icons.description, color: _ancientGold, size: 24),
+                        const SizedBox(width: 12),
+                        const Text(
+                          'Template Analytics Period:',
+                          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 15),
+                        ),
+                        const Spacer(),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: _ancientGold.withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(color: _ancientGold.withValues(alpha: 0.4)),
+                          ),
+                          child: Text(
+                            selectedPeriod,
+                            style: const TextStyle(
+                              color: _ancientGold,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                  const SizedBox(height: 20),
-                  _buildTemplateRankingRow(1, 'welcome_message', 1247, 1198, 96.1, 'APPROVED'),
-                  _buildTemplateRankingRow(2, 'order_confirmation', 892, 879, 98.5, 'APPROVED'),
-                  _buildTemplateRankingRow(3, 'shipping_update', 543, 521, 95.9, 'APPROVED'),
-                  _buildTemplateRankingRow(4, 'support_ticket', 234, 231, 98.7, 'APPROVED'),
-                  _buildTemplateRankingRow(5, 'promotional_offer', 156, 142, 91.0, 'APPROVED'),
-                ],
-              ),
-            ),
 
-            const SizedBox(height: 24),
+                  const SizedBox(height: 24),
 
-            // Template Categories
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.grey.withValues(alpha: 0.1),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Templates by Category',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.black87,
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  _buildCategoryRow('Transactional', 6, 1894, 97.2, Icons.receipt),
-                  _buildCategoryRow('Marketing', 3, 687, 89.4, Icons.campaign),
-                  _buildCategoryRow('Utility', 3, 266, 94.7, Icons.build),
-                ],
-              ),
-            ),
-
-            const SizedBox(height: 24),
-
-            // Template Status Overview
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.grey.withValues(alpha: 0.1),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Template Status Overview',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.black87,
-                    ),
-                  ),
-                  const SizedBox(height: 20),
+                  // Template Overview
                   Row(
                     children: [
                       Expanded(
-                        child: _buildStatusCard('Approved', 9, Colors.green),
+                        child: _buildMetricCard(
+                          'Total Templates',
+                          '12',
+                          '+3',
+                          Icons.description,
+                          Colors.blueAccent,
+                          true,
+                        ),
                       ),
-                      const SizedBox(width: 12),
+                      const SizedBox(width: 16),
                       Expanded(
-                        child: _buildStatusCard('Pending', 2, Colors.orange),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: _buildStatusCard('Rejected', 1, Colors.red),
+                        child: _buildMetricCard(
+                          'Approved Templates',
+                          '9',
+                          '+2',
+                          Icons.check_circle,
+                          Colors.greenAccent,
+                          true,
+                        ),
                       ),
                     ],
                   ),
-                ],
-              ),
-            ),
 
-            const SizedBox(height: 24),
+                  const SizedBox(height: 16),
 
-            // Recent Template Activity
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.grey.withValues(alpha: 0.1),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _buildMetricCard(
+                          'Template Usage',
+                          '2,847',
+                          '+24.3%',
+                          Icons.send,
+                          Colors.purpleAccent,
+                          true,
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: _buildMetricCard(
+                          'Success Rate',
+                          '96.8%',
+                          '+1.2%',
+                          Icons.trending_up,
+                          Colors.greenAccent,
+                          true,
+                        ),
+                      ),
+                    ],
                   ),
-                ],
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Recent Template Activity',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.black87,
+
+                  const SizedBox(height: 24),
+
+                  // Template Performance Ranking
+                  _buildSectionContainer(
+                    title: 'Template Performance Ranking',
+                    child: Column(
+                      children: [
+                        _buildTemplateRankingRow(1, 'welcome_message', 1247, 1198, 96.1, 'APPROVED'),
+                        Divider(color: _ancientGold.withValues(alpha: 0.1), height: 16),
+                        _buildTemplateRankingRow(2, 'order_confirmation', 892, 879, 98.5, 'APPROVED'),
+                        Divider(color: _ancientGold.withValues(alpha: 0.1), height: 16),
+                        _buildTemplateRankingRow(3, 'shipping_update', 543, 521, 95.9, 'APPROVED'),
+                        Divider(color: _ancientGold.withValues(alpha: 0.1), height: 16),
+                        _buildTemplateRankingRow(4, 'support_ticket', 234, 231, 98.7, 'APPROVED'),
+                        Divider(color: _ancientGold.withValues(alpha: 0.1), height: 16),
+                        _buildTemplateRankingRow(5, 'promotional_offer', 156, 142, 91.0, 'APPROVED'),
+                      ],
                     ),
                   ),
-                  const SizedBox(height: 20),
-                  _buildActivityRow('welcome_message', 'Used 47 times', '2 hours ago', Icons.send),
-                  _buildActivityRow('order_confirmation', 'Used 23 times', '4 hours ago', Icons.send),
-                  _buildActivityRow('promo_code_2024', 'Template approved', '1 day ago', Icons.check_circle),
-                  _buildActivityRow('shipping_delay', 'Template submitted', '2 days ago', Icons.schedule),
+
+                  const SizedBox(height: 24),
+
+                  // Template Categories
+                  _buildSectionContainer(
+                    title: 'Templates by Category',
+                    child: Column(
+                      children: [
+                        _buildCategoryRow('Transactional', 6, 1894, 97.2, Icons.receipt),
+                        Divider(color: _ancientGold.withValues(alpha: 0.1), height: 16),
+                        _buildCategoryRow('Marketing', 3, 687, 89.4, Icons.campaign),
+                        Divider(color: _ancientGold.withValues(alpha: 0.1), height: 16),
+                        _buildCategoryRow('Utility', 3, 266, 94.7, Icons.build),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 24),
+
+                  // Template Status Overview
+                  _buildSectionContainer(
+                    title: 'Template Status Overview',
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: _buildStatusCard('Approved', 9, Colors.greenAccent),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: _buildStatusCard('Pending', 2, Colors.orangeAccent),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: _buildStatusCard('Rejected', 1, Colors.redAccent),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 24),
+
+                  // Recent Template Activity
+                  _buildSectionContainer(
+                    title: 'Recent Template Activity',
+                    child: Column(
+                      children: [
+                        _buildActivityRow('welcome_message', 'Used 47 times', '2 hours ago', Icons.send),
+                        Divider(color: _ancientGold.withValues(alpha: 0.1), height: 16),
+                        _buildActivityRow('order_confirmation', 'Used 23 times', '4 hours ago', Icons.send),
+                        Divider(color: _ancientGold.withValues(alpha: 0.1), height: 16),
+                        _buildActivityRow('promo_code_2024', 'Template approved', '1 day ago', Icons.check_circle),
+                        Divider(color: _ancientGold.withValues(alpha: 0.1), height: 16),
+                        _buildActivityRow('shipping_delay', 'Template submitted', '2 days ago', Icons.schedule),
+                      ],
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -306,17 +271,51 @@ class _AnalyticsMessageTemplatesScreenState extends State<AnalyticsMessageTempla
     );
   }
 
-  Widget _buildMetricCard(String title, String value, String change, IconData icon, Color color, bool isPositive) {
+  Widget _buildSectionContainer({required String title, required Widget child}) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
+        color: Colors.black.withValues(alpha: 0.6),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: _ancientGold.withValues(alpha: 0.3), width: 1.5),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withValues(alpha: 0.1),
+            color: Colors.black.withValues(alpha: 0.4),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: _ancientGold,
+            ),
+          ),
+          const SizedBox(height: 24),
+          child,
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMetricCard(String title, String value, String change, IconData icon, Color color, bool isPositive) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: 0.6),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: _ancientGold.withValues(alpha: 0.3), width: 1.5),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.4),
             blurRadius: 8,
-            offset: const Offset(0, 2),
+            offset: const Offset(0, 4),
           ),
         ],
       ),
@@ -325,41 +324,50 @@ class _AnalyticsMessageTemplatesScreenState extends State<AnalyticsMessageTempla
         children: [
           Row(
             children: [
-              Icon(icon, color: color, size: 24),
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: color.withValues(alpha: 0.3)),
+                ),
+                child: Icon(icon, color: color, size: 24),
+              ),
               const Spacer(),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: (isPositive ? Colors.green : Colors.red).withValues(alpha: 0.1),
+                  color: (isPositive ? Colors.greenAccent : Colors.redAccent).withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: (isPositive ? Colors.greenAccent : Colors.redAccent).withValues(alpha: 0.4)),
                 ),
                 child: Text(
                   change,
                   style: TextStyle(
-                    color: isPositive ? Colors.green : Colors.red,
+                    color: isPositive ? Colors.greenAccent : Colors.redAccent,
                     fontSize: 12,
-                    fontWeight: FontWeight.w600,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 16),
           Text(
             value,
             style: const TextStyle(
-              fontSize: 24,
+              fontSize: 26,
               fontWeight: FontWeight.bold,
-              color: Colors.black87,
+              color: Colors.white,
             ),
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 6),
           Text(
             title,
-            style: const TextStyle(
-              fontSize: 14,
-              color: Colors.grey,
-              fontWeight: FontWeight.w500,
+            style: TextStyle(
+              fontSize: 13,
+              color: Colors.grey[400],
+              fontWeight: FontWeight.bold,
             ),
           ),
         ],
@@ -373,24 +381,25 @@ class _AnalyticsMessageTemplatesScreenState extends State<AnalyticsMessageTempla
       child: Row(
         children: [
           Container(
-            width: 24,
-            height: 24,
+            width: 28,
+            height: 28,
             decoration: BoxDecoration(
-              color: rank <= 3 ? const Color(0xFF17A2B8) : Colors.grey[300],
-              borderRadius: BorderRadius.circular(12),
+              color: rank <= 3 ? _ancientGold : Colors.white10,
+              borderRadius: BorderRadius.circular(14),
+              boxShadow: rank <= 3 ? [BoxShadow(color: _ancientGold.withValues(alpha: 0.4), blurRadius: 4)] : null,
             ),
             child: Center(
               child: Text(
                 rank.toString(),
                 style: TextStyle(
-                  fontSize: 12,
+                  fontSize: 13,
                   fontWeight: FontWeight.bold,
-                  color: rank <= 3 ? Colors.white : Colors.grey[600],
+                  color: rank <= 3 ? Colors.black : Colors.white70,
                 ),
               ),
             ),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 16),
           Expanded(
             flex: 2,
             child: Column(
@@ -399,15 +408,19 @@ class _AnalyticsMessageTemplatesScreenState extends State<AnalyticsMessageTempla
                 Text(
                   templateName,
                   style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
+                    fontSize: 15,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
                   ),
+                  overflow: TextOverflow.ellipsis,
                 ),
+                const SizedBox(height: 4),
                 Text(
                   '$delivered/$sent sent',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 12,
-                    color: Colors.grey,
+                    color: Colors.grey[400],
+                    fontFamily: 'monospace',
                   ),
                 ),
               ],
@@ -416,15 +429,16 @@ class _AnalyticsMessageTemplatesScreenState extends State<AnalyticsMessageTempla
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             decoration: BoxDecoration(
-              color: status == 'APPROVED' ? Colors.green.withValues(alpha: 0.1) : Colors.orange.withValues(alpha: 0.1),
+              color: status == 'APPROVED' ? Colors.greenAccent.withValues(alpha: 0.15) : Colors.orangeAccent.withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: status == 'APPROVED' ? Colors.greenAccent.withValues(alpha: 0.4) : Colors.orangeAccent.withValues(alpha: 0.4)),
             ),
             child: Text(
               status,
               style: TextStyle(
                 fontSize: 10,
-                fontWeight: FontWeight.w600,
-                color: status == 'APPROVED' ? Colors.green : Colors.orange,
+                fontWeight: FontWeight.bold,
+                color: status == 'APPROVED' ? Colors.greenAccent : Colors.orangeAccent,
               ),
             ),
           ),
@@ -433,8 +447,9 @@ class _AnalyticsMessageTemplatesScreenState extends State<AnalyticsMessageTempla
             '${rate.toStringAsFixed(1)}%',
             style: TextStyle(
               fontSize: 14,
-              fontWeight: FontWeight.w600,
-              color: rate > 95 ? Colors.green : rate > 90 ? Colors.orange : Colors.red,
+              fontWeight: FontWeight.bold,
+              fontFamily: 'monospace',
+              color: rate > 95 ? Colors.greenAccent : rate > 90 ? Colors.orangeAccent : Colors.redAccent,
             ),
           ),
         ],
@@ -444,11 +459,18 @@ class _AnalyticsMessageTemplatesScreenState extends State<AnalyticsMessageTempla
 
   Widget _buildCategoryRow(String category, int count, int usage, double rate, IconData icon) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 12),
+      padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
         children: [
-          Icon(icon, color: Colors.grey[600], size: 20),
-          const SizedBox(width: 12),
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: Colors.white10,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(icon, color: _ancientGold, size: 20),
+          ),
+          const SizedBox(width: 16),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -456,15 +478,17 @@ class _AnalyticsMessageTemplatesScreenState extends State<AnalyticsMessageTempla
                 Text(
                   category,
                   style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
+                    fontSize: 15,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
                   ),
                 ),
+                const SizedBox(height: 4),
                 Text(
                   '$count templates, $usage uses',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 12,
-                    color: Colors.grey,
+                    color: Colors.grey[400],
                   ),
                 ),
               ],
@@ -473,9 +497,10 @@ class _AnalyticsMessageTemplatesScreenState extends State<AnalyticsMessageTempla
           Text(
             '${rate.toStringAsFixed(1)}%',
             style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-              color: rate > 95 ? Colors.green : rate > 90 ? Colors.orange : Colors.red,
+              fontSize: 15,
+              fontWeight: FontWeight.bold,
+              fontFamily: 'monospace',
+              color: rate > 95 ? Colors.greenAccent : rate > 90 ? Colors.orangeAccent : Colors.redAccent,
             ),
           ),
         ],
@@ -499,14 +524,15 @@ class _AnalyticsMessageTemplatesScreenState extends State<AnalyticsMessageTempla
               fontSize: 24,
               fontWeight: FontWeight.bold,
               color: color,
+              fontFamily: 'monospace',
             ),
           ),
           const SizedBox(height: 4),
           Text(
             status,
             style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w500,
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
               color: color,
             ),
           ),
@@ -520,8 +546,15 @@ class _AnalyticsMessageTemplatesScreenState extends State<AnalyticsMessageTempla
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
         children: [
-          Icon(icon, color: Colors.grey[600], size: 20),
-          const SizedBox(width: 12),
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: Colors.white10,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(icon, color: Colors.blueAccent, size: 20),
+          ),
+          const SizedBox(width: 16),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -529,15 +562,18 @@ class _AnalyticsMessageTemplatesScreenState extends State<AnalyticsMessageTempla
                 Text(
                   templateName,
                   style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
+                    fontSize: 15,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
                   ),
+                  overflow: TextOverflow.ellipsis,
                 ),
+                const SizedBox(height: 4),
                 Text(
                   activity,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 12,
-                    color: Colors.grey,
+                    color: Colors.grey[400],
                   ),
                 ),
               ],
@@ -545,9 +581,11 @@ class _AnalyticsMessageTemplatesScreenState extends State<AnalyticsMessageTempla
           ),
           Text(
             time,
-            style: const TextStyle(
-              fontSize: 12,
-              color: Colors.grey,
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.bold,
+              color: Colors.grey[500],
+              fontStyle: FontStyle.italic,
             ),
           ),
         ],

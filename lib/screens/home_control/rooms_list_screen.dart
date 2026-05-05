@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:guptik/widgets/home/animated_nebula_background.dart';
+import 'package:guptik/utils/theme/dynamic_app_background.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
 import 'package:provider/provider.dart';
 
 import '../../models/home_control/room_model.dart';
 import '../../screens/home_control/board_list_screen.dart';
-import '../../widgets/home_control/dynamic_background_widget.dart';
 import '../../providers/home_control/dynamic_theme_provider.dart';
 
 // Ancient Gold Theme Constants
@@ -632,7 +631,7 @@ class _RoomListScreenState extends State<RoomListScreen> {
           body: Stack(
             children: [
               // Cinematic Nebula Background
-              const Positioned.fill(child: AnimatedNebulaBackground()),
+              const Positioned.fill(child: DynamicAppBackground()),
 
               // Main Content
               _isLoading
