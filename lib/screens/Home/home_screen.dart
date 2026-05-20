@@ -14,7 +14,6 @@ import 'package:guptik/screens/vault/vaultscreen.dart';
 import 'package:guptik/services/dashboard/whatsapp_business_service.dart';
 import 'package:guptik/utils/theme/dynamic_app_background.dart';
 import 'package:guptik/utils/theme/theme_manager.dart';
-import 'package:guptik/widgets/home/animated_nebula_background.dart';
 import 'package:guptik/widgets/home/water_splash_button.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:guptik/screens/dashboard/quick_replies_screen.dart';

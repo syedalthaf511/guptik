@@ -4,6 +4,7 @@ import 'package:guptik/utils/theme/dynamic_app_background.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart'; // REQUIRED FOR WHATSAPP SHARING
 
 // Models
 import '../../models/home_control/home_model.dart';
@@ -53,19 +54,26 @@ class _HomeControlBodyState extends State<HomeControlBody> {
       final user = _supabase.auth.currentUser;
       if (user == null) return;
 
-      // Fetch both boards and rooms to satisfy the Home model
+      // 1. Fetch owned homes (both boards and rooms to satisfy the Home model)
       final response = await _supabase
           .from('hc_homes')
           .select('*, hc_boards(*), hc_rooms(*)')
           .eq('user_id', user.id);
 
+      // 2. Fetch shared homes (homes where the user is 'shared_with_id')
+      final sharedResponse = await _supabase
+          .from('hc_home_shares')
+          .select('hc_homes(*, hc_boards(*), hc_rooms(*))')
+          .eq('shared_with_id', user.id)
+          .eq('is_active', true);
+
       final homes = <Home>[];
 
+      // Process Owned Homes
       for (var data in response) {
         final home = Home.fromJson(data);
         final wallpaper = await _wallpaperService.getHomeWallpaper(home.id);
 
-        // Reconstruct home with local wallpaper path
         homes.add(
           Home(
             id: home.id,
@@ -76,6 +84,25 @@ class _HomeControlBodyState extends State<HomeControlBody> {
             rooms: home.rooms,
           ),
         );
+      }
+
+      // Process Shared Homes (THIS LOOP WAS MISSING)
+      for (var shareData in sharedResponse) {
+        if (shareData['hc_homes'] != null) {
+          final home = Home.fromJson(shareData['hc_homes']);
+          final wallpaper = await _wallpaperService.getHomeWallpaper(home.id);
+          
+          homes.add(
+            Home(
+              id: home.id,
+              userId: home.userId, // This remains the original owner's ID
+              name: home.name,
+              wallpaperPath: wallpaper,
+              boards: home.boards,
+              rooms: home.rooms,
+            ),
+          );
+        }
       }
 
       if (mounted) {
@@ -101,7 +128,8 @@ class _HomeControlBodyState extends State<HomeControlBody> {
     final controller = TextEditingController();
     await showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      // CHANGE HERE: Rename to dialogContext
+      builder: (dialogContext) => AlertDialog(
         backgroundColor: Colors.black,
         shape: RoundedRectangleBorder(
           side: const BorderSide(color: _ancientGold, width: 1),
@@ -125,7 +153,8 @@ class _HomeControlBodyState extends State<HomeControlBody> {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            // CHANGE HERE: Use dialogContext
+            onPressed: () => Navigator.pop(dialogContext),
             child: const Text('Cancel', style: TextStyle(color: Colors.white54)),
           ),
           ElevatedButton(
@@ -135,19 +164,19 @@ class _HomeControlBodyState extends State<HomeControlBody> {
             ),
             onPressed: () async {
               if (controller.text.isNotEmpty) {
-                Navigator.pop(context);
+                // CHANGE HERE: Pop the dialogContext
+                Navigator.pop(dialogContext);
                 try {
                   await _homeService.createHome(name: controller.text.trim());
                   _loadHomes();
                 } catch (e) {
-                  if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('Error adding home: $e', style: const TextStyle(color: Colors.black)),
-                        backgroundColor: Colors.redAccent,
-                      ),
-                    );
-                  }
+                  if (!mounted) return; // ADDED MISSING MOUNTED CHECK
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Error adding home: $e', style: const TextStyle(color: Colors.black)),
+                      backgroundColor: Colors.redAccent,
+                    ),
+                  );
                 }
               }
             },
@@ -192,6 +221,8 @@ class _HomeControlBodyState extends State<HomeControlBody> {
     if (confirm != true) return;
 
     try {
+      // NOTE: If this is a shared home, you might only want to remove the share link, 
+      // not delete the actual home. For now, this assumes owner deletion.
       await _supabase.from('hc_homes').delete().eq('id', home.id);
 
       if (mounted) {
@@ -227,6 +258,104 @@ class _HomeControlBodyState extends State<HomeControlBody> {
     }
   }
 
+  // Share Home Method
+  Future<void> _shareHome(Home home) async {
+    try {
+      // Generate the code in the database
+      final referralCode = await _homeService.generateShareCode(home.id);
+
+      // Create WhatsApp Deep Link
+      final message = "Hey! Join my smart home '${home.name}' on Guptik. Paste this referral code in the app to get access:\n\n$referralCode";
+      final whatsappUrl = Uri.parse("https://wa.me/?text=${Uri.encodeComponent(message)}");
+
+      // Launch WhatsApp
+      if (await canLaunchUrl(whatsappUrl)) {
+        await launchUrl(whatsappUrl, mode: LaunchMode.externalApplication);
+      } else {
+        throw 'Could not launch WhatsApp.';
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error sharing home: $e', style: const TextStyle(color: Colors.black)), backgroundColor: Colors.redAccent),
+        );
+      }
+    }
+  }
+
+// Join Shared Home Method
+  Future<void> _joinSharedHome() async {
+    final controller = TextEditingController();
+    await showDialog(
+      context: context,
+      // CHANGE HERE: Rename to dialogContext
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: Colors.black,
+        shape: RoundedRectangleBorder(
+          side: const BorderSide(color: _ancientGold, width: 1),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        title: const Text('Join Home', style: TextStyle(color: _ancientGold, fontWeight: FontWeight.bold)),
+        content: TextField(
+          controller: controller,
+          style: const TextStyle(color: _ancientGold),
+          decoration: InputDecoration(
+            hintText: 'Paste Referral Code',
+            hintStyle: TextStyle(color: Colors.grey[600]),
+            enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: _ancientGold.withValues(alpha: 0.3))),
+            focusedBorder: const UnderlineInputBorder(borderSide: BorderSide(color: _ancientGold)),
+          ),
+          autofocus: true,
+        ),
+        actions: [
+          TextButton(
+            // CHANGE HERE: Use dialogContext
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Cancel', style: TextStyle(color: Colors.white54)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: _ancientGold, foregroundColor: Colors.black),
+            onPressed: () async {
+              if (controller.text.isNotEmpty) {
+                final referralCode = controller.text; 
+                
+                // CHANGE HERE: Pop the dialogContext, NOT the main context
+                Navigator.pop(dialogContext); 
+                
+                setState(() => _isLoading = true);
+                
+                try {
+                  await _homeService.joinSharedHome(referralCode);
+                  
+                  if (!mounted) return; 
+                  
+                  // Now this uses the correct, main screen context!
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Successfully joined home!'), backgroundColor: _ancientGold),
+                  );
+                  _loadHomes(); 
+                  
+                } catch (e) {
+                  if (!mounted) return; 
+                  
+                  setState(() => _isLoading = false);
+                  
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(e.toString(), style: const TextStyle(color: Colors.black)), 
+                      backgroundColor: Colors.redAccent
+                    ),
+                  );
+                }
+              }
+            },
+            child: const Text('Join', style: TextStyle(fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Provider.of<DynamicThemeProvider>(context);
@@ -250,6 +379,11 @@ class _HomeControlBodyState extends State<HomeControlBody> {
           ),
         ),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.group_add, color: _ancientGold),
+            tooltip: 'Join Shared Home',
+            onPressed: _joinSharedHome,
+          ),
           IconButton(
             icon: Icon(
               theme.isDarkMode ? Icons.light_mode : Icons.dark_mode,
@@ -428,12 +562,17 @@ class _HomeControlBodyState extends State<HomeControlBody> {
                                     ),
                                     onSelected: (val) {
                                       if (val == 'wallpaper') _setWallpaper(home);
+                                      if (val == 'share') _shareHome(home);
                                       if (val == 'delete') _deleteHome(home);
                                     },
                                     itemBuilder: (ctx) => [
                                       const PopupMenuItem(
                                         value: 'wallpaper',
                                         child: Text('Set Wallpaper', style: TextStyle(color: _ancientGold)),
+                                      ),
+                                      const PopupMenuItem( // NEW SHARE OPTION
+                                        value: 'share',
+                                        child: Text('Share Home', style: TextStyle(color: _ancientGold)),
                                       ),
                                       const PopupMenuItem(
                                         value: 'delete',
@@ -468,4 +607,3 @@ class _HomeControlBodyState extends State<HomeControlBody> {
     );
   }
 }
-

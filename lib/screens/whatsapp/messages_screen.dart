@@ -355,6 +355,7 @@ class _MessagesScreenState extends State<MessagesScreen>
               // Implement search
             },
           ),
+
           PopupMenuButton<String>(
             icon: const Icon(Icons.more_vert, color: Colors.white),
             onSelected: (value) {
@@ -423,6 +424,7 @@ class _MessagesScreenState extends State<MessagesScreen>
           ],
         ),
       ),
+    
       body: TabBarView(
         controller: _tabController,
         children: [
@@ -439,6 +441,8 @@ class _MessagesScreenState extends State<MessagesScreen>
           }
         },
         backgroundColor: Colors.green,
+        
+
         child: Icon(
           _tabController.index == 0 ? Icons.person_add : Icons.group_add,
           color: Colors.white,

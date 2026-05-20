@@ -4,10 +4,10 @@ import 'package:provider/provider.dart';
 import 'package:wifi_iot/wifi_iot.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:http/http.dart' as http;
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../providers/home_control/dynamic_theme_provider.dart';
 import '../../widgets/home_control/home_control_widgets.dart';
-import '../../services/home_control/home_control_services.dart';
 
 class AddBoardScanScreen extends StatefulWidget {
   final String homeId;
@@ -71,14 +71,11 @@ class _AddBoardScanScreenState extends State<AddBoardScanScreen> {
   // 2. Scan and filter for "SmartSwitch"
   Future<void> _startScan() async {
     try {
-      // Force Wi-Fi on (Android only)
       await WiFiForIoTPlugin.setEnabled(true);
-      
       final networks = await WiFiForIoTPlugin.loadWifiList();
       
       if (mounted) {
         setState(() {
-          // Filter networks that start with "SmartSwitch"
           _foundDevices = networks.where((net) {
             final ssid = net.ssid ?? '';
             return ssid.toLowerCase().startsWith('smartswitch');
@@ -96,24 +93,21 @@ class _AddBoardScanScreenState extends State<AddBoardScanScreen> {
     }
   }
 
-  // 3. Connect to the tapped ESP12-E AP
+  // 3. Connect to the tapped ESP AP
   Future<void> _connectToBoard(WifiNetwork network) async {
     setState(() {
       _isConnectingToBoard = true;
     });
 
     try {
-      // Connect to the open ESP AP
       final connected = await WiFiForIoTPlugin.connect(
         network.ssid ?? '',
-        security: NetworkSecurity.NONE, // Assuming the ESP AP has no password
-        withInternet: false, // We know this AP has no internet
+        security: NetworkSecurity.NONE,
+        withInternet: false, 
       );
 
       if (connected) {
-        // Wait a moment for the IP assignment to settle
         await Future.delayed(const Duration(seconds: 3));
-        
         if (mounted) {
           setState(() {
             _connectedBoard = network;
@@ -133,7 +127,7 @@ class _AddBoardScanScreenState extends State<AddBoardScanScreen> {
     }
   }
 
-  // 4. Send HTTP request to ESP12-E and save to database
+  // 4. Send HTTP request to ESP with Credentials + IDs
   Future<void> _sendCredentialsToBoard() async {
     if (_ssidController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -145,52 +139,43 @@ class _AddBoardScanScreenState extends State<AddBoardScanScreen> {
     setState(() => _isProvisioning = true);
 
     try {
-      // ---> CRITICAL FIX FOR ANDROID <---
-      // Force the phone to route HTTP traffic over the ESP32's Wi-Fi network, 
-      // otherwise Android will try to use Cellular Data because the ESP has no internet.
+      // Get the current user's ID
+      final ownerId = Supabase.instance.client.auth.currentUser?.id;
+      if (ownerId == null) throw Exception("User not logged in");
+
       await WiFiForIoTPlugin.forceWifiUsage(true);
 
       final espUrl = Uri.parse('http://192.168.4.1/wifisave'); 
       
+      // Sending ALL data to the ESP in the background
       final response = await http.post(
         espUrl,
         headers: {'Content-Type': 'application/x-www-form-urlencoded'},
         body: {
-          's': _ssidController.text.trim(), // SSID parameter
-          'p': _passwordController.text.trim(), // Password parameter
+          's': _ssidController.text.trim(), // SSID
+          'p': _passwordController.text.trim(), // Password
+          'o': ownerId, // Owner ID
+          'h': widget.homeId, // Home ID
+          'r': widget.roomId ?? '', // Room ID (Empty string if null/unassigned)
         },
       ).timeout(const Duration(seconds: 10));
 
       if (response.statusCode == 200) {
-        // Formulate a Board ID (e.g., from "SmartSwitch_4node" -> "BOARD_4node")
-        final deviceName = _connectedBoard?.ssid ?? 'Unknown_Board';
-        final extractedBoardId = deviceName.replaceAll(RegExp(r'(?i)smartswitch_'), 'BOARD_');
-
-        // Claim it in Supabase
-        await HomeControlService().validateAndClaimBoard(
-          boardId: extractedBoardId,
-          homeId: widget.homeId,
-          roomId: widget.roomId,
-          customName: deviceName,
-        );
-
-        // Turn off forced Wi-Fi usage and disconnect so the phone returns to normal internet
+        // We no longer claim the board in Flutter. The ESP will handle it!
         await WiFiForIoTPlugin.forceWifiUsage(false);
         await WiFiForIoTPlugin.disconnect();
 
         if (mounted) {
-          Navigator.pop(context); // Go back to Board List
+          Navigator.pop(context); 
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Board connected and claimed successfully!')),
+            const SnackBar(content: Text('Credentials sent! The board is now connecting and registering itself.')),
           );
         }
       } else {
-        throw Exception("ESP rejected credentials (Status: ${response.statusCode})");
+        throw Exception("ESP rejected data (Status: ${response.statusCode})");
       }
     } catch (e) {
-      // ALWAYS ensure we release the forced Wi-Fi usage if something goes wrong
       await WiFiForIoTPlugin.forceWifiUsage(false);
-      
       setState(() => _isProvisioning = false);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -243,22 +228,14 @@ class _AddBoardScanScreenState extends State<AddBoardScanScreen> {
         children: [
           CircularProgressIndicator(color: Colors.white),
           SizedBox(height: 16),
-          Text(
-            'Connecting to Smart Switch...',
-            style: TextStyle(color: Colors.white, fontSize: 16),
-          ),
+          Text('Connecting to Smart Switch...', style: TextStyle(color: Colors.white, fontSize: 16)),
         ],
       );
     }
-
-    if (_connectedBoard != null) {
-      return _buildProvisioningForm();
-    }
-
+    if (_connectedBoard != null) return _buildProvisioningForm();
     return _buildScannerList();
   }
 
-  // UI: Step 3 - Enter Home Credentials
   Widget _buildProvisioningForm() {
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -317,7 +294,6 @@ class _AddBoardScanScreenState extends State<AddBoardScanScreen> {
     );
   }
 
-  // UI: Step 1 & 2 - Scanning and Listing Devices
   Widget _buildScannerList() {
     return Column(
       mainAxisSize: MainAxisSize.min,
