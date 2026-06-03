@@ -48,10 +48,11 @@ dependencies:
   mime: ^1.0.3
   webview_flutter: ^4.13.1
   chewie: ^1.7.4
-  flutter_secure_storage: ^10.0.0
+  flutter_secure_storage: ^10.2.0
   emoji_picker_flutter: ^4.4.0
   network_info_plus: ^7.0.0
   wifi_iot: ^0.3.19+2
+  local_auth: ^3.0.1
 
 
 dev_dependencies:

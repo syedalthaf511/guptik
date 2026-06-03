@@ -8,7 +8,6 @@ import 'package:guptik/screens/dashboard/message_templates_screen.dart';
 import 'package:guptik/screens/facebook/fb_and_insta_screen.dart';
 import 'package:guptik/screens/guptik/guptik_screen.dart';
 import 'package:guptik/screens/home_control/homecontrol_screen.dart';
-import 'package:guptik/screens/media/media_player_screen.dart';
 import 'package:guptik/screens/trust_me/trust_me_mobile_wrapper.dart';
 import 'package:guptik/screens/vault/vaultscreen.dart';
 import 'package:guptik/services/dashboard/whatsapp_business_service.dart';
@@ -36,6 +35,7 @@ import 'package:guptik/screens/dashboard/drip_sequences_screen.dart';
 import 'package:guptik/services/dashboard/conversations_service.dart';
 import 'package:guptik/screens/dashboard/business_settings_screen.dart';
 import 'package:guptik/screens/whatsapp/main_whatsapp_screen.dart';
+import 'package:guptik/screens/mediaplayer/mobile_main_layout.dart';
 // import 'package:guptik/widgets/home/water_key_button.dart';
 
 // IMPORTANT IMPORTS FOR YOUR NEWLY SEPARATED FILES
@@ -1222,7 +1222,11 @@ class _HomeScreenState extends State<HomeScreen> {
                                 Flexible(
                                   fit: FlexFit.tight,
                                   child: WaterSplashButton(
-                                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const MediaPlayerScreen())),
+                                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) =>  MobileMainLayout(
+                                     gatewayUrl: 'http://192.168.1.198:8080', 
+      // 🚀 Safely grab the logged-in user's ID
+      currentUserUid: Supabase.instance.client.auth.currentUser?.id ?? 'guest',
+                                    ))),
                                     child: Container(
                                       margin: const EdgeInsets.symmetric(horizontal: 5),
                                       padding: const EdgeInsets.all(12),
