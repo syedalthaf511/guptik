@@ -1,13 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart'; // REQUIRED FOR CLIPBOARD
+import 'package:guptik/models/mediaplyer/player_video_model.dart';
 import 'dart:math'; // REQUIRED FOR TOKEN GENERATION
 import 'package:guptik/services/vault/sync_tracker.dart';
 import 'package:guptik/services/vault/vault_sync_service.dart';
 import 'package:guptik/utils/theme/dynamic_app_background.dart';
+import 'package:guptik/widgets/mediaplayer/mobile_video_player_widget.dart';
 import 'package:photo_manager/photo_manager.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-
+import 'package:postgres/postgres.dart'; // 🚀 Supported now via pubspec!
 
 // Ancient Gold Theme Constants
 const Color _ancientGold = Color(0xFFD4AF37);
@@ -80,7 +82,7 @@ class _SyncedFilesScreenState extends State<SyncedFilesScreen> {
                         "Anyone with the link can view",
                         style: TextStyle(color: Colors.grey[500], fontSize: 12),
                       ),
-                      activeColor: Colors.black,
+                      activeThumbColor: Colors.black,
                       activeTrackColor: _ancientGold,
                       inactiveThumbColor: Colors.grey[400],
                       inactiveTrackColor: Colors.white24,
@@ -133,7 +135,10 @@ class _SyncedFilesScreenState extends State<SyncedFilesScreen> {
                                   surface: Colors.black,
                                   onSurface: _ancientGold,
                                 ),
-                                dialogBackgroundColor: Colors.black,
+                                // 🚀 FIXED: Swapped 'DialogTheme' for the correct 'DialogThemeData' type allocation
+                                dialogTheme: const DialogThemeData(
+                                  backgroundColor: Colors.black,
+                                ),
                               ),
                               child: child!,
                             );
@@ -209,7 +214,6 @@ class _SyncedFilesScreenState extends State<SyncedFilesScreen> {
     DateTime? expiryDate,
   ) async {
     try {
-      // 1. Get the Live URL using your existing VaultSyncService
       String? publicUrl = await _syncService.getDesktopUrl();
       if (publicUrl == null) {
         throw Exception("Desktop URL not found. Is your desktop synced?");
@@ -222,10 +226,7 @@ class _SyncedFilesScreenState extends State<SyncedFilesScreen> {
         publicUrl = publicUrl.substring(0, publicUrl.length - 1);
       }
 
-      // 2. Generate Token
       final token = isPublic ? null : _generateSecureToken(32);
-
-      // 3. SEND THE RULE TO THE DESKTOP API
       final now = DateTime.now().toUtc();
 
       final shareData = {
@@ -247,14 +248,12 @@ class _SyncedFilesScreenState extends State<SyncedFilesScreen> {
         throw Exception("Desktop rejected the share rule: ${response.body}");
       }
 
-      // 4. Build Link
       final safeName = Uri.encodeComponent(fileName);
       String finalLink = "https://$publicUrl/vault/files/$safeName";
       if (!isPublic && token != null) {
         finalLink += "?token=$token";
       }
 
-      // 5. Copy to Mobile Clipboard
       await Clipboard.setData(ClipboardData(text: finalLink));
 
       if (mounted) {
@@ -301,7 +300,7 @@ class _SyncedFilesScreenState extends State<SyncedFilesScreen> {
         }
       }
     } catch (e) {
-      print("Gateway offline, skipping live verification: $e");
+      debugPrint("Gateway offline, skipping live verification: $e");
     }
 
     final List<AssetEntity> assets = [];
@@ -326,6 +325,47 @@ class _SyncedFilesScreenState extends State<SyncedFilesScreen> {
         _syncedAssets = assets;
         _isLoading = false;
       });
+    }
+  }
+
+  void _openSystemFolder(String title) async {
+    String type = 'drafts';
+    IconData icon = Icons.edit;
+    Color color = Colors.purpleAccent;
+
+    if (title == "Posted Videos") {
+      type = 'posted';
+      icon = Icons.cloud_done;
+      color = const Color(0xFF00E5FF);
+    } else if (title == "Saved Videos") {
+      type = 'saved';
+      icon = Icons.bookmark;
+      color = Colors.amberAccent;
+    } else if (title == "Repost Videos") {
+      type = 'repost';
+      icon = Icons.repeat;
+      color = Colors.lightGreenAccent;
+    } else if (title == "Vault Folder") {
+      type = 'vault_sys';
+      icon = Icons.shield;
+      color = Colors.orangeAccent;
+    }
+
+    final String? desktopUrl = await _syncService.getDesktopUrl();
+
+    if (mounted) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => MobileSystemFolderScreen(
+            folderType: type,
+            folderTitle: title,
+            folderIcon: icon,
+            folderColor: color,
+            desktopUrl: desktopUrl,
+          ),
+        ),
+      );
     }
   }
 
@@ -364,26 +404,10 @@ class _SyncedFilesScreenState extends State<SyncedFilesScreen> {
       ),
       body: Stack(
         children: [
-          // The Shared Cinematic Nebula Background
           const Positioned.fill(child: DynamicAppBackground()),
 
-          // Main Content
           _isLoading
               ? const Center(child: CircularProgressIndicator(color: _ancientGold))
-              : _syncedAssets.isEmpty
-              ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.cloud_off, size: 80, color: _ancientGold.withValues(alpha: 0.8)),
-                      const SizedBox(height: 20),
-                      const Text(
-                        "No files synced yet",
-                        style: TextStyle(color: Colors.white54, fontSize: 18),
-                      ),
-                    ],
-                  ),
-                )
               : GridView.builder(
                   padding: const EdgeInsets.fromLTRB(4, 100, 4, 16),
                   gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
@@ -391,12 +415,17 @@ class _SyncedFilesScreenState extends State<SyncedFilesScreen> {
                     crossAxisSpacing: 4,
                     mainAxisSpacing: 4,
                   ),
-                  itemCount: _syncedAssets.length,
+                  itemCount: _syncedAssets.length + 5,
                   itemBuilder: (context, index) {
-                    final asset = _syncedAssets[index];
+                    if (index == 0) return _buildVirtualFolderTile("Posted Videos", Icons.cloud_done, const Color(0xFF00E5FF));
+                    if (index == 1) return _buildVirtualFolderTile("Saved Videos", Icons.bookmark, Colors.amberAccent);
+                    if (index == 2) return _buildVirtualFolderTile("Drafts", Icons.edit, Colors.purpleAccent);
+                    if (index == 3) return _buildVirtualFolderTile("Repost Videos", Icons.repeat, Colors.lightGreenAccent);
+                    if (index == 4) return _buildVirtualFolderTile("Vault Folder", Icons.shield, Colors.orangeAccent);
+
+                    final asset = _syncedAssets[index - 5];
                     return _SyncedTile(
                       asset: asset,
-                      // 🔗 Trigger the share dialog and pass the file name!
                       onShare: () {
                         final fileName = asset.title ?? 'unknown_${asset.id}';
                         _showShareDialog(fileName);
@@ -405,6 +434,39 @@ class _SyncedFilesScreenState extends State<SyncedFilesScreen> {
                   },
                 ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildVirtualFolderTile(String title, IconData icon, Color color) {
+    return InkWell(
+      onTap: () => _openSystemFolder(title),
+      borderRadius: BorderRadius.circular(8),
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.black.withValues(alpha: 0.6),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: color.withValues(alpha: 0.3), width: 1.5),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, color: color, size: 28),
+            const SizedBox(height: 8),
+            Text(
+              title,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 2),
+            Text(
+              "System Folder",
+              style: TextStyle(color: Colors.grey[500], fontSize: 9),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -438,7 +500,6 @@ class _SyncedTile extends StatelessWidget {
                 return Container(color: Colors.black);
               },
             ),
-            // Share Icon (Top Right)
             Positioned(
               top: 4,
               right: 4,
@@ -456,7 +517,6 @@ class _SyncedTile extends StatelessWidget {
                 ),
               ),
             ),
-            // Checkmark (Bottom Right)
             Positioned(
               bottom: 4,
               right: 4,
@@ -470,6 +530,227 @@ class _SyncedTile extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+// =========================================================================
+// 🚀 LIVE MOBILE SYSTEM FOLDER VIEWER (CLEAN HTTP ROUTING METHOD)
+// =========================================================================
+class MobileSystemFolderScreen extends StatefulWidget {
+  final String folderType;
+  final String folderTitle;
+  final IconData folderIcon;
+  final Color folderColor;
+  final String? desktopUrl;
+
+  const MobileSystemFolderScreen({
+    super.key,
+    required this.folderType,
+    required this.folderTitle,
+    required this.folderIcon,
+    required this.folderColor,
+    required this.desktopUrl,
+  });
+
+  @override
+  State<MobileSystemFolderScreen> createState() => _MobileSystemFolderScreenState();
+}
+
+class _MobileSystemFolderScreenState extends State<MobileSystemFolderScreen> {
+  List<dynamic> _folderItems = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchRemoteFolderContent();
+  }
+
+  Future<void> _fetchRemoteFolderContent() async {
+    if (widget.desktopUrl == null || widget.desktopUrl!.isEmpty) {
+      if (mounted) setState(() => _isLoading = false);
+      return;
+    }
+
+    try {
+      // 🚀 Hits the new secure gateway proxy endpoint over your public web tunnel link
+      final endpoint = '${widget.desktopUrl}/vault/system-folder/${widget.folderType}';
+      final response = await http.get(Uri.parse(endpoint)).timeout(const Duration(seconds: 8));
+      
+      if (response.statusCode == 200 && mounted) {
+        final List<dynamic> decodedData = jsonDecode(response.body);
+        setState(() {
+          _folderItems = decodedData;
+          _isLoading = false;
+        });
+      } else {
+        if (mounted) setState(() => _isLoading = false);
+      }
+    } catch (e) {
+      debugPrint("❌ Network folder stream tracking error: $e");
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  String _formatSize(dynamic sizeBytes) {
+    if (sizeBytes == null) return '0 B';
+    int bytes = int.tryParse(sizeBytes.toString()) ?? 0;
+    if (bytes < 1024) return '$bytes B';
+    if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)} KB';
+    return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: _darkBg,
+      appBar: AppBar(
+        backgroundColor: Colors.black.withValues(alpha: 0.8),
+        iconTheme: const IconThemeData(color: _ancientGold),
+        title: Row(
+          children: [
+            Icon(widget.folderIcon, color: widget.folderColor, size: 22),
+            const SizedBox(width: 10),
+            Text(widget.folderTitle, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+          ],
+        ),
+      ),
+      body: Stack(
+        children: [
+          const Positioned.fill(child: DynamicAppBackground()),
+          _isLoading
+              ? const Center(child: CircularProgressIndicator(color: _ancientGold))
+              : _folderItems.isEmpty
+                  ? Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(widget.folderIcon, size: 60, color: Colors.white24),
+                          const SizedBox(height: 16),
+                          Text("This folder is empty.", style: TextStyle(color: Colors.grey[500], fontSize: 14)),
+                        ],
+                      ),
+                    )
+                  : GridView.builder(
+                      padding: const EdgeInsets.all(12),
+                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 2,
+                        crossAxisSpacing: 12,
+                        mainAxisSpacing: 12,
+                        childAspectRatio: 0.85,
+                      ),
+                      itemCount: _folderItems.length,
+                      itemBuilder: (context, index) {
+                        final item = _folderItems[index];
+                        final filename = item['title'] ?? 'Shared Media';
+                        final videoId = item['video_id'] ?? '';
+                        final sizeStr = _formatSize(item['size_bytes']);
+                        
+                        String cleanBaseUrl = widget.desktopUrl ?? '';
+                        if (cleanBaseUrl.endsWith('/')) {
+                          cleanBaseUrl = cleanBaseUrl.substring(0, cleanBaseUrl.length - 1);
+                        }
+                        final thumbUrl = '$cleanBaseUrl/player/video/thumbnail/$videoId';
+
+                        
+return InkWell(
+  onTap: () {
+    // 🚀 Using your existing MobileVideoPlayerWidget structure
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => Scaffold(
+          backgroundColor: Colors.black,
+          appBar: AppBar(
+            backgroundColor: Colors.black,
+            iconTheme: const IconThemeData(color: Colors.orange),
+            title: Text(filename, style: const TextStyle(color: Colors.white)),
+          ),
+          body: MobileVideoPlayerWidget(
+            // Construct the model or pass the URL if your widget supports it
+            // Based on your other files, the widget likely expects a PlayerVideo model
+            video: PlayerVideo(
+              videoId: videoId,
+              title: filename,
+              creatorUrl: widget.desktopUrl ?? '',
+              channelName: 'Local Vault',
+              viewCount: 0,
+              creatorUid: 'guest', // Or get the actual user ID
+  description: '',     // Provide an empty string or the actual description
+  filePath: '',        // Provide the file path
+  likeCount: 0,
+  commentCount: 0,
+  createdAt: DateTime.now().toIso8601String(),
+             ),
+          ),
+         ),
+       ),
+      );
+            },
+                         child: Container(
+                            decoration: BoxDecoration(
+                              color: Colors.black.withValues(alpha: 0.5),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: widget.folderColor.withValues(alpha: 0.2)),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Expanded(
+                                  child: Container(
+                                    width: double.infinity,
+                                    decoration: BoxDecoration(
+                                      color: Colors.white.withValues(alpha: 0.02),
+                                      borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+                                    ),
+                                    child: videoId.isNotEmpty
+                                        ? ClipRRect(
+                                            borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+                                            child: Image.network(
+                                              thumbUrl,
+                                              fit: BoxFit.cover,
+                                              errorBuilder: (_, __, ___) => Icon(
+                                                Icons.play_circle_outline,
+                                                color: widget.folderColor.withValues(alpha: 0.7),
+                                                size: 40,
+                                              ),
+                                            ),
+                                          )
+                                        : Icon(
+                                            Icons.insert_drive_file,
+                                            color: widget.folderColor.withValues(alpha: 0.7),
+                                            size: 40,
+                                          ),
+                                  ),
+                                ),
+                                Padding(
+                                  padding: const EdgeInsets.all(10),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        filename,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        sizeStr,
+                                        style: TextStyle(color: Colors.grey[500], fontSize: 10),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+        ],
       ),
     );
   }

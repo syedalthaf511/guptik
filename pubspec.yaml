@@ -53,6 +53,7 @@ dependencies:
   network_info_plus: ^7.0.0
   wifi_iot: ^0.3.19+2
   local_auth: ^3.0.1
+  postgres: ^3.5.11
 
 
 dev_dependencies:

@@ -74,7 +74,7 @@ class _MobileMainLayoutState extends State<MobileMainLayout> {
               _buildNavItem(icon: Icons.home_filled, index: 0, label: "Home"),
               _buildCenterUploadButton(),
               _buildNavItem(icon: Icons.person_rounded, index: 2, label: "Profile"),
-              _buildNavItem(icon: Icons.settings_rounded, index: 3, label: "Settings"),
+              
             ],
           ),
         ),

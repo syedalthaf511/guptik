@@ -1222,11 +1222,30 @@ class _HomeScreenState extends State<HomeScreen> {
                                 Flexible(
                                   fit: FlexFit.tight,
                                   child: WaterSplashButton(
-                                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) =>  MobileMainLayout(
-                                     gatewayUrl: 'http://192.168.1.198:8080', 
-      // 🚀 Safely grab the logged-in user's ID
-      currentUserUid: Supabase.instance.client.auth.currentUser?.id ?? 'guest',
-                                    ))),
+                                    // 1. Fetch the URL dynamically
+             onTap: () async {
+              // 🚀 Optional: Show a loading indicator in your UI
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Locating your node...")));
+            final user = Supabase.instance.client.auth.currentUser;
+           if (user == null) return;
+
+         // Query your "Phonebook" in Supabase
+            final response = await Supabase.instance.client
+         .from('mp_channels')
+         .select('tunnel_url')
+         .eq('owner_uid', user.id)
+         .single();
+
+  final String dynamicUrl = response['tunnel_url'] ?? 'https://guptik.myqrmart.com';
+
+  if (!context.mounted) return;
+  
+  // 2. Navigate with the actual, live URL
+  Navigator.push(context, MaterialPageRoute(builder: (context) => MobileMainLayout(
+    gatewayUrl: dynamicUrl, 
+    currentUserUid: user.id,
+  )));
+   },
                                     child: Container(
                                       margin: const EdgeInsets.symmetric(horizontal: 5),
                                       padding: const EdgeInsets.all(12),
