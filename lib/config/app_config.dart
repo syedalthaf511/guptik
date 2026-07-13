@@ -1,8 +1,10 @@
 class AppConfig {
   // Supabase Configuration
-  static const String supabaseUrl = 'https://base.myqrmart.com';
-  static const String supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYW5vbiIsImlzcyI6InN1cGFiYXNlLWJhc2UifQ.QL7hHqH2Ko_LNAuS--BgqHrDLFCCl3j0uQPB-FjoC4w';
+  static const String supabaseUrl = 'https://aqmcriergkczfkkdgkzc.supabase.co';
+  static const String supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFxbWNyaWVyZ2tjemZra2Rna3pjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI1MzU1NTUsImV4cCI6MjA5ODExMTU1NX0.GTFeWOWlfPBpQabdhwNhR0TGFg3oLzf4AOGkBbs2lP0';
   
+
+
   // WhatsApp Business API - PASTE YOUR KEYS HERE
   static const String whatsappAccessToken = 'TEST_ACCESS_TOKEN_123';
   static const String whatsappPhoneNumberId = 'TEST_MODE_12345';
