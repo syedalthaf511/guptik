@@ -4,7 +4,6 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
-import 'package:intl/intl.dart';
 
 class HomeControlService {
   final SupabaseClient _supabase = Supabase.instance.client;
@@ -13,45 +12,6 @@ class HomeControlService {
   Future<Map<String, dynamic>> createHome({required String name}) async {
     final user = _supabase.auth.currentUser;
     if (user == null) throw Exception('User not authenticated');
-
-    final email = user.email ?? '';
-    // Append 8 chars of the user's ID so the username is always unique
-    // even when two accounts share the same email prefix.
-    final uniqueUsername =
-        '${email.isNotEmpty ? email.split('@').first : 'user'}'
-        '_${user.id.replaceAll('-', '').substring(0, 8)}';
-
-    // Ensure user_profiles row exists with a valid role.
-    // The hc_homes RLS policy reads user_profiles.role; when no row exists
-    // it evaluates to NULL / '' and PostgreSQL throws error 22023.
-    // We SELECT first to avoid colliding on the username UNIQUE constraint.
-    final existingProfile = await _supabase
-        .from('user_profiles')
-        .select('id')
-        .eq('id', user.id)
-        .maybeSingle();
-
-    if (existingProfile == null) {
-      try {
-        await _supabase.from('user_profiles').insert({
-          'id': user.id,
-          'username': uniqueUsername,
-          'email': email,
-          'role': 'user',
-          'timezone': 'UTC',
-        });
-      } catch (_) {
-        // Another concurrent insert may have won the race — safe to ignore.
-      }
-    }
-
-    // Ensure user_api_settings has a valid hc_role.
-    // Do NOT use ignoreDuplicates — we must also update rows that already
-    // exist but have an empty/null hc_role, which also causes error 22023.
-    await _supabase.from('user_api_settings').upsert({
-      'user_id': user.id,
-      'hc_role': 'user',
-    }, onConflict: 'user_id');
 
     final homeId = _uuid.v4();
     return await _supabase
@@ -167,80 +127,6 @@ class HomeControlService {
         .eq('id', boardId)
         .single();
   }
-
-  // Add this import at the top if not already there for date formatting
-// import 'package:intl/intl.dart'; // Add 'intl' package to pubspec.yaml
-
-  Future<String> generateShareCode(String homeId) async {
-    final user = _supabase.auth.currentUser;
-    if (user == null) throw Exception('User not authenticated');
-
-    // Generate date format: YYYYMMDDHHMM
-    final now = DateTime.now();
-    final dateStr = '${now.year}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}${now.hour.toString().padLeft(2, '0')}${now.minute.toString().padLeft(2, '0')}';
-
-    // Format IDs as requested: ownerFirst-ownerLast-homeFirst-homeLast-date
-    final ownerFirst = user.id.split('-').first;
-    final ownerLast = user.id.split('-').last;
-    final homeFirst = homeId.split('-').first;
-    final homeLast = homeId.split('-').last;
-
-    final referralCode = '$ownerFirst-$ownerLast-$homeFirst-$homeLast-$dateStr';
-
-    // Set expiration to 7 days from now (adjustable)
-    final expiresAt = now.add(const Duration(days: 7)).toIso8601String();
-
-    await _supabase.from('hc_home_shares').insert({
-      'home_id': homeId,
-      'owner_id': user.id,
-      'referral_code': referralCode,
-      'expires_at': expiresAt,
-      'can_control': true,
-      'is_active': true,
-      // shared_with_id is left null until someone claims it
-    });
-
-    return referralCode;
-  }
-
-  Future<void> joinSharedHome(String referralCode) async {
-    final user = _supabase.auth.currentUser;
-    if (user == null) throw Exception('User not authenticated');
-
-    // 1. Find the share record
-    final shareResponse = await _supabase
-        .from('hc_home_shares')
-        .select()
-        .eq('referral_code', referralCode.trim())
-        .maybeSingle();
-
-    if (shareResponse == null) {
-      throw Exception('Invalid referral code.');
-    }
-
-    if (shareResponse['is_active'] == false) {
-      throw Exception('This share link has been deactivated.');
-    }
-
-    final expiresAt = DateTime.parse(shareResponse['expires_at']);
-    if (DateTime.now().isAfter(expiresAt)) {
-      throw Exception('This share link has expired.');
-    }
-
-    if (shareResponse['shared_with_id'] != null && shareResponse['shared_with_id'] != user.id) {
-      throw Exception('This code has already been claimed by another user.');
-    }
-    
-    if (shareResponse['owner_id'] == user.id) {
-      throw Exception('You already own this home!');
-    }
-
-    // 2. Claim the share by updating shared_with_id
-    await _supabase
-        .from('hc_home_shares')
-        .update({'shared_with_id': user.id})
-        .eq('id', shareResponse['id']);
-  }
 }
 
 class LocalWallpaperService {
@@ -287,5 +173,4 @@ class LocalWallpaperService {
       await prefs.setString(_wallpaperPrefsKey, jsonEncode(map));
     }
   }
-  
 }

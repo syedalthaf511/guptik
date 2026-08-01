@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
 import '../../models/home_control/switch_model.dart';
 import '../../models/home_control/switch_type.dart';
+import '../../services/home_control/hc_websocket_service.dart';
 import 'timer_screen.dart';
 
 // Ancient Gold Theme Constants
@@ -29,7 +30,8 @@ class _SwitchControlScreenState extends State<SwitchControlScreen>
   final _uuid = const Uuid();
   List<SwitchDevice> _switches = [];
   bool _isLoading = true;
-  bool _isReordering = false; // Prevents stream listener from overriding UI mid-drag
+  bool _isReordering =
+      false; // Prevents stream listener from overriding UI mid-drag
 
   late AnimationController _fanController;
 
@@ -95,24 +97,37 @@ class _SwitchControlScreenState extends State<SwitchControlScreen>
   }
 
   Future<void> _toggle(SwitchDevice s) async {
+    final newState = !s.state;
+
     setState(() {
       final index = _switches.indexWhere((e) => e.id == s.id);
       if (index != -1) {
-        _switches[index] = s.copyWith(state: !s.state);
+        _switches[index] = s.copyWith(state: newState);
       }
     });
 
     try {
+      // 1. Write to Supabase DB
       await _supabase
           .from('hc_switches')
-          .update({'state': !s.state})
+          .update({'state': newState})
           .eq('id', s.id);
+
+      // 2. Broadcast to ESP via WebSocket
+      await HcWebSocketService().toggleSwitch(
+        boardId: widget.boardId,
+        position: s.position,
+        state: newState,
+      );
     } catch (e) {
       _loadSwitches();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error: $e', style: const TextStyle(color: Colors.black)),
+            content: Text(
+              'Error: $e',
+              style: const TextStyle(color: Colors.black),
+            ),
             backgroundColor: Colors.redAccent,
           ),
         );
@@ -147,20 +162,35 @@ class _SwitchControlScreenState extends State<SwitchControlScreen>
 
       // STEP 1: Move ONLY these two to temporary negative positions to clear the constraint
       await Future.wait([
-        _supabase.from('hc_switches').update({'position': -(updatedSwitch1.position)}).eq('id', updatedSwitch1.id),
-        _supabase.from('hc_switches').update({'position': -(updatedSwitch2.position)}).eq('id', updatedSwitch2.id),
+        _supabase
+            .from('hc_switches')
+            .update({'position': -(updatedSwitch1.position)})
+            .eq('id', updatedSwitch1.id),
+        _supabase
+            .from('hc_switches')
+            .update({'position': -(updatedSwitch2.position)})
+            .eq('id', updatedSwitch2.id),
       ]);
 
       // STEP 2: Save their final swapped positive positions
       await Future.wait([
-        _supabase.from('hc_switches').update({'position': updatedSwitch1.position}).eq('id', updatedSwitch1.id),
-        _supabase.from('hc_switches').update({'position': updatedSwitch2.position}).eq('id', updatedSwitch2.id),
+        _supabase
+            .from('hc_switches')
+            .update({'position': updatedSwitch1.position})
+            .eq('id', updatedSwitch1.id),
+        _supabase
+            .from('hc_switches')
+            .update({'position': updatedSwitch2.position})
+            .eq('id', updatedSwitch2.id),
       ]);
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Failed to swap positions. Check connection.', style: TextStyle(color: Colors.black)),
+            content: Text(
+              'Failed to swap positions. Check connection.',
+              style: TextStyle(color: Colors.black),
+            ),
             backgroundColor: Colors.redAccent,
           ),
         );
@@ -193,7 +223,10 @@ class _SwitchControlScreenState extends State<SwitchControlScreen>
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error: $e', style: const TextStyle(color: Colors.black)),
+            content: Text(
+              'Error: $e',
+              style: const TextStyle(color: Colors.black),
+            ),
             backgroundColor: Colors.redAccent,
           ),
         );
@@ -216,7 +249,10 @@ class _SwitchControlScreenState extends State<SwitchControlScreen>
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error: $e', style: const TextStyle(color: Colors.black)),
+            content: Text(
+              'Error: $e',
+              style: const TextStyle(color: Colors.black),
+            ),
             backgroundColor: Colors.redAccent,
           ),
         );
@@ -233,7 +269,10 @@ class _SwitchControlScreenState extends State<SwitchControlScreen>
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error: $e', style: const TextStyle(color: Colors.black)),
+            content: Text(
+              'Error: $e',
+              style: const TextStyle(color: Colors.black),
+            ),
             backgroundColor: Colors.redAccent,
           ),
         );
@@ -256,7 +295,10 @@ class _SwitchControlScreenState extends State<SwitchControlScreen>
             side: const BorderSide(color: _ancientGold, width: 1),
             borderRadius: BorderRadius.circular(12),
           ),
-          title: const Text('Add Device', style: TextStyle(color: _ancientGold, fontWeight: FontWeight.bold)),
+          title: const Text(
+            'Add Device',
+            style: TextStyle(color: _ancientGold, fontWeight: FontWeight.bold),
+          ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -266,8 +308,14 @@ class _SwitchControlScreenState extends State<SwitchControlScreen>
                 decoration: InputDecoration(
                   labelText: 'Name',
                   labelStyle: TextStyle(color: Colors.grey[500]),
-                  enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: _ancientGold.withValues(alpha: 0.3))),
-                  focusedBorder: const OutlineInputBorder(borderSide: BorderSide(color: _ancientGold)),
+                  enabledBorder: OutlineInputBorder(
+                    borderSide: BorderSide(
+                      color: _ancientGold.withValues(alpha: 0.3),
+                    ),
+                  ),
+                  focusedBorder: const OutlineInputBorder(
+                    borderSide: BorderSide(color: _ancientGold),
+                  ),
                 ),
                 autofocus: true,
               ),
@@ -280,8 +328,14 @@ class _SwitchControlScreenState extends State<SwitchControlScreen>
                 decoration: InputDecoration(
                   labelText: 'Type',
                   labelStyle: TextStyle(color: Colors.grey[500]),
-                  enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: _ancientGold.withValues(alpha: 0.3))),
-                  focusedBorder: const OutlineInputBorder(borderSide: BorderSide(color: _ancientGold)),
+                  enabledBorder: OutlineInputBorder(
+                    borderSide: BorderSide(
+                      color: _ancientGold.withValues(alpha: 0.3),
+                    ),
+                  ),
+                  focusedBorder: const OutlineInputBorder(
+                    borderSide: BorderSide(color: _ancientGold),
+                  ),
                 ),
                 items: SwitchType.values
                     .map(
@@ -289,7 +343,11 @@ class _SwitchControlScreenState extends State<SwitchControlScreen>
                         value: t,
                         child: Row(
                           children: [
-                            Icon(_getIconForType(t), size: 16, color: _ancientGold),
+                            Icon(
+                              _getIconForType(t),
+                              size: 16,
+                              color: _ancientGold,
+                            ),
                             const SizedBox(width: 8),
                             Text(t.name.toUpperCase()),
                           ],
@@ -304,7 +362,10 @@ class _SwitchControlScreenState extends State<SwitchControlScreen>
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel', style: TextStyle(color: Colors.white54)),
+              child: const Text(
+                'Cancel',
+                style: TextStyle(color: Colors.white54),
+              ),
             ),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
@@ -316,7 +377,10 @@ class _SwitchControlScreenState extends State<SwitchControlScreen>
                   _addSwitch(nameController.text.trim(), selectedType);
                 }
               },
-              child: const Text('Add', style: TextStyle(fontWeight: FontWeight.bold)),
+              child: const Text(
+                'Add',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
             ),
           ],
         ),
@@ -337,7 +401,10 @@ class _SwitchControlScreenState extends State<SwitchControlScreen>
             side: const BorderSide(color: _ancientGold, width: 1),
             borderRadius: BorderRadius.circular(12),
           ),
-          title: const Text('Edit Device', style: TextStyle(color: _ancientGold, fontWeight: FontWeight.bold)),
+          title: const Text(
+            'Edit Device',
+            style: TextStyle(color: _ancientGold, fontWeight: FontWeight.bold),
+          ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -347,8 +414,14 @@ class _SwitchControlScreenState extends State<SwitchControlScreen>
                 decoration: InputDecoration(
                   labelText: 'Name',
                   labelStyle: TextStyle(color: Colors.grey[500]),
-                  enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: _ancientGold.withValues(alpha: 0.3))),
-                  focusedBorder: const OutlineInputBorder(borderSide: BorderSide(color: _ancientGold)),
+                  enabledBorder: OutlineInputBorder(
+                    borderSide: BorderSide(
+                      color: _ancientGold.withValues(alpha: 0.3),
+                    ),
+                  ),
+                  focusedBorder: const OutlineInputBorder(
+                    borderSide: BorderSide(color: _ancientGold),
+                  ),
                 ),
                 autofocus: true,
               ),
@@ -361,8 +434,14 @@ class _SwitchControlScreenState extends State<SwitchControlScreen>
                 decoration: InputDecoration(
                   labelText: 'Type',
                   labelStyle: TextStyle(color: Colors.grey[500]),
-                  enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: _ancientGold.withValues(alpha: 0.3))),
-                  focusedBorder: const OutlineInputBorder(borderSide: BorderSide(color: _ancientGold)),
+                  enabledBorder: OutlineInputBorder(
+                    borderSide: BorderSide(
+                      color: _ancientGold.withValues(alpha: 0.3),
+                    ),
+                  ),
+                  focusedBorder: const OutlineInputBorder(
+                    borderSide: BorderSide(color: _ancientGold),
+                  ),
                 ),
                 items: SwitchType.values
                     .map(
@@ -370,7 +449,11 @@ class _SwitchControlScreenState extends State<SwitchControlScreen>
                         value: t,
                         child: Row(
                           children: [
-                            Icon(_getIconForType(t), size: 16, color: _ancientGold),
+                            Icon(
+                              _getIconForType(t),
+                              size: 16,
+                              color: _ancientGold,
+                            ),
                             const SizedBox(width: 8),
                             Text(t.name.toUpperCase()),
                           ],
@@ -385,7 +468,10 @@ class _SwitchControlScreenState extends State<SwitchControlScreen>
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel', style: TextStyle(color: Colors.white54)),
+              child: const Text(
+                'Cancel',
+                style: TextStyle(color: Colors.white54),
+              ),
             ),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
@@ -394,7 +480,10 @@ class _SwitchControlScreenState extends State<SwitchControlScreen>
               ),
               onPressed: () =>
                   _editSwitch(device, nameController.text, selectedType),
-              child: const Text('Save', style: TextStyle(fontWeight: FontWeight.bold)),
+              child: const Text(
+                'Save',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
             ),
           ],
         ),
@@ -411,7 +500,13 @@ class _SwitchControlScreenState extends State<SwitchControlScreen>
           side: const BorderSide(color: _ancientGold, width: 1),
           borderRadius: BorderRadius.circular(12),
         ),
-        title: const Text('Delete Device?', style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
+        title: const Text(
+          'Delete Device?',
+          style: TextStyle(
+            color: Colors.redAccent,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
         content: Text(
           'Are you sure you want to delete "${device.name}"?',
           style: const TextStyle(color: Colors.white70),
@@ -419,7 +514,10 @@ class _SwitchControlScreenState extends State<SwitchControlScreen>
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel', style: TextStyle(color: Colors.white54)),
+            child: const Text(
+              'Cancel',
+              style: TextStyle(color: Colors.white54),
+            ),
           ),
           ElevatedButton(
             onPressed: () => _deleteSwitch(device.id),
@@ -427,7 +525,10 @@ class _SwitchControlScreenState extends State<SwitchControlScreen>
               backgroundColor: Colors.redAccent,
               foregroundColor: Colors.black,
             ),
-            child: const Text('Delete', style: TextStyle(fontWeight: FontWeight.bold)),
+            child: const Text(
+              'Delete',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
           ),
         ],
       ),
@@ -442,7 +543,10 @@ class _SwitchControlScreenState extends State<SwitchControlScreen>
         decoration: BoxDecoration(
           color: Colors.black,
           border: Border.all(color: _ancientGold.withValues(alpha: 0.3)),
-          borderRadius: const BorderRadius.only(topLeft: Radius.circular(20), topRight: Radius.circular(20)),
+          borderRadius: const BorderRadius.only(
+            topLeft: Radius.circular(20),
+            topRight: Radius.circular(20),
+          ),
         ),
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -457,7 +561,14 @@ class _SwitchControlScreenState extends State<SwitchControlScreen>
               ),
             ),
             const SizedBox(height: 16),
-            Text(device.name, style: const TextStyle(color: _ancientGold, fontSize: 20, fontWeight: FontWeight.bold)),
+            Text(
+              device.name,
+              style: const TextStyle(
+                color: _ancientGold,
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
             const SizedBox(height: 16),
             ListTile(
               leading: const Icon(Icons.edit, color: _ancientGold),
@@ -469,7 +580,10 @@ class _SwitchControlScreenState extends State<SwitchControlScreen>
             ),
             ListTile(
               leading: const Icon(Icons.delete, color: Colors.redAccent),
-              title: const Text('Delete', style: TextStyle(color: Colors.redAccent)),
+              title: const Text(
+                'Delete',
+                style: TextStyle(color: Colors.redAccent),
+              ),
               onTap: () {
                 Navigator.pop(context);
                 _showDeleteConfirm(device);
@@ -503,7 +617,10 @@ class _SwitchControlScreenState extends State<SwitchControlScreen>
       decoration: BoxDecoration(
         color: Colors.black.withValues(alpha: 0.6),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: _ancientGold.withValues(alpha: 0.4), width: 1.5),
+        border: Border.all(
+          color: _ancientGold.withValues(alpha: 0.4),
+          width: 1.5,
+        ),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.4),
@@ -531,15 +648,11 @@ class _SwitchControlScreenState extends State<SwitchControlScreen>
                   Icon(
                     _getIconForType(device.type),
                     size: 40,
-                    color: device.state
-                        ? _ancientGold
-                        : Colors.white30,
+                    color: device.state ? _ancientGold : Colors.white30,
                   ),
                 const SizedBox(height: 12),
                 Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8.0,
-                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 8.0),
                   child: Text(
                     device.name,
                     maxLines: 1,
@@ -566,11 +679,7 @@ class _SwitchControlScreenState extends State<SwitchControlScreen>
             top: 4,
             right: 4,
             child: IconButton(
-              icon: const Icon(
-                Icons.alarm,
-                color: _ancientGold,
-                size: 20,
-              ),
+              icon: const Icon(Icons.alarm, color: _ancientGold, size: 20),
               tooltip: 'Manage Timers',
               onPressed: () {
                 Navigator.push(
@@ -612,7 +721,9 @@ class _SwitchControlScreenState extends State<SwitchControlScreen>
     final spacing = 16.0;
     final paddingX = 16.0 * 2;
     final screenWidth = MediaQuery.of(context).size.width;
-    final itemWidth = (screenWidth - paddingX - (spacing * (crossAxisCount - 1))) / crossAxisCount;
+    final itemWidth =
+        (screenWidth - paddingX - (spacing * (crossAxisCount - 1))) /
+        crossAxisCount;
     final itemHeight = itemWidth / 1.1; // Derived from childAspectRatio
 
     return Scaffold(
@@ -631,14 +742,17 @@ class _SwitchControlScreenState extends State<SwitchControlScreen>
         iconTheme: const IconThemeData(color: _ancientGold),
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(1.0),
-          child: Container(color: _ancientGold.withValues(alpha: 0.2), height: 1.0),
+          child: Container(
+            color: _ancientGold.withValues(alpha: 0.2),
+            height: 1.0,
+          ),
         ),
       ),
       body: Stack(
         children: [
           // The Shared Cinematic Nebula Background
           const Positioned.fill(child: DynamicAppBackground()),
-          
+
           // Main Content
           _isLoading
               ? const Center(
@@ -661,7 +775,10 @@ class _SwitchControlScreenState extends State<SwitchControlScreen>
                         color: Colors.transparent,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(20),
-                          side: BorderSide(color: _ancientGold.withValues(alpha: 0.3), width: 1.5),
+                          side: BorderSide(
+                            color: _ancientGold.withValues(alpha: 0.3),
+                            width: 1.5,
+                          ),
                         ),
                         child: InkWell(
                           borderRadius: BorderRadius.circular(20),
@@ -684,7 +801,9 @@ class _SwitchControlScreenState extends State<SwitchControlScreen>
                                   Text(
                                     "Add Switch",
                                     style: TextStyle(
-                                      color: _ancientGold.withValues(alpha: 0.8),
+                                      color: _ancientGold.withValues(
+                                        alpha: 0.8,
+                                      ),
                                       fontWeight: FontWeight.bold,
                                     ),
                                   ),

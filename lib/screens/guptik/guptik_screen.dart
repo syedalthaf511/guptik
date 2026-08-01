@@ -2,15 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:uuid/uuid.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:guptik/services/guptik/mobile_ollama_service.dart';
 import 'package:guptik/utils/theme/dynamic_app_background.dart';
 
-// Ancient Gold Theme Constants
 const Color _ancientGold = Color(0xFFD4AF37);
 const Color _darkBg = Color(0xFF0A0A0A);
 
 class GuptikScreen extends StatefulWidget {
-  final String tunnelUrl; // Pass this from Supabase when they click the icon
+  final String tunnelUrl;
 
   const GuptikScreen({super.key, required this.tunnelUrl});
 
@@ -22,61 +22,110 @@ class _GuptikScreenState extends State<GuptikScreen> {
   late MobileOllamaService _ollamaService;
 
   final TextEditingController _textController = TextEditingController();
-
   final ScrollController _scrollController = ScrollController();
 
-  // State
-
   String _sessionId = const Uuid().v4();
-
   List<Map<String, String>> _messages = [];
-
-  List<Map<String, dynamic>> _sessions = []; // Stores history from desktop
-
-  String _selectedModel = 'llama3'; // Default fallback
-
+  List<Map<String, dynamic>> _sessions = [];
+  
+  // 🚀 Multi-Provider Mobile State
+  String _aiProvider = 'OpenRouter';
+  String _selectedModel = 'meta-llama/llama-3-8b-instruct';
+  String _apiKey = '';
+  String _endpointUrl = 'https://openrouter.ai/api/v1/chat/completions';
   List<String> _availableModels = [];
 
   bool _isLoading = false;
-
   bool _isLoadingHistory = false;
+  bool _isFetchingModels = false; // 🚀 Added to track when fetching huge model lists
 
   @override
   void initState() {
     super.initState();
-
     _ollamaService = MobileOllamaService(tunnelUrl: widget.tunnelUrl);
-
-    _loadModels();
-
-    _loadSessions(); // Fetch history on startup
+    _syncWithDesktopAndLoad();
+    _loadSessions();
   }
 
-  // --- API ROUTE: Get Installed Models ---
+  // 🚀 FETCH FROM DESKTOP
+  Future<void> _syncWithDesktopAndLoad() async {
+    final desktopConfig = await _ollamaService.fetchDesktopAiConfig();
+    final prefs = await SharedPreferences.getInstance();
 
-  Future<void> _loadModels() async {
-    final models = await _ollamaService.getInstalledModels();
+    setState(() {
+      if (desktopConfig.isNotEmpty) {
+        final serverProvider = desktopConfig['provider']?.toString() ?? '';
+        final serverEndpoint = desktopConfig['endpoint_url']?.toString() ?? '';
+        final serverModel = desktopConfig['model_name']?.toString() ?? '';
+        final serverKey = desktopConfig['api_key']?.toString() ?? '';
 
-    if (models.isNotEmpty && mounted) {
+        _aiProvider = serverProvider.isNotEmpty ? serverProvider : (prefs.getString('mobile_ai_provider') ?? 'OpenRouter');
+        _endpointUrl = serverEndpoint.isNotEmpty ? serverEndpoint : (prefs.getString('mobile_ai_endpoint') ?? '');
+        _selectedModel = serverModel.isNotEmpty ? serverModel : (prefs.getString('mobile_ai_model') ?? 'meta-llama/llama-3-8b-instruct');
+        _apiKey = serverKey.isNotEmpty ? serverKey : (prefs.getString('mobile_ai_api_key') ?? '');
+      } else {
+        _aiProvider = prefs.getString('mobile_ai_provider') ?? 'OpenRouter';
+        _endpointUrl = prefs.getString('mobile_ai_endpoint') ?? '';
+        _apiKey = prefs.getString('mobile_ai_api_key') ?? '';
+        _selectedModel = prefs.getString('mobile_ai_model') ?? 'meta-llama/llama-3-8b-instruct';
+      }
+    });
+
+    _fetchModelsForProvider(_aiProvider);
+  }
+
+  // 🚀 Helper to fetch models and update state
+  Future<void> _fetchModelsForProvider(String provider) async {
+    setState(() {
+      _isFetchingModels = true;
+    });
+    
+    final models = await _ollamaService.getInstalledModels(provider);
+    
+    if (mounted) {
       setState(() {
         _availableModels = models;
-
-        _selectedModel = models.first;
+        // Ensure current selected model is in the list
+        if (!_availableModels.contains(_selectedModel) && _selectedModel.isNotEmpty) {
+          _availableModels.insert(0, _selectedModel); // Add to top so it's visible
+        }
+        _isFetchingModels = false;
       });
     }
   }
 
-  // --- API ROUTE: Load Chat Sessions for Sidebar ---
+  // 🚀 PUSH TO DESKTOP (Two-Way Sync)
+  Future<void> _saveSettings(String provider, String model, String key, String endpoint) async {
+    // 1. Save locally to mobile
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('mobile_ai_provider', provider);
+    await prefs.setString('mobile_ai_model', model);
+    await prefs.setString('mobile_ai_api_key', key);
+    await prefs.setString('mobile_ai_endpoint', endpoint);
+
+    setState(() {
+      _aiProvider = provider;
+      _selectedModel = model;
+      _apiKey = key;
+      _endpointUrl = endpoint;
+    });
+
+    // 2. Push immediately to Desktop Gateway Server
+    await _ollamaService.updateDesktopAiConfig(
+      provider: provider, 
+      model: model, 
+      apiKey: key, 
+      endpointUrl: endpoint
+    );
+  }
 
   Future<void> _loadSessions() async {
     try {
       final response = await http.get(
         Uri.parse('${widget.tunnelUrl}/api/sessions'),
       );
-
       if (response.statusCode == 200) {
         final List<dynamic> data = jsonDecode(response.body);
-
         if (mounted) {
           setState(() {
             _sessions = List<Map<String, dynamic>>.from(data);
@@ -88,32 +137,23 @@ class _GuptikScreenState extends State<GuptikScreen> {
     }
   }
 
-  // --- API ROUTE: Load Specific Chat History ---
-
   Future<void> _loadHistory(String sessionId) async {
     setState(() => _isLoadingHistory = true);
-
     try {
       final response = await http.get(
         Uri.parse('${widget.tunnelUrl}/api/history/$sessionId'),
       );
-
       if (response.statusCode == 200) {
         final List<dynamic> data = jsonDecode(response.body);
-
         setState(() {
           _sessionId = sessionId;
-
           _messages = data
-              .map(
-                (m) => {
-                  'role': m['role'].toString(),
-                  'content': m['content'].toString(),
-                },
-              )
+              .map((m) => {
+                    'role': m['role'].toString(),
+                    'content': m['content'].toString(),
+                  })
               .toList();
         });
-
         _scrollToBottom();
       }
     } catch (e) {
@@ -123,15 +163,11 @@ class _GuptikScreenState extends State<GuptikScreen> {
     }
   }
 
-  // --- API ROUTE: Save Message to Desktop ---
-
   Future<void> _saveMessageToDesktop(String role, String content) async {
     try {
       await http.post(
         Uri.parse('${widget.tunnelUrl}/api/chat/save'),
-
         headers: {'Content-Type': 'application/json'},
-
         body: jsonEncode({
           'sessionId': _sessionId,
           'role': role,
@@ -149,8 +185,7 @@ class _GuptikScreenState extends State<GuptikScreen> {
       _sessionId = const Uuid().v4();
       _messages = [];
     });
-
-    Navigator.pop(context); // Close the drawer
+    Navigator.pop(context);
   }
 
   void _scrollToBottom() {
@@ -167,62 +202,200 @@ class _GuptikScreenState extends State<GuptikScreen> {
 
   Future<void> _sendMessage() async {
     final text = _textController.text.trim();
-
     if (text.isEmpty || _isLoading) return;
 
     _textController.clear();
 
-    // 1. Add User Message to UI
-
     setState(() {
       _messages.add({"role": "user", "content": text});
-      _messages.add({"role": "assistant", "content": ""}); // Placeholder
+      _messages.add({"role": "assistant", "content": ""});
       _isLoading = true;
     });
 
     _scrollToBottom();
-
-    // 2. Save User Message to Desktop DB
-
     await _saveMessageToDesktop('user', text);
-
-    // Prepare history for API (excluding the empty placeholder)
 
     final apiHistory = _messages.sublist(0, _messages.length - 1);
 
     try {
       final stream = _ollamaService.generateChatStream(
+        provider: _aiProvider,
         model: _selectedModel,
         history: apiHistory,
+        apiKey: _apiKey,
+        endpointUrl: _endpointUrl,
       );
 
       await for (final chunk in stream) {
         if (!mounted) break;
-
         setState(() {
           _messages.last["content"] = _messages.last["content"]! + chunk;
         });
-
         _scrollToBottom();
       }
 
-      // 3. Save Assistant Message to Desktop DB once streaming finishes
-
       await _saveMessageToDesktop('assistant', _messages.last["content"]!);
-
-      // 4. Refresh the sidebar to show the new chat
-
       _loadSessions();
     } catch (e) {
       setState(() {
-        _messages.last["content"] =
-            "Connection error. Make sure your desktop tunnel is active.";
+        _messages.last["content"] = "Connection error. Check your API settings.";
       });
     } finally {
-      setState(() {
-        _isLoading = false;
-      });
+      setState(() => _isLoading = false);
     }
+  }
+
+  // 🚀 SMARTER UI SETTINGS DIALOG
+  void _showSettingsDialog() {
+    String tempProvider = _aiProvider;
+    String tempModel = _selectedModel;
+    String tempKey = _apiKey;
+    String tempEndpoint = _endpointUrl;
+    List<String> tempModelsList = List.from(_availableModels);
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          backgroundColor: const Color(0xFF1E293B),
+          title: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text("Mobile AI Settings", style: TextStyle(color: Colors.white, fontSize: 16)),
+              IconButton(
+                icon: const Icon(Icons.sync, color: _ancientGold, size: 20),
+                tooltip: "Sync from Desktop",
+                onPressed: () async {
+                  await _syncWithDesktopAndLoad();
+                  setDialogState(() {
+                    tempProvider = _aiProvider;
+                    tempModel = _selectedModel;
+                    tempKey = _apiKey;
+                    tempEndpoint = _endpointUrl;
+                    tempModelsList = List.from(_availableModels);
+                  });
+                },
+              )
+            ],
+          ),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text("Provider", style: TextStyle(color: Colors.grey, fontSize: 12)),
+                DropdownButton<String>(
+                  value: tempProvider,
+                  isExpanded: true,
+                  dropdownColor: const Color(0xFF0F172A),
+                  style: const TextStyle(color: _ancientGold),
+                  items: const [
+                    DropdownMenuItem(value: "OpenRouter", child: Text("OpenRouter")),
+                    DropdownMenuItem(value: "OpenAI", child: Text("OpenAI")),
+                    DropdownMenuItem(value: "Anthropic", child: Text("Anthropic")),
+                    DropdownMenuItem(value: "Gemini", child: Text("Google Gemini")),
+                    DropdownMenuItem(value: "DeepSeek", child: Text("DeepSeek")),
+                  ],
+                  onChanged: (val) async {
+                    if (val != null) {
+                      setDialogState(() {
+                        tempProvider = val;
+                        _isFetchingModels = true; // Show loading immediately
+                      });
+                      
+                      // Fetch new models
+                      final newModels = await _ollamaService.getInstalledModels(val);
+                      
+                      setDialogState(() {
+                        tempModelsList = newModels;
+                        _isFetchingModels = false;
+                        // Prevent the model from clearing if it matches, otherwise reset it
+                        if (!tempModelsList.contains(tempModel) && tempModelsList.isNotEmpty) {
+                          tempModel = tempModelsList.first;
+                        } else if (!tempModelsList.contains(tempModel)) {
+                          tempModelsList.insert(0, tempModel);
+                        }
+                      });
+                    }
+                  },
+                ),
+                const SizedBox(height: 12),
+                
+                const Text("Model ID", style: TextStyle(color: Colors.grey, fontSize: 12)),
+                // 🚀 SMART MODEL DROPDOWN WITH LOADING STATE
+                _isFetchingModels 
+                  ? const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 8.0),
+                      child: LinearProgressIndicator(color: _ancientGold, backgroundColor: Colors.black45),
+                    )
+                  : DropdownButton<String>(
+                      value: tempModelsList.contains(tempModel) ? tempModel : (tempModelsList.isNotEmpty ? tempModelsList.first : null),
+                      isExpanded: true,
+                      dropdownColor: const Color(0xFF0F172A),
+                      style: const TextStyle(color: Colors.white),
+                      items: tempModelsList.map((modelString) {
+                        return DropdownMenuItem(
+                          value: modelString,
+                          child: Text(
+                            modelString, 
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        );
+                      }).toList(),
+                      onChanged: (val) {
+                        if (val != null) {
+                          setDialogState(() {
+                            tempModel = val;
+                          });
+                        }
+                      },
+                    ),
+                const SizedBox(height: 12),
+
+                const Text("API Key", style: TextStyle(color: Colors.grey, fontSize: 12)),
+                TextField(
+                  controller: TextEditingController(text: tempKey),
+                  onChanged: (val) => tempKey = val,
+                  obscureText: true,
+                  style: const TextStyle(color: Colors.white),
+                  decoration: const InputDecoration(
+                    hintText: "Enter API Key...", 
+                    hintStyle: TextStyle(color: Colors.white24),
+                    enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.white24)),
+                    focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: _ancientGold)),
+                  ),
+                ),
+                const SizedBox(height: 12),
+
+                const Text("Endpoint URL", style: TextStyle(color: Colors.grey, fontSize: 12)),
+                TextField(
+                  controller: TextEditingController(text: tempEndpoint),
+                  onChanged: (val) => tempEndpoint = val,
+                  style: const TextStyle(color: Colors.white, fontSize: 12),
+                  decoration: const InputDecoration(
+                    hintText: "https://openrouter.ai/api/v1/chat/completions", 
+                    hintStyle: TextStyle(color: Colors.white24),
+                    enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.white24)),
+                    focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: _ancientGold)),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("Cancel")),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: _ancientGold),
+              onPressed: () {
+                _saveSettings(tempProvider, tempModel, tempKey, tempEndpoint);
+                Navigator.pop(ctx);
+              },
+              child: const Text("Save & Sync", style: TextStyle(color: Colors.black)),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   @override
@@ -230,49 +403,24 @@ class _GuptikScreenState extends State<GuptikScreen> {
     return Scaffold(
       backgroundColor: _darkBg,
       extendBodyBehindAppBar: true,
-
-      // 🛡️ The AppBar with the Hamburger Menu
       appBar: AppBar(
         backgroundColor: Colors.black.withValues(alpha: 0.7),
         elevation: 0,
-        iconTheme: const IconThemeData(
-          color: _ancientGold,
-        ), // Hamburger icon color
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(1.0),
-          child: Container(color: _ancientGold.withValues(alpha: 0.2), height: 1.0),
-        ),
-        title: DropdownButtonHideUnderline(
-          child: DropdownButton<String>(
-            value: _availableModels.contains(_selectedModel)
-                ? _selectedModel
-                : null,
-            dropdownColor: Colors.black,
-            style: const TextStyle(
-              color: _ancientGold,
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-            ),
-            icon: const Icon(Icons.keyboard_arrow_down, color: _ancientGold),
-            items: _availableModels.map((model) {
-              return DropdownMenuItem(
-                value: model, 
-                child: Text(model, style: const TextStyle(color: Colors.white))
-              );
-            }).toList(),
-            onChanged: (val) {
-              if (val != null) setState(() => _selectedModel = val);
-            },
-            hint: Text(
-              "Select Model",
-              style: TextStyle(color: Colors.grey[500]),
-            ),
-          ),
+        iconTheme: const IconThemeData(color: _ancientGold),
+        title: Column(
+          children: [
+            Text(_selectedModel, style: const TextStyle(color: _ancientGold, fontSize: 13, fontWeight: FontWeight.bold)),
+            Text(_aiProvider, style: const TextStyle(color: Colors.white54, fontSize: 10)),
+          ],
         ),
         centerTitle: true,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.settings, color: _ancientGold),
+            onPressed: _showSettingsDialog,
+          )
+        ],
       ),
-
-      // 🛡️ The Slide-out Sidebar for Chat History
       drawer: Drawer(
         backgroundColor: Colors.black.withValues(alpha: 0.9),
         child: SafeArea(
@@ -284,191 +432,62 @@ class _GuptikScreenState extends State<GuptikScreen> {
                 child: ElevatedButton.icon(
                   onPressed: _createNewChat,
                   icon: const Icon(Icons.add, color: Colors.black),
-                  label: const Text(
-                    "New Chat",
-                    style: TextStyle(color: Colors.black, fontSize: 16, fontWeight: FontWeight.bold),
-                  ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: _ancientGold,
-                    minimumSize: const Size(double.infinity, 54),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    elevation: 8,
-                  ),
+                  label: const Text("New Chat", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+                  style: ElevatedButton.styleFrom(backgroundColor: _ancientGold, minimumSize: const Size(double.infinity, 50)),
                 ),
               ),
-              
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 8.0),
-                child: Row(
-                  children: [
-                    const Icon(Icons.history, color: _ancientGold, size: 16),
-                    const SizedBox(width: 8),
-                    Text(
-                      "Chat History",
-                      style: TextStyle(
-                        color: Colors.grey[400],
-                        fontSize: 13,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 1.2,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              
-              Divider(color: _ancientGold.withValues(alpha: 0.2)),
-
               Expanded(
-                child: _sessions.isEmpty
-                    ? Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.chat_bubble_outline, color: _ancientGold.withValues(alpha: 0.5), size: 48),
-                            const SizedBox(height: 16),
-                            Text(
-                              "No history yet.",
-                              style: TextStyle(color: Colors.grey[500]),
-                            ),
-                          ],
-                        ),
-                      )
-                    : ListView.builder(
-                        itemCount: _sessions.length,
-                        itemBuilder: (context, index) {
-                          final s = _sessions[index];
-                          final isActive = s['id'] == _sessionId;
-
-                          return Container(
-                            margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: isActive ? _ancientGold.withValues(alpha: 0.15) : Colors.transparent,
-                              borderRadius: BorderRadius.circular(8),
-                              border: isActive ? Border.all(color: _ancientGold.withValues(alpha: 0.5)) : Border.all(color: Colors.transparent),
-                            ),
-                            child: ListTile(
-                              contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                              ),
-                              leading: Icon(
-                                Icons.chat, 
-                                color: isActive ? _ancientGold : Colors.grey[600],
-                                size: 20,
-                              ),
-                              title: Text(
-                                s['title'],
-                                style: TextStyle(
-                                  color: isActive ? _ancientGold : Colors.white70,
-                                  fontSize: 14,
-                                  fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                              selected: isActive,
-                              onTap: () {
-                                _loadHistory(s['id']);
-                                Navigator.pop(context); // Close drawer
-                              },
-                            ),
-                          );
-                        },
-                      ),
+                child: ListView.builder(
+                  itemCount: _sessions.length,
+                  itemBuilder: (context, index) {
+                    final s = _sessions[index];
+                    final isActive = s['id'] == _sessionId;
+                    return ListTile(
+                      title: Text(s['title'], style: TextStyle(color: isActive ? _ancientGold : Colors.white70)),
+                      onTap: () {
+                        _loadHistory(s['id']);
+                        Navigator.pop(context);
+                      },
+                    );
+                  },
+                ),
               ),
             ],
           ),
         ),
       ),
-
-      // THE FIX: Full screen box ensures the background stretches safely without bottom overflow
       body: SizedBox(
         width: double.infinity,
         height: double.infinity,
         child: Stack(
           children: [
-            // The Shared Cinematic Nebula Background
             const Positioned.fill(child: DynamicAppBackground()),
-            
             Column(
               children: [
-                // Messages Area
                 Expanded(
                   child: _isLoadingHistory
-                      ? const Center(
-                          child: CircularProgressIndicator(color: _ancientGold),
-                        )
+                      ? const Center(child: CircularProgressIndicator(color: _ancientGold))
                       : ListView.builder(
                           controller: _scrollController,
-                          padding: const EdgeInsets.fromLTRB(16, 110, 16, 20), // Top padding for AppBar
+                          padding: const EdgeInsets.fromLTRB(16, 110, 16, 20),
                           itemCount: _messages.length,
                           itemBuilder: (context, index) {
                             final msg = _messages[index];
                             final isUser = msg["role"] == "user";
-
                             return Container(
                               margin: const EdgeInsets.symmetric(vertical: 8),
                               child: Row(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                mainAxisAlignment: isUser
-                                    ? MainAxisAlignment.end
-                                    : MainAxisAlignment.start,
+                                mainAxisAlignment: isUser ? MainAxisAlignment.end : MainAxisAlignment.start,
                                 children: [
-                                  if (!isUser) ...[
-                                    Container(
-                                      decoration: BoxDecoration(
-                                        shape: BoxShape.circle,
-                                        border: Border.all(color: _ancientGold.withValues(alpha: 0.5), width: 1.5),
-                                        color: _ancientGold.withValues(alpha: 0.15),
-                                      ),
-                                      child: const CircleAvatar(
-                                        backgroundColor: Colors.transparent,
-                                        radius: 16,
-                                        child: Icon(
-                                          Icons.smart_toy,
-                                          color: _ancientGold,
-                                          size: 20,
-                                        ),
-                                      ),
-                                    ),
-                                    const SizedBox(width: 12),
-                                  ],
-
                                   Flexible(
                                     child: Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                      padding: const EdgeInsets.all(12),
                                       decoration: BoxDecoration(
-                                        color: isUser 
-                                            ? _ancientGold.withValues(alpha: 0.15) 
-                                            : Colors.black.withValues(alpha: 0.6),
-                                        border: Border.all(
-                                          color: isUser 
-                                              ? _ancientGold.withValues(alpha: 0.4) 
-                                              : Colors.white10,
-                                        ),
-                                        borderRadius: BorderRadius.only(
-                                          topLeft: const Radius.circular(16),
-                                          topRight: const Radius.circular(16),
-                                          bottomLeft: Radius.circular(isUser ? 16 : 4),
-                                          bottomRight: Radius.circular(isUser ? 4 : 16),
-                                        ),
-                                        boxShadow: [
-                                          BoxShadow(
-                                            color: Colors.black.withValues(alpha: 0.2),
-                                            blurRadius: 4,
-                                            offset: const Offset(0, 2),
-                                          ),
-                                        ],
+                                        color: isUser ? _ancientGold.withValues(alpha: 0.15) : Colors.black.withValues(alpha: 0.6),
+                                        borderRadius: BorderRadius.circular(12),
+                                        border: Border.all(color: isUser ? _ancientGold.withValues(alpha: 0.4) : Colors.white10),
                                       ),
-                                      child: Text(
-                                        msg["content"] ?? "",
-                                        style: const TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 15,
-                                          height: 1.4,
-                                        ),
-                                      ),
+                                      child: Text(msg["content"] ?? "", style: const TextStyle(color: Colors.white, fontSize: 15)),
                                     ),
                                   ),
                                 ],
@@ -477,81 +496,32 @@ class _GuptikScreenState extends State<GuptikScreen> {
                           },
                         ),
                 ),
-
-                // Input Area
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
                     color: Colors.black.withValues(alpha: 0.7),
-                    border: Border(top: BorderSide(color: _ancientGold.withValues(alpha: 0.3), width: 1)),
+                    border: Border(top: BorderSide(color: _ancientGold.withValues(alpha: 0.3))),
                   ),
                   child: SafeArea(
                     top: false,
                     child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
                         Expanded(
-                          child: Container(
-                            decoration: BoxDecoration(
-                              color: Colors.black.withValues(alpha: 0.5),
-                              borderRadius: BorderRadius.circular(24),
-                              border: Border.all(color: _ancientGold.withValues(alpha: 0.4), width: 1.5),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withValues(alpha: 0.2),
-                                  blurRadius: 4,
-                                  offset: const Offset(0, 2),
-                                ),
-                              ],
-                            ),
-                            child: TextField(
-                              controller: _textController,
-                              style: const TextStyle(color: Colors.white),
-                              maxLines: 4,
-                              minLines: 1,
-                              decoration: InputDecoration(
-                                hintText: "Message Guptik...",
-                                hintStyle: TextStyle(color: Colors.grey[500]),
-                                contentPadding: const EdgeInsets.symmetric(
-                                  horizontal: 20,
-                                  vertical: 14,
-                                ),
-                                border: InputBorder.none,
-                              ),
+                          child: TextField(
+                            controller: _textController,
+                            style: const TextStyle(color: Colors.white),
+                            maxLines: 4,
+                            minLines: 1,
+                            decoration: InputDecoration(
+                              hintText: "Message Guptik...",
+                              hintStyle: TextStyle(color: Colors.grey[500]),
+                              border: InputBorder.none,
                             ),
                           ),
                         ),
-                        const SizedBox(width: 12),
-                        GestureDetector(
-                          onTap: _sendMessage,
-                          child: Container(
-                            margin: const EdgeInsets.only(bottom: 2),
-                            decoration: BoxDecoration(
-                              color: _isLoading ? Colors.grey[800] : _ancientGold,
-                              shape: BoxShape.circle,
-                              boxShadow: _isLoading ? null : [
-                                BoxShadow(
-                                  color: _ancientGold.withValues(alpha: 0.4),
-                                  blurRadius: 8,
-                                  spreadRadius: 1,
-                                ),
-                              ],
-                            ),
-                            child: CircleAvatar(
-                              backgroundColor: Colors.transparent,
-                              radius: 24,
-                              child: _isLoading 
-                                  ? const SizedBox(
-                                      width: 20, height: 20, 
-                                      child: CircularProgressIndicator(color: Colors.white54, strokeWidth: 2)
-                                    ) 
-                                  : const Icon(
-                                      Icons.arrow_upward,
-                                      color: Colors.black,
-                                      size: 24,
-                                    ),
-                            ),
-                          ),
+                        IconButton(
+                          icon: const Icon(Icons.send, color: _ancientGold),
+                          onPressed: _sendMessage,
                         ),
                       ],
                     ),
