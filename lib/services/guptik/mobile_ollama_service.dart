@@ -48,7 +48,6 @@ class MobileOllamaService {
   Future<List<String>> getInstalledModels(String provider, {String apiKey = ''}) async {
     List<String> defaultModels = [];
     
-    // Set fallback defaults in case the network request fails
     switch (provider) {
       case 'OpenRouter':
         defaultModels = ['meta-llama/llama-3-8b-instruct', 'google/gemini-flash-1.5', 'anthropic/claude-3.5-sonnet', 'deepseek/deepseek-chat'];
@@ -69,16 +68,14 @@ class MobileOllamaService {
         defaultModels = ['meta-llama/llama-3-8b-instruct'];
     }
 
-    // 🚀 Attempt to fetch LIVE models from OpenRouter API
     if (provider == 'OpenRouter') {
       try {
         final response = await http.get(
-          Uri.parse('https://openrouter.ai/api/v1/models'), // Correct models endpoint
+          Uri.parse('https://openrouter.ai/api/v1/models'),
         ).timeout(const Duration(seconds: 5));
 
         if (response.statusCode == 200) {
           final data = jsonDecode(response.body);
-          // OpenRouter returns models inside a "data" array
           if (data['data'] != null && data['data'] is List) {
             List<String> liveModels = [];
             for (var model in data['data']) {
@@ -87,20 +84,18 @@ class MobileOllamaService {
               }
             }
             if (liveModels.isNotEmpty) {
-              return liveModels; // Return the full dynamic list!
+              return liveModels;
             }
           }
         }
       } catch (e) {
         print("Failed to fetch live OpenRouter models: $e");
-        // Fall through to return default models
       }
     }
 
     return defaultModels;
   }
 
-  /// Smart default endpoint resolver if endpointUrl is left blank
   String _getDefaultEndpoint(String provider) {
     switch (provider) {
       case 'OpenAI':
@@ -117,7 +112,7 @@ class MobileOllamaService {
     }
   }
 
-  /// Stream chat response supporting multi-provider configuration
+  /// 🚀 Stream chat response supporting multi-provider configuration
   Stream<String> generateChatStream({
     required String provider,
     required String model,
@@ -125,18 +120,22 @@ class MobileOllamaService {
     String apiKey = '',
     String endpointUrl = '',
   }) async* {
-    final cleanKey = apiKey.replaceAll('\n', '').replaceAll('\r', '').trim();
+    // 1. Sanitize API Key (strip 'bearer', spaces, newlines)
+    String cleanKey = apiKey.replaceAll('\n', '').replaceAll('\r', '').replaceAll(' ', '').trim();
+    if (cleanKey.toLowerCase().startsWith('bearer')) {
+      cleanKey = cleanKey.substring(6).trim();
+    }
 
-    // 🚀 FRIENDLY CHECK: Warn user before sending empty auth headers to cloud providers
     if (cleanKey.isEmpty && provider != 'Ollama') {
-      yield "\n[Error]: $provider API Key is missing. Please tap the Settings (⚙️) icon and enter your API Key.";
+      yield "\n[Error]: $provider API Key is missing. Tap Settings (⚙️) to enter your API Key.";
       return;
     }
 
-    // Resolve correct endpoint URL automatically
-    String url = endpointUrl.trim().isNotEmpty 
-        ? endpointUrl.trim() 
-        : _getDefaultEndpoint(provider);
+    // 2. Resolve URL & force HTTPS for cloud endpoints
+    String url = endpointUrl.trim().isNotEmpty ? endpointUrl.trim() : _getDefaultEndpoint(provider);
+    if (url.startsWith("http://") && (url.contains("openrouter") || url.contains("openai") || url.contains("anthropic") || url.contains("deepseek"))) {
+      url = url.replaceFirst("http://", "https://");
+    }
 
     final body = jsonEncode({
       "model": model,
@@ -183,13 +182,19 @@ class MobileOllamaService {
 
       await for (var line in stream) {
         try {
-          if (line.trim().isEmpty) continue;
-          if (line.startsWith('data: ')) {
-            line = line.substring(6);
-          }
-          if (line.trim() == '[DONE]') break;
+          final trimmed = line.trim();
+          if (trimmed.isEmpty || trimmed.startsWith(':')) continue; // Skip comments & keep-alive lines
 
-          final data = jsonDecode(line);
+          String payload = trimmed;
+          if (payload.startsWith('data: ')) {
+            payload = payload.substring(6).trim();
+          } else {
+            continue; // Ignore non-SSE lines
+          }
+
+          if (payload == '[DONE]') break;
+
+          final data = jsonDecode(payload);
 
           if (data['choices'] != null && data['choices'].isNotEmpty) {
             final delta = data['choices'][0]['delta'];
@@ -199,7 +204,9 @@ class MobileOllamaService {
           } else if (data['message'] != null && data['message']['content'] != null) {
             yield data['message']['content'];
           }
-        } catch (_) {}
+        } catch (_) {
+          // Ignore bad chunk parses
+        }
       }
     } catch (e) {
       yield "\n[Error connecting to AI Provider: $e]";

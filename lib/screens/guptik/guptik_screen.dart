@@ -28,7 +28,6 @@ class _GuptikScreenState extends State<GuptikScreen> {
   List<Map<String, String>> _messages = [];
   List<Map<String, dynamic>> _sessions = [];
   
-  // 🚀 Multi-Provider Mobile State
   String _aiProvider = 'OpenRouter';
   String _selectedModel = 'meta-llama/llama-3-8b-instruct';
   String _apiKey = '';
@@ -37,7 +36,7 @@ class _GuptikScreenState extends State<GuptikScreen> {
 
   bool _isLoading = false;
   bool _isLoadingHistory = false;
-  bool _isFetchingModels = false; // 🚀 Added to track when fetching huge model lists
+  bool _isFetchingModels = false;
 
   @override
   void initState() {
@@ -47,7 +46,6 @@ class _GuptikScreenState extends State<GuptikScreen> {
     _loadSessions();
   }
 
-  // 🚀 FETCH FROM DESKTOP
   Future<void> _syncWithDesktopAndLoad() async {
     final desktopConfig = await _ollamaService.fetchDesktopAiConfig();
     final prefs = await SharedPreferences.getInstance();
@@ -60,12 +58,12 @@ class _GuptikScreenState extends State<GuptikScreen> {
         final serverKey = desktopConfig['api_key']?.toString() ?? '';
 
         _aiProvider = serverProvider.isNotEmpty ? serverProvider : (prefs.getString('mobile_ai_provider') ?? 'OpenRouter');
-        _endpointUrl = serverEndpoint.isNotEmpty ? serverEndpoint : (prefs.getString('mobile_ai_endpoint') ?? '');
+        _endpointUrl = serverEndpoint.isNotEmpty ? serverEndpoint : (prefs.getString('mobile_ai_endpoint') ?? 'https://openrouter.ai/api/v1/chat/completions');
         _selectedModel = serverModel.isNotEmpty ? serverModel : (prefs.getString('mobile_ai_model') ?? 'meta-llama/llama-3-8b-instruct');
         _apiKey = serverKey.isNotEmpty ? serverKey : (prefs.getString('mobile_ai_api_key') ?? '');
       } else {
         _aiProvider = prefs.getString('mobile_ai_provider') ?? 'OpenRouter';
-        _endpointUrl = prefs.getString('mobile_ai_endpoint') ?? '';
+        _endpointUrl = prefs.getString('mobile_ai_endpoint') ?? 'https://openrouter.ai/api/v1/chat/completions';
         _apiKey = prefs.getString('mobile_ai_api_key') ?? '';
         _selectedModel = prefs.getString('mobile_ai_model') ?? 'meta-llama/llama-3-8b-instruct';
       }
@@ -74,29 +72,23 @@ class _GuptikScreenState extends State<GuptikScreen> {
     _fetchModelsForProvider(_aiProvider);
   }
 
-  // 🚀 Helper to fetch models and update state
   Future<void> _fetchModelsForProvider(String provider) async {
-    setState(() {
-      _isFetchingModels = true;
-    });
+    setState(() => _isFetchingModels = true);
     
     final models = await _ollamaService.getInstalledModels(provider);
     
     if (mounted) {
       setState(() {
         _availableModels = models;
-        // Ensure current selected model is in the list
         if (!_availableModels.contains(_selectedModel) && _selectedModel.isNotEmpty) {
-          _availableModels.insert(0, _selectedModel); // Add to top so it's visible
+          _availableModels.insert(0, _selectedModel);
         }
         _isFetchingModels = false;
       });
     }
   }
 
-  // 🚀 PUSH TO DESKTOP (Two-Way Sync)
   Future<void> _saveSettings(String provider, String model, String key, String endpoint) async {
-    // 1. Save locally to mobile
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('mobile_ai_provider', provider);
     await prefs.setString('mobile_ai_model', model);
@@ -110,12 +102,11 @@ class _GuptikScreenState extends State<GuptikScreen> {
       _endpointUrl = endpoint;
     });
 
-    // 2. Push immediately to Desktop Gateway Server
     await _ollamaService.updateDesktopAiConfig(
       provider: provider, 
       model: model, 
       apiKey: key, 
-      endpointUrl: endpoint
+      endpointUrl: endpoint,
     );
   }
 
@@ -245,7 +236,6 @@ class _GuptikScreenState extends State<GuptikScreen> {
     }
   }
 
-  // 🚀 SMARTER UI SETTINGS DIALOG
   void _showSettingsDialog() {
     String tempProvider = _aiProvider;
     String tempModel = _selectedModel;
@@ -300,16 +290,14 @@ class _GuptikScreenState extends State<GuptikScreen> {
                     if (val != null) {
                       setDialogState(() {
                         tempProvider = val;
-                        _isFetchingModels = true; // Show loading immediately
+                        _isFetchingModels = true;
                       });
                       
-                      // Fetch new models
                       final newModels = await _ollamaService.getInstalledModels(val);
                       
                       setDialogState(() {
                         tempModelsList = newModels;
                         _isFetchingModels = false;
-                        // Prevent the model from clearing if it matches, otherwise reset it
                         if (!tempModelsList.contains(tempModel) && tempModelsList.isNotEmpty) {
                           tempModel = tempModelsList.first;
                         } else if (!tempModelsList.contains(tempModel)) {
@@ -322,7 +310,6 @@ class _GuptikScreenState extends State<GuptikScreen> {
                 const SizedBox(height: 12),
                 
                 const Text("Model ID", style: TextStyle(color: Colors.grey, fontSize: 12)),
-                // 🚀 SMART MODEL DROPDOWN WITH LOADING STATE
                 _isFetchingModels 
                   ? const Padding(
                       padding: EdgeInsets.symmetric(vertical: 8.0),
