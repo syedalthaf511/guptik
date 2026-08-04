@@ -315,27 +315,42 @@ class _GuptikScreenState extends State<GuptikScreen> {
                       padding: EdgeInsets.symmetric(vertical: 8.0),
                       child: LinearProgressIndicator(color: _ancientGold, backgroundColor: Colors.black45),
                     )
-                  : DropdownButton<String>(
-                      value: tempModelsList.contains(tempModel) ? tempModel : (tempModelsList.isNotEmpty ? tempModelsList.first : null),
-                      isExpanded: true,
-                      dropdownColor: const Color(0xFF0F172A),
-                      style: const TextStyle(color: Colors.white),
-                      items: tempModelsList.map((modelString) {
-                        return DropdownMenuItem(
-                          value: modelString,
-                          child: Text(
-                            modelString, 
-                            overflow: TextOverflow.ellipsis,
-                          ),
+                  : InkWell(
+                      onTap: () async {
+                        final String? selected = await showDialog<String>(
+                          context: context,
+                          builder: (BuildContext context) {
+                            return _SearchableModelDialog(
+                              models: tempModelsList,
+                              initialModel: tempModel,
+                            );
+                          },
                         );
-                      }).toList(),
-                      onChanged: (val) {
-                        if (val != null) {
+                        if (selected != null) {
                           setDialogState(() {
-                            tempModel = val;
+                            tempModel = selected;
                           });
                         }
                       },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 10),
+                        decoration: BoxDecoration(
+                          border: Border(bottom: BorderSide(color: Colors.white24)),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Expanded(
+                              child: Text(
+                                tempModel.isEmpty ? 'Select a Model' : tempModel,
+                                style: const TextStyle(color: Colors.white),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            const Icon(Icons.arrow_drop_down, color: Colors.white54),
+                          ],
+                        ),
+                      ),
                     ),
                 const SizedBox(height: 12),
 
@@ -518,6 +533,107 @@ class _GuptikScreenState extends State<GuptikScreen> {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+// 🚀 NEW WIDGET: Searchable Model Dialog
+class _SearchableModelDialog extends StatefulWidget {
+  final List<String> models;
+  final String initialModel;
+
+  const _SearchableModelDialog({
+    required this.models,
+    required this.initialModel,
+  });
+
+  @override
+  State<_SearchableModelDialog> createState() => _SearchableModelDialogState();
+}
+
+class _SearchableModelDialogState extends State<_SearchableModelDialog> {
+  final TextEditingController _searchController = TextEditingController();
+  List<String> _filteredModels = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _filteredModels = widget.models;
+    _searchController.addListener(_filterModels);
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  void _filterModels() {
+    final query = _searchController.text.toLowerCase();
+    setState(() {
+      _filteredModels = widget.models.where((model) {
+        return model.toLowerCase().contains(query);
+      }).toList();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      backgroundColor: const Color(0xFF1E293B),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: TextField(
+              controller: _searchController,
+              style: const TextStyle(color: Colors.white),
+              decoration: InputDecoration(
+                hintText: 'Search models...',
+                hintStyle: const TextStyle(color: Colors.white54),
+                prefixIcon: const Icon(Icons.search, color: _ancientGold),
+                filled: true,
+                fillColor: const Color(0xFF0F172A),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: BorderSide.none,
+                ),
+              ),
+            ),
+          ),
+          Flexible(
+            child: ListView.builder(
+              shrinkWrap: true,
+              itemCount: _filteredModels.length,
+              itemBuilder: (context, index) {
+                final model = _filteredModels[index];
+                final isSelected = model == widget.initialModel;
+                return ListTile(
+                  title: Text(
+                    model,
+                    style: TextStyle(
+                      color: isSelected ? _ancientGold : Colors.white,
+                      fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                    ),
+                  ),
+                  onTap: () {
+                    Navigator.pop(context, model);
+                  },
+                );
+              },
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Close', style: TextStyle(color: Colors.grey)),
+            ),
+          ),
+        ],
       ),
     );
   }
