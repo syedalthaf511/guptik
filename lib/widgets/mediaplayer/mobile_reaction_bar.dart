@@ -1,12 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:guptik/models/mediaplyer/player_video_model.dart';
-import 'package:guptik/services/mediaplayer/mobile_bridge_service.dart';
-import 'package:guptik/screens/mediaplayer/mobile_profile_screen.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../services/mediaplayer/mobile_bridge_service.dart';
+import '../../screens/mediaplayer/mobile_profile_screen.dart';
 
 class MobileReactionBar extends StatefulWidget {
   final PlayerVideo video;
+  final VoidCallback onOpenComments;
 
-  const MobileReactionBar({Key? key, required this.video}) : super(key: key);
+  const MobileReactionBar({
+    Key? key, 
+    required this.video, 
+    required this.onOpenComments
+  }) : super(key: key);
 
   @override
   _MobileReactionBarState createState() => _MobileReactionBarState();
@@ -15,6 +22,9 @@ class MobileReactionBar extends StatefulWidget {
 class _MobileReactionBarState extends State<MobileReactionBar> {
   late int _currentLikes;
   late int _currentComments;
+  late int _repostCount;
+  bool _isSaved = false;
+  bool _isReposted = false;
   late MobileBridgeService _bridge;
 
   @override
@@ -22,6 +32,7 @@ class _MobileReactionBarState extends State<MobileReactionBar> {
     super.initState();
     _currentLikes = widget.video.likeCount;
     _currentComments = widget.video.commentCount;
+    _repostCount = widget.video.repostCount;
     _bridge = MobileBridgeService(gatewayUrl: widget.video.creatorUrl);
     _fetchLiveStats();
   }
@@ -32,181 +43,100 @@ class _MobileReactionBarState extends State<MobileReactionBar> {
       setState(() {
         _currentLikes = stats['likes'] ?? _currentLikes;
         _currentComments = stats['comments'] ?? _currentComments;
+        _repostCount = stats['reposts'] ?? _repostCount;
       });
     }
   }
 
-  void _handleLike() async {
-    bool success = await _bridge.postReaction(widget.video.videoId, widget.video.creatorUid, 'heart');
+  void _handleReaction(String type) async {
+    bool success = await _bridge.postReaction(widget.video.videoId, widget.video.creatorUid, type);
     if (!mounted) return;
     if (success) {
       setState(() => _currentLikes += 1);
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Liked!")));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Reacted ($type)!")));
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Already liked!")));
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Already reacted!")));
+    }
+  }
+
+  void _handleRepost() async {
+    final currentUser = Supabase.instance.client.auth.currentUser;
+    if (currentUser == null) return;
+
+    if (currentUser.id == widget.video.creatorUid) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("This is your own video.")));
+      return;
+    }
+
+    final reposterName = currentUser.userMetadata?['channel_name'] ?? 
+                         currentUser.userMetadata?['username'] ?? 
+                         currentUser.email?.split('@')[0] ?? 
+                         'Creator';
+
+    bool success = await _bridge.repostVideo(
+      originalVideoId: widget.video.videoId,
+      originalCreatorUid: widget.video.creatorUid,
+      originalCreatorName: widget.video.channelName,
+      originalChannelName: widget.video.channelName,
+      reposterUid: currentUser.id,
+      reposterChannelName: reposterName,
+    );
+
+    if (mounted) {
+      if (success) {
+        setState(() {
+          _isReposted = true;
+          _repostCount += 1;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Video reposted to your channel!")));
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Already reposted.")));
+      }
     }
   }
 
   void _handleShare() {
+    final link = '${widget.video.creatorUrl}/watch/${widget.video.videoId}';
+    Clipboard.setData(ClipboardData(text: link));
+    _bridge.shareVideo(videoId: widget.video.videoId, creatorUid: widget.video.creatorUid);
     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Link copied to clipboard!")));
   }
 
   void _handleSave() async {
+    if (_isSaved) return;
     bool success = await _bridge.saveVideo(widget.video.videoId, widget.video.creatorUid);
     if (!mounted) return;
     if (success) {
+      setState(() => _isSaved = true);
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Saved to your Vault!")));
     }
   }
 
-  // 🚀 THE NEW COMMENT UI: A sleek Bottom Sheet
-  void _showCommentsBottomSheet() {
-    final TextEditingController commentController = TextEditingController();
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true, // Allows it to move up when keyboard appears
-      backgroundColor: const Color(0xFF1E1E1E),
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+  Widget _buildEmojiButton(IconData icon, Color color, String type) {
+    return GestureDetector(
+      onTap: () => _handleReaction(type),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 6.0),
+        child: Icon(icon, color: color, size: 22),
       ),
-      builder: (context) {
-        return StatefulBuilder(
-          builder: (BuildContext context, StateSetter setModalState) {
-            return Padding(
-              // Pushes the sheet up when the keyboard opens
-              padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
-              child: SizedBox(
-                height: MediaQuery.of(context).size.height * 0.6, // Takes up 60% of the screen
-                child: Column(
-                  children: [
-                    // Header
-                    Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: const BoxDecoration(
-                        border: Border(bottom: BorderSide(color: Colors.white12)),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text("Comments ($_currentComments)", style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
-                          IconButton(
-                            icon: const Icon(Icons.close, color: Colors.white),
-                            onPressed: () => Navigator.pop(context),
-                          )
-                        ],
-                      ),
-                    ),
-                    
-                    // The Comment List
-                    Expanded(
-                      child: FutureBuilder<List<dynamic>>(
-                        future: _bridge.fetchComments(widget.video.videoId),
-                        builder: (context, snapshot) {
-                          if (snapshot.connectionState == ConnectionState.waiting) {
-                            return const Center(child: CircularProgressIndicator(color: Colors.orange));
-                          }
-                          if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                            return const Center(child: Text("No comments yet. Be the first!", style: TextStyle(color: Colors.white54)));
-                          }
-
-                          final comments = snapshot.data!;
-                          return ListView.builder(
-                            itemCount: comments.length,
-                            itemBuilder: (context, index) {
-                              final comment = comments[index];
-                              return ListTile(
-                                leading: const CircleAvatar(
-                                  backgroundColor: Colors.orange, 
-                                  child: Icon(Icons.person, color: Colors.black, size: 20)
-                                ),
-                                title: Text(
-                                  comment['creator_uid']?.toString().substring(0, 8) ?? 'User', 
-                                  style: const TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.bold)
-                                ),
-                                subtitle: Text(
-                                  comment['comment_text'] ?? '', 
-                                  style: const TextStyle(color: Colors.white, fontSize: 14)
-                                ),
-                              );
-                            },
-                          );
-                        },
-                      ),
-                    ),
-
-                    // The Input Area
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: const BoxDecoration(
-                        color: Colors.black,
-                        border: Border(top: BorderSide(color: Colors.white12)),
-                      ),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: TextField(
-                              controller: commentController,
-                              style: const TextStyle(color: Colors.white),
-                              decoration: InputDecoration(
-                                hintText: "Add a comment...",
-                                hintStyle: const TextStyle(color: Colors.white54),
-                                filled: true,
-                                fillColor: const Color(0xFF1E1E1E),
-                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(20), borderSide: BorderSide.none),
-                                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Container(
-                            decoration: const BoxDecoration(color: Colors.orange, shape: BoxShape.circle),
-                            child: IconButton(
-                              icon: const Icon(Icons.send, color: Colors.black, size: 20),
-                              onPressed: () async {
-                                if (commentController.text.trim().isEmpty) return;
-                                
-                                bool success = await _bridge.postComment(
-                                  widget.video.videoId, 
-                                  widget.video.creatorUid, 
-                                  commentController.text.trim()
-                                );
-
-                                if (success) {
-                                  commentController.clear();
-                                  setModalState(() {}); // Refresh the bottom sheet
-                                  setState(() => _currentComments += 1); // Refresh the button number
-                                }
-                              },
-                            ),
-                          )
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            );
-          }
-        );
-      },
     );
   }
 
-  Widget _buildActionBtn(IconData icon, String label, VoidCallback onTap) {
+  Widget _buildActionBtn(IconData icon, String label, VoidCallback onTap, {bool highlight = false}) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.1),
+          color: highlight ? Colors.orange.withOpacity(0.2) : Colors.white.withOpacity(0.1),
           borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: highlight ? Colors.orange : Colors.transparent),
         ),
         child: Row(
           children: [
-            Icon(icon, color: Colors.white, size: 20),
+            Icon(icon, color: highlight ? Colors.orange : Colors.white, size: 18),
             const SizedBox(width: 6),
-            Text(label, style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w500)),
+            Text(label, style: TextStyle(color: highlight ? Colors.orange : Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
           ],
         ),
       ),
@@ -260,22 +190,53 @@ class _MobileReactionBarState extends State<MobileReactionBar> {
             ),
           ),
           
-          const SizedBox(height: 16),
+          const SizedBox(height: 14),
+
+          // 2. 7-Emoji Reaction Selector Bar
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: const Color(0xFF1E1E1E),
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(color: Colors.white12),
+            ),
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  _buildEmojiButton(Icons.favorite, Colors.pinkAccent, 'heart'),
+                  _buildEmojiButton(Icons.local_fire_department, Colors.orange, 'fire'),
+                  _buildEmojiButton(Icons.thumb_up, Colors.cyanAccent, 'thumbs_up'),
+                  _buildEmojiButton(Icons.celebration, Colors.yellow, 'clap'),
+                  _buildEmojiButton(Icons.sentiment_very_satisfied, Colors.amber, 'laugh'),
+                  _buildEmojiButton(Icons.auto_awesome, Colors.purpleAccent, 'surprised'),
+                  _buildEmojiButton(Icons.sentiment_very_dissatisfied, Colors.blueGrey, 'sad'),
+                ],
+              ),
+            ),
+          ),
+
+          const SizedBox(height: 12),
           
-          // 2. YouTube-Style Action Row
+          // 3. YouTube-Style Action Buttons
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
-                _buildActionBtn(Icons.thumb_up_alt_outlined, "$_currentLikes", _handleLike),
-                const SizedBox(width: 12),
-                // 🚀 NOW THIS BUTTON OPENS THE BOTTOM SHEET
-                _buildActionBtn(Icons.comment_outlined, "$_currentComments", _showCommentsBottomSheet),
-                const SizedBox(width: 12),
+                _buildActionBtn(Icons.thumb_up_alt_outlined, "$_currentLikes", () => _handleReaction('thumbs_up')),
+                const SizedBox(width: 10),
+                _buildActionBtn(Icons.comment_outlined, "$_currentComments", widget.onOpenComments),
+                const SizedBox(width: 10),
+                _buildActionBtn(
+                  _isReposted ? Icons.repeat : Icons.repeat_outlined, 
+                  "$_repostCount", 
+                  _handleRepost,
+                  highlight: _isReposted,
+                ),
+                const SizedBox(width: 10),
+                _buildActionBtn(_isSaved ? Icons.bookmark : Icons.bookmark_border, _isSaved ? "Saved" : "Save", _handleSave, highlight: _isSaved),
+                const SizedBox(width: 10),
                 _buildActionBtn(Icons.share_outlined, "Share", _handleShare),
-                const SizedBox(width: 12),
-                _buildActionBtn(Icons.bookmark_border, "Save", _handleSave),
               ],
             ),
           )

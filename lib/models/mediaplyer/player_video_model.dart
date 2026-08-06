@@ -11,6 +11,37 @@ class PlayerVideo {
   final String creatorUrl;
   final String channelName;
   final List<String> stickers;
+  final bool isReel;
+  final String visibility;
+
+  // 🚀 AUDIENCE & MONETIZATION
+  final bool madeForKids;
+  final String ageRating; // 'all' or '18+'
+  final String category;
+  final List<String> tags;
+  final bool isMonetized;
+  final int saveCount;
+  final int repostCount;
+  final int shareCount;
+
+  // 🚀 REACTION COUNTS
+  final int reactionHeartCount;
+  final int reactionFireCount;
+  final int reactionThumbsUpCount;
+  final int reactionClapCount;
+  final int reactionLaughCount;
+  final int reactionSurprisedCount;
+  final int reactionSadCount;
+  final double averageWatchPercentage;
+  final int uniqueViewers;
+  final String? thumbnailUrl;
+
+  // 🚀 REPOST ATTRIBUTION
+  final String? repostId;
+  final String? originalCreatorUid;
+  final String? originalChannelName;
+  final String? originalCreatorUrl;
+  final String? originalVideoId;
 
   PlayerVideo({
     required this.videoId,
@@ -25,11 +56,55 @@ class PlayerVideo {
     required this.creatorUrl,
     required this.channelName,
     this.stickers = const [],
+    required this.isReel,
+    required this.visibility,
+    this.madeForKids = false,
+    this.ageRating = 'all',
+    this.category = '',
+    this.tags = const [],
+    this.isMonetized = false,
+    this.saveCount = 0,
+    this.repostCount = 0,
+    this.shareCount = 0,
+    this.reactionHeartCount = 0,
+    this.reactionFireCount = 0,
+    this.reactionThumbsUpCount = 0,
+    this.reactionClapCount = 0,
+    this.reactionLaughCount = 0,
+    this.reactionSurprisedCount = 0,
+    this.reactionSadCount = 0,
+    this.averageWatchPercentage = 0.0,
+    this.uniqueViewers = 0,
+    this.thumbnailUrl,
+    this.repostId,
+    this.originalCreatorUid,
+    this.originalChannelName,
+    this.originalCreatorUrl,
+    this.originalVideoId,
   });
 
+  bool get isRepost => repostId != null && repostId!.isNotEmpty;
+
+  int get totalReactions =>
+      reactionHeartCount +
+      reactionFireCount +
+      reactionThumbsUpCount +
+      reactionClapCount +
+      reactionLaughCount +
+      reactionSurprisedCount +
+      reactionSadCount;
+
   factory PlayerVideo.fromJson(Map<String, dynamic> json, String gateway) {
+    List<String> parseTags(dynamic rawTags) {
+      if (rawTags == null) return [];
+      if (rawTags is List) return rawTags.map((e) => e.toString()).toList();
+      if (rawTags is String && rawTags.isNotEmpty) {
+        return rawTags.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
+      }
+      return [];
+    }
+
     return PlayerVideo(
-      // 🚀 THE FIX: We must prioritize 'video_id' over 'id' so it perfectly matches the Local Vault!
       videoId: json['video_id'] ?? json['id'] ?? '',
       creatorUid: json['creator_uid'] ?? '',
       title: json['title'] ?? 'Untitled Broadcast',
@@ -39,9 +114,72 @@ class PlayerVideo {
       likeCount: json['like_count_local'] ?? json['like_count'] ?? 0,
       commentCount: json['comment_count_local'] ?? json['comment_count'] ?? 0,
       createdAt: json['published_at'] ?? json['created_at'] ?? json['upload_timestamp'] ?? '',
-      creatorUrl: gateway,
+      creatorUrl: json['creator_url']?.toString() ?? gateway,
       channelName: json['channel_name'] ?? 'Guptik Node',
-      stickers: [], 
+      isReel: json['is_reel'] ?? false,
+      visibility: json['visibility'] ?? 'public',
+      madeForKids: json['made_for_kids'] ?? false,
+      ageRating: json['age_rating']?.toString() ?? 'all',
+      category: json['category']?.toString() ?? '',
+      tags: parseTags(json['tags']),
+      isMonetized: json['is_monetized'] ?? json['monetization_enabled'] ?? false,
+      saveCount: json['save_count_local'] ?? json['save_count'] ?? 0,
+      repostCount: json['repost_count_local'] ?? json['repost_count'] ?? 0,
+      shareCount: json['share_count_local'] ?? json['share_count'] ?? 0,
+      reactionHeartCount: json['reaction_heart_count'] ?? 0,
+      reactionFireCount: json['reaction_fire_count'] ?? 0,
+      reactionThumbsUpCount: json['reaction_thumbs_up_count'] ?? 0,
+      reactionClapCount: json['reaction_clap_count'] ?? 0,
+      reactionLaughCount: json['reaction_laugh_count'] ?? 0,
+      reactionSurprisedCount: json['reaction_surprised_count'] ?? 0,
+      reactionSadCount: json['reaction_sad_count'] ?? 0,
+      averageWatchPercentage: (json['average_watch_percentage'] ?? 0).toDouble(),
+      uniqueViewers: json['unique_viewers_local'] ?? json['unique_viewers'] ?? 0,
+      thumbnailUrl: json['thumbnail_url']?.toString(),
+      repostId: json['repost_id']?.toString(),
+      originalCreatorUid: (json['original'] is Map
+              ? json['original']['creator_uid']
+              : json['original_creator_uid'])?.toString(),
+      originalChannelName: (json['original'] is Map
+              ? json['original']['channel_name']
+              : json['original_channel_name'])?.toString(),
+      originalCreatorUrl: (json['original'] is Map
+              ? json['original']['creator_cloudflare_url']
+              : json['original_creator_url'])?.toString(),
+      originalVideoId: (json['original'] is Map
+              ? json['original']['video_id']
+              : json['original_video_id'])?.toString(),
     );
   }
+
+  Map<String, dynamic> toJson() => {
+        'video_id': videoId,
+        'creator_uid': creatorUid,
+        'title': title,
+        'description': description,
+        'file_path': filePath,
+        'view_count': viewCount,
+        'like_count': likeCount,
+        'comment_count': commentCount,
+        'created_at': createdAt,
+        'creator_url': creatorUrl,
+        'channel_name': channelName,
+        'stickers': stickers,
+        'is_reel': isReel,
+        'visibility': visibility,
+        'made_for_kids': madeForKids,
+        'age_rating': ageRating,
+        'category': category,
+        'tags': tags,
+        'is_monetized': isMonetized,
+        'save_count': saveCount,
+        'repost_count': repostCount,
+        'share_count': shareCount,
+        'thumbnail_url': thumbnailUrl,
+        'repost_id': repostId,
+        'original_creator_uid': originalCreatorUid,
+        'original_channel_name': originalChannelName,
+        'original_creator_url': originalCreatorUrl,
+        'original_video_id': originalVideoId,
+      };
 }

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart'; // REQUIRED FOR CLIPBOARD
+import 'package:flutter/services.dart'; 
 import 'package:guptik/models/mediaplyer/player_video_model.dart';
-import 'dart:math'; // REQUIRED FOR TOKEN GENERATION
+import 'dart:math'; 
 import 'package:guptik/services/vault/sync_tracker.dart';
 import 'package:guptik/services/vault/vault_sync_service.dart';
 import 'package:guptik/utils/theme/dynamic_app_background.dart';
@@ -9,9 +9,7 @@ import 'package:guptik/widgets/mediaplayer/mobile_video_player_widget.dart';
 import 'package:photo_manager/photo_manager.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'package:postgres/postgres.dart'; // 🚀 Supported now via pubspec!
 
-// Ancient Gold Theme Constants
 const Color _ancientGold = Color(0xFFD4AF37);
 const Color _darkBg = Color(0xFF0A0A0A);
 
@@ -33,25 +31,17 @@ class _SyncedFilesScreenState extends State<SyncedFilesScreen> {
     _loadSyncedAssets();
   }
 
-  // --- 🔒 SECURE TOKEN GENERATOR ---
   String _generateSecureToken(int length) {
-    const chars =
-        'AaBbCcDdEeFfGgHhIiJjKkLlMmNnOoPpQqRrSsTtUuVvWwXxYyZz1234567890';
+    const chars = 'AaBbCcDdEeFfGgHhIiJjKkLlMmNnOoPpQqRrSsTtUuVvWwXxYyZz1234567890';
     Random rnd = Random();
     return String.fromCharCodes(
-      Iterable.generate(
-        length,
-        (_) => chars.codeUnitAt(rnd.nextInt(chars.length)),
-      ),
+      Iterable.generate(length, (_) => chars.codeUnitAt(rnd.nextInt(chars.length))),
     );
   }
 
-  // --- 📱 MOBILE SHARE DIALOG WITH DATE PICKER ---
   void _showShareDialog(String fileName) {
     bool isPublic = false;
     TextEditingController emailController = TextEditingController();
-
-    // Default expiration: 7 days from now
     DateTime? selectedExpiryDate = DateTime.now().add(const Duration(days: 7));
 
     showDialog(
@@ -74,14 +64,8 @@ class _SyncedFilesScreenState extends State<SyncedFilesScreen> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     SwitchListTile(
-                      title: const Text(
-                        "Make Public Link",
-                        style: TextStyle(color: Colors.white),
-                      ),
-                      subtitle: Text(
-                        "Anyone with the link can view",
-                        style: TextStyle(color: Colors.grey[500], fontSize: 12),
-                      ),
+                      title: const Text("Make Public Link", style: TextStyle(color: Colors.white)),
+                      subtitle: Text("Anyone with the link can view", style: TextStyle(color: Colors.grey[500], fontSize: 12)),
                       activeThumbColor: Colors.black,
                       activeTrackColor: _ancientGold,
                       inactiveThumbColor: Colors.grey[400],
@@ -91,41 +75,23 @@ class _SyncedFilesScreenState extends State<SyncedFilesScreen> {
                         setDialogState(() => isPublic = val);
                       },
                     ),
-
                     Divider(color: _ancientGold.withValues(alpha: 0.2)),
-
-                    // 📅 DATE PICKER UI
                     ListTile(
                       contentPadding: EdgeInsets.zero,
-                      title: Text(
-                        "Expires On:",
-                        style: TextStyle(color: Colors.grey[500], fontSize: 14),
-                      ),
+                      title: Text("Expires On:", style: TextStyle(color: Colors.grey[500], fontSize: 14)),
                       subtitle: Text(
                         selectedExpiryDate != null
                             ? "${selectedExpiryDate!.year}-${selectedExpiryDate!.month.toString().padLeft(2, '0')}-${selectedExpiryDate!.day.toString().padLeft(2, '0')}"
                             : "Never",
-                        style: const TextStyle(
-                          color: _ancientGold,
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
+                        style: const TextStyle(color: _ancientGold, fontSize: 16, fontWeight: FontWeight.bold),
                       ),
-                      trailing: const Icon(
-                        Icons.calendar_month,
-                        color: _ancientGold,
-                      ),
+                      trailing: const Icon(Icons.calendar_month, color: _ancientGold),
                       onTap: () async {
                         DateTime? picked = await showDatePicker(
                           context: context,
-                          initialDate:
-                              selectedExpiryDate ??
-                              DateTime.now().add(const Duration(days: 1)),
-                          firstDate:
-                              DateTime.now(), // Can't pick a date in the past
-                          lastDate: DateTime.now().add(
-                            const Duration(days: 365),
-                          ), // Up to 1 year
+                          initialDate: selectedExpiryDate ?? DateTime.now().add(const Duration(days: 1)),
+                          firstDate: DateTime.now(), 
+                          lastDate: DateTime.now().add(const Duration(days: 365)), 
                           builder: (context, child) {
                             return Theme(
                               data: ThemeData.dark().copyWith(
@@ -135,10 +101,7 @@ class _SyncedFilesScreenState extends State<SyncedFilesScreen> {
                                   surface: Colors.black,
                                   onSurface: _ancientGold,
                                 ),
-                                // 🚀 FIXED: Swapped 'DialogTheme' for the correct 'DialogThemeData' type allocation
-                                dialogTheme: const DialogThemeData(
-                                  backgroundColor: Colors.black,
-                                ),
+                                dialogTheme: const DialogThemeData(backgroundColor: Colors.black),
                               ),
                               child: child!,
                             );
@@ -149,8 +112,6 @@ class _SyncedFilesScreenState extends State<SyncedFilesScreen> {
                         }
                       },
                     ),
-
-                    // EMAIL INPUT (Only if private)
                     if (!isPublic) ...[
                       const SizedBox(height: 15),
                       TextField(
@@ -159,12 +120,8 @@ class _SyncedFilesScreenState extends State<SyncedFilesScreen> {
                         decoration: InputDecoration(
                           labelText: "Allowed Email Address",
                           labelStyle: TextStyle(color: Colors.grey[500]),
-                          enabledBorder: OutlineInputBorder(
-                            borderSide: BorderSide(color: _ancientGold.withValues(alpha: 0.3)),
-                          ),
-                          focusedBorder: const OutlineInputBorder(
-                            borderSide: BorderSide(color: _ancientGold),
-                          ),
+                          enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: _ancientGold.withValues(alpha: 0.3))),
+                          focusedBorder: const OutlineInputBorder(borderSide: BorderSide(color: _ancientGold)),
                         ),
                       ),
                     ],
@@ -174,16 +131,10 @@ class _SyncedFilesScreenState extends State<SyncedFilesScreen> {
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(context),
-                  child: const Text(
-                    "Cancel",
-                    style: TextStyle(color: Colors.white54),
-                  ),
+                  child: const Text("Cancel", style: TextStyle(color: Colors.white54)),
                 ),
                 ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: _ancientGold,
-                    foregroundColor: Colors.black,
-                  ),
+                  style: ElevatedButton.styleFrom(backgroundColor: _ancientGold, foregroundColor: Colors.black),
                   onPressed: () async {
                     Navigator.pop(context);
                     await _generateAndSaveLink(
@@ -193,10 +144,7 @@ class _SyncedFilesScreenState extends State<SyncedFilesScreen> {
                       selectedExpiryDate,
                     );
                   },
-                  child: const Text(
-                    "Generate Link",
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                  ),
+                  child: const Text("Generate Link", style: TextStyle(fontWeight: FontWeight.bold)),
                 ),
               ],
             );
@@ -206,7 +154,6 @@ class _SyncedFilesScreenState extends State<SyncedFilesScreen> {
     );
   }
 
-  // --- 🗄️ DATABASE & CLIPBOARD LOGIC (DIRECT TO DOCKER) ---
   Future<void> _generateAndSaveLink(
     String fileName,
     bool isPublic,
@@ -215,16 +162,10 @@ class _SyncedFilesScreenState extends State<SyncedFilesScreen> {
   ) async {
     try {
       String? publicUrl = await _syncService.getDesktopUrl();
-      if (publicUrl == null) {
-        throw Exception("Desktop URL not found. Is your desktop synced?");
-      }
+      if (publicUrl == null) throw Exception("Desktop URL not found. Is your desktop synced?");
 
-      publicUrl = publicUrl
-          .replaceAll('https://', '')
-          .replaceAll('http://', '');
-      if (publicUrl.endsWith('/')) {
-        publicUrl = publicUrl.substring(0, publicUrl.length - 1);
-      }
+      publicUrl = publicUrl.replaceAll('https://', '').replaceAll('http://', '');
+      if (publicUrl.endsWith('/')) publicUrl = publicUrl.substring(0, publicUrl.length - 1);
 
       final token = isPublic ? null : _generateSecureToken(32);
       final now = DateTime.now().toUtc();
@@ -244,15 +185,11 @@ class _SyncedFilesScreenState extends State<SyncedFilesScreen> {
         body: jsonEncode(shareData),
       );
 
-      if (response.statusCode != 200) {
-        throw Exception("Desktop rejected the share rule: ${response.body}");
-      }
+      if (response.statusCode != 200) throw Exception("Desktop rejected the share rule: ${response.body}");
 
       final safeName = Uri.encodeComponent(fileName);
       String finalLink = "https://$publicUrl/vault/files/$safeName";
-      if (!isPublic && token != null) {
-        finalLink += "?token=$token";
-      }
+      if (!isPublic && token != null) finalLink += "?token=$token";
 
       await Clipboard.setData(ClipboardData(text: finalLink));
 
@@ -267,16 +204,12 @@ class _SyncedFilesScreenState extends State<SyncedFilesScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text("❌ Failed: $e", style: const TextStyle(color: Colors.black)), 
-            backgroundColor: Colors.redAccent,
-          ),
+          SnackBar(content: Text("❌ Failed: $e", style: const TextStyle(color: Colors.black)), backgroundColor: Colors.redAccent),
         );
       }
     }
   }
 
-  // --- 🔄 LOAD FILES FROM CACHE & VERIFY WITH SERVER ---
   Future<void> _loadSyncedAssets() async {
     final List<String> syncedIds = await SyncTracker.getSyncedIds();
 
@@ -293,9 +226,7 @@ class _SyncedFilesScreenState extends State<SyncedFilesScreen> {
         final response = await http.get(Uri.parse('$baseUrl/vault/list'));
         if (response.statusCode == 200) {
           final List<dynamic> serverFiles = jsonDecode(response.body);
-          serverFileNames = serverFiles
-              .map((f) => f['name'].toString())
-              .toList();
+          serverFileNames = serverFiles.map((f) => f['name'].toString()).toList();
           serverCheckSuccess = true;
         }
       }
@@ -345,6 +276,11 @@ class _SyncedFilesScreenState extends State<SyncedFilesScreen> {
       type = 'repost';
       icon = Icons.repeat;
       color = Colors.lightGreenAccent;
+    } else if (title == "Sticker Products") { 
+      // 🚀 Added Sticker Folder routing
+      type = 'stickers';
+      icon = Icons.shopping_bag;
+      color = Colors.pinkAccent;
     } else if (title == "Vault Folder") {
       type = 'vault_sys';
       icon = Icons.shield;
@@ -379,10 +315,7 @@ class _SyncedFilesScreenState extends State<SyncedFilesScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text("Desktop Cloud", style: TextStyle(color: _ancientGold, fontWeight: FontWeight.bold, fontSize: 18)),
-            Text(
-              "Successfully Synced",
-              style: TextStyle(color: Colors.greenAccent, fontSize: 12),
-            ),
+            Text("Successfully Synced", style: TextStyle(color: Colors.greenAccent, fontSize: 12)),
           ],
         ),
         backgroundColor: Colors.black.withValues(alpha: 0.7),
@@ -405,7 +338,6 @@ class _SyncedFilesScreenState extends State<SyncedFilesScreen> {
       body: Stack(
         children: [
           const Positioned.fill(child: DynamicAppBackground()),
-
           _isLoading
               ? const Center(child: CircularProgressIndicator(color: _ancientGold))
               : GridView.builder(
@@ -415,15 +347,16 @@ class _SyncedFilesScreenState extends State<SyncedFilesScreen> {
                     crossAxisSpacing: 4,
                     mainAxisSpacing: 4,
                   ),
-                  itemCount: _syncedAssets.length + 5,
+                  itemCount: _syncedAssets.length + 6, // 🚀 Incremented count for new folder
                   itemBuilder: (context, index) {
                     if (index == 0) return _buildVirtualFolderTile("Posted Videos", Icons.cloud_done, const Color(0xFF00E5FF));
                     if (index == 1) return _buildVirtualFolderTile("Saved Videos", Icons.bookmark, Colors.amberAccent);
                     if (index == 2) return _buildVirtualFolderTile("Drafts", Icons.edit, Colors.purpleAccent);
                     if (index == 3) return _buildVirtualFolderTile("Repost Videos", Icons.repeat, Colors.lightGreenAccent);
-                    if (index == 4) return _buildVirtualFolderTile("Vault Folder", Icons.shield, Colors.orangeAccent);
+                    if (index == 4) return _buildVirtualFolderTile("Sticker Products", Icons.shopping_bag, Colors.pinkAccent); // 🚀 Added Sticker Folder
+                    if (index == 5) return _buildVirtualFolderTile("Vault Folder", Icons.shield, Colors.orangeAccent);
 
-                    final asset = _syncedAssets[index - 5];
+                    final asset = _syncedAssets[index - 6]; // 🚀 Adjusted Offset
                     return _SyncedTile(
                       asset: asset,
                       onShare: () {
@@ -461,10 +394,7 @@ class _SyncedFilesScreenState extends State<SyncedFilesScreen> {
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 2),
-            Text(
-              "System Folder",
-              style: TextStyle(color: Colors.grey[500], fontSize: 9),
-            ),
+            Text("System Folder", style: TextStyle(color: Colors.grey[500], fontSize: 9)),
           ],
         ),
       ),
@@ -493,8 +423,7 @@ class _SyncedTile extends StatelessWidget {
             FutureBuilder<Uint8List?>(
               future: asset.thumbnailDataWithSize(const ThumbnailSize.square(200)),
               builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.done &&
-                    snapshot.data != null) {
+                if (snapshot.connectionState == ConnectionState.done && snapshot.data != null) {
                   return Image.memory(snapshot.data!, fit: BoxFit.cover);
                 }
                 return Container(color: Colors.black);
@@ -535,9 +464,6 @@ class _SyncedTile extends StatelessWidget {
   }
 }
 
-// =========================================================================
-// 🚀 LIVE MOBILE SYSTEM FOLDER VIEWER (CLEAN HTTP ROUTING METHOD)
-// =========================================================================
 class MobileSystemFolderScreen extends StatefulWidget {
   final String folderType;
   final String folderTitle;
@@ -575,7 +501,6 @@ class _MobileSystemFolderScreenState extends State<MobileSystemFolderScreen> {
     }
 
     try {
-      // 🚀 Hits the new secure gateway proxy endpoint over your public web tunnel link
       final endpoint = '${widget.desktopUrl}/vault/system-folder/${widget.folderType}';
       final response = await http.get(Uri.parse(endpoint)).timeout(const Duration(seconds: 8));
       
@@ -654,42 +579,46 @@ class _MobileSystemFolderScreenState extends State<MobileSystemFolderScreen> {
                         }
                         final thumbUrl = '$cleanBaseUrl/player/video/thumbnail/$videoId';
 
-                        
-return InkWell(
-  onTap: () {
-    // 🚀 Using your existing MobileVideoPlayerWidget structure
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => Scaffold(
-          backgroundColor: Colors.black,
-          appBar: AppBar(
-            backgroundColor: Colors.black,
-            iconTheme: const IconThemeData(color: Colors.orange),
-            title: Text(filename, style: const TextStyle(color: Colors.white)),
-          ),
-          body: MobileVideoPlayerWidget(
-            // Construct the model or pass the URL if your widget supports it
-            // Based on your other files, the widget likely expects a PlayerVideo model
-            video: PlayerVideo(
-              videoId: videoId,
-              title: filename,
-              creatorUrl: widget.desktopUrl ?? '',
-              channelName: 'Local Vault',
-              viewCount: 0,
-              creatorUid: 'guest', // Or get the actual user ID
-  description: '',     // Provide an empty string or the actual description
-  filePath: '',        // Provide the file path
-  likeCount: 0,
-  commentCount: 0,
-  createdAt: DateTime.now().toIso8601String(),
-             ),
-          ),
-         ),
-       ),
-      );
-            },
-                         child: Container(
+                        return InkWell(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => Scaffold(
+                                  backgroundColor: Colors.black,
+                                  appBar: AppBar(
+                                    backgroundColor: Colors.black,
+                                    iconTheme: const IconThemeData(color: Colors.orange),
+                                    title: Text(filename, style: const TextStyle(color: Colors.white)),
+                                  ),
+                                  body: MobileVideoPlayerWidget(
+                                    // 🚀 COMPILER FIX: Instantiating PlayerVideo with all required fields from Step 1
+                                    video: PlayerVideo(
+                                      videoId: videoId,
+                                      title: filename,
+                                      creatorUrl: widget.desktopUrl ?? '',
+                                      channelName: 'Local Vault',
+                                      viewCount: 0,
+                                      creatorUid: 'guest',
+                                      description: '',
+                                      filePath: '',
+                                      likeCount: 0,
+                                      commentCount: 0,
+                                      createdAt: DateTime.now().toIso8601String(),
+                                      isReel: false,
+                                      visibility: 'public',
+                                      madeForKids: false,
+                                      ageRating: 'all',
+                                      category: 'Uncategorized',
+                                      tags: const [],
+                                      isMonetized: false,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            );
+                          },
+                          child: Container(
                             decoration: BoxDecoration(
                               color: Colors.black.withValues(alpha: 0.5),
                               borderRadius: BorderRadius.circular(12),
@@ -711,7 +640,7 @@ return InkWell(
                                             child: Image.network(
                                               thumbUrl,
                                               fit: BoxFit.cover,
-                                              errorBuilder: (_, __, ___) => Icon(
+                                              errorBuilder: (_, _, _) => Icon(
                                                 Icons.play_circle_outline,
                                                 color: widget.folderColor.withValues(alpha: 0.7),
                                                 size: 40,

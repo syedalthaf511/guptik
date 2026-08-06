@@ -1,7 +1,7 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
-// Import your screens
 import 'mobile_home_loader.dart';
 import 'mobile_upload_screen.dart';
 import 'mobile_profile_screen.dart';
@@ -22,17 +22,25 @@ class MobileMainLayout extends StatefulWidget {
 
 class _MobileMainLayoutState extends State<MobileMainLayout> {
   int _currentIndex = 0;
+  late String _resolvedUserId;
 
-  // 🚀 The Master Screen List
-  late final List<Widget> _screens = [
-    MobileHomeLoader(gatewayUrl: widget.gatewayUrl), // Index 0: The YouTube-Style Feed
-    MobileUploadScreen(gatewayUrl: widget.gatewayUrl), // Index 1: Upload Vault
-    MobileProfileScreen(channelId: widget.currentUserUid, nodeUrl: widget.gatewayUrl), // Index 2: Profile
-    const Scaffold(
-      backgroundColor: Colors.black,
-      body: Center(child: Text("Settings Coming Soon", style: TextStyle(color: Colors.white, fontSize: 20))),
-    ), // Index 3: Settings (Strictly the final item)
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _resolvedUserId = widget.currentUserUid;
+    _resolveActiveUser();
+  }
+
+  Future<void> _resolveActiveUser() async {
+    if (_resolvedUserId.isEmpty) {
+      final user = Supabase.instance.client.auth.currentUser;
+      if (user != null && mounted) {
+        setState(() {
+          _resolvedUserId = user.id;
+        });
+      }
+    }
+  }
 
   void _onTabTapped(int index) {
     setState(() {
@@ -42,11 +50,30 @@ class _MobileMainLayoutState extends State<MobileMainLayout> {
 
   @override
   Widget build(BuildContext context) {
+    // 🚀 Fallback to active session ID if layout was initialized with empty string
+    final effectiveUserId = _resolvedUserId.isNotEmpty 
+        ? _resolvedUserId 
+        : (Supabase.instance.client.auth.currentUser?.id ?? 'guest_channel');
+
+    final List<Widget> screens = [
+      MobileHomeLoader(gatewayUrl: widget.gatewayUrl),
+      MobileUploadScreen(gatewayUrl: widget.gatewayUrl),
+      MobileProfileScreen(
+        key: ValueKey(effectiveUserId), // 🚀 Forces rebuild if user context changes
+        channelId: effectiveUserId, 
+        nodeUrl: widget.gatewayUrl,
+      ),
+      const Scaffold(
+        backgroundColor: Colors.black,
+        body: Center(child: Text("Settings Coming Soon", style: TextStyle(color: Colors.white, fontSize: 20))),
+      ),
+    ];
+
     return Scaffold(
       backgroundColor: Colors.black,
       body: IndexedStack(
         index: _currentIndex,
-        children: _screens,
+        children: screens,
       ),
       extendBody: true, 
       bottomNavigationBar: _buildGlassmorphicNavBar(),
@@ -74,7 +101,6 @@ class _MobileMainLayoutState extends State<MobileMainLayout> {
               _buildNavItem(icon: Icons.home_filled, index: 0, label: "Home"),
               _buildCenterUploadButton(),
               _buildNavItem(icon: Icons.person_rounded, index: 2, label: "Profile"),
-              
             ],
           ),
         ),

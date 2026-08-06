@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:guptik/models/mediaplyer/player_video_model.dart';
 import 'package:guptik/services/mediaplayer/mobile_bridge_service.dart';
 import 'package:guptik/widgets/mediaplayer/mobile_video_player_widget.dart';
+import 'package:guptik/screens/mediaplayer/mobile_profile_screen.dart'; // 🚀 Added import for profile routing
 
 class MobileHomeLoader extends StatefulWidget {
-  // 🚀 Accept the dynamic Gateway URL from the Main Layout
   final String gatewayUrl;
 
   const MobileHomeLoader({Key? key, required this.gatewayUrl}) : super(key: key);
@@ -22,7 +22,6 @@ class _MobileHomeLoaderState extends State<MobileHomeLoader> {
   @override
   void initState() {
     super.initState();
-    // 🚀 Initialize the bridge using the dynamic URL
     _bridge = MobileBridgeService(gatewayUrl: widget.gatewayUrl);
     _fetchVideos();
   }
@@ -30,8 +29,6 @@ class _MobileHomeLoaderState extends State<MobileHomeLoader> {
   Future<void> _fetchVideos() async {
     try {
       final videos = await _bridge.getRemoteFeed();
-      
-      // 🚀 Safety check to prevent memory leak crashes
       if (mounted) {
         setState(() {
           _videos = videos;
@@ -64,7 +61,6 @@ class _MobileHomeLoaderState extends State<MobileHomeLoader> {
       );
     }
 
-    // 🚀 Clean Video List Directly inside the Loader
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(
@@ -79,7 +75,6 @@ class _MobileHomeLoaderState extends State<MobileHomeLoader> {
         padding: const EdgeInsets.only(top: 8, bottom: 80),
         itemCount: _videos.length,
         itemBuilder: (context, index) {
-          // 🚀 We use a Stateful card here so the views can update live!
           return LoaderVideoCard(
             video: _videos[index], 
             gatewayUrl: widget.gatewayUrl,
@@ -90,9 +85,6 @@ class _MobileHomeLoaderState extends State<MobileHomeLoader> {
   }
 }
 
-// ============================================================================
-// 🚀 STATEFUL VIDEO CARD (Fixes the Live View Bug & Removes Action Buttons)
-// ============================================================================
 class LoaderVideoCard extends StatefulWidget {
   final PlayerVideo video;
   final String gatewayUrl;
@@ -110,9 +102,9 @@ class _LoaderVideoCardState extends State<LoaderVideoCard> {
   @override
   void initState() {
     super.initState();
-    _liveViews = widget.video.viewCount; // Start with the DB default
+    _liveViews = widget.video.viewCount;
     _bridge = MobileBridgeService(gatewayUrl: widget.video.creatorUrl);
-    _fetchLiveNodeViews(); // Ping the node for the real number immediately
+    _fetchLiveNodeViews();
   }
 
   Future<void> _fetchLiveNodeViews() async {
@@ -141,20 +133,27 @@ class _LoaderVideoCardState extends State<LoaderVideoCard> {
       if (difference.inHours > 0) return '${difference.inHours}h ago';
       if (difference.inMinutes > 0) return '${difference.inMinutes}m ago';
       return 'just now';
-    } catch (e) {
+    } catch (_) {
       return 'recently';
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    // 🚀 Robust URL normalization for thumbnail loading
     String cleanUrl = widget.video.creatorUrl;
-    if (cleanUrl.endsWith('/')) cleanUrl = cleanUrl.substring(0, cleanUrl.length - 1);
+    if (!cleanUrl.startsWith('http')) {
+      cleanUrl = cleanUrl.contains('localhost') || cleanUrl.contains('127.0.0.1')
+          ? 'http://$cleanUrl'
+          : 'https://$cleanUrl';
+    }
+    if (cleanUrl.endsWith('/')) {
+      cleanUrl = cleanUrl.substring(0, cleanUrl.length - 1);
+    }
     final thumbnailUrl = '$cleanUrl/player/video/thumbnail/${widget.video.videoId}';
 
     return GestureDetector(
       onTap: () async {
-        // Navigate to the player (where the Like/Comment buttons actually live)
         await Navigator.push(
           context,
           MaterialPageRoute(
@@ -166,13 +165,11 @@ class _LoaderVideoCardState extends State<LoaderVideoCard> {
             ),
           ),
         );
-        // Refresh view count when user returns from the player
         _fetchLiveNodeViews();
       },
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 1. The Large Thumbnail
           AspectRatio(
             aspectRatio: 16 / 9,
             child: Container(
@@ -186,18 +183,30 @@ class _LoaderVideoCardState extends State<LoaderVideoCard> {
               ),
             ),
           ),
-          
-          // 2. The Clean Details Row (NO action buttons here)
           Padding(
             padding: const EdgeInsets.all(12.0),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                CircleAvatar(
-                  backgroundColor: Colors.orange,
-                  child: Text(
-                    widget.video.channelName.isNotEmpty ? widget.video.channelName[0].toUpperCase() : 'G', 
-                    style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold)
+                // 🚀 Tapping the Avatar opens the creator's profile properly
+                GestureDetector(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => MobileProfileScreen(
+                          channelId: widget.video.creatorUid,
+                          nodeUrl: widget.video.creatorUrl,
+                        ),
+                      ),
+                    );
+                  },
+                  child: CircleAvatar(
+                    backgroundColor: Colors.orange,
+                    child: Text(
+                      widget.video.channelName.isNotEmpty ? widget.video.channelName[0].toUpperCase() : 'G', 
+                      style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold)
+                    ),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -212,9 +221,23 @@ class _LoaderVideoCardState extends State<LoaderVideoCard> {
                         overflow: TextOverflow.ellipsis,
                       ),
                       const SizedBox(height: 4),
-                      Text(
-                        '${widget.video.channelName} • ${_formatViews(_liveViews)} views • ${_getTimeAgo(widget.video.createdAt)}', 
-                        style: TextStyle(color: Colors.grey[400], fontSize: 12),
+                      // 🚀 Tapping the Channel Name opens the profile as well
+                      GestureDetector(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => MobileProfileScreen(
+                                channelId: widget.video.creatorUid,
+                                nodeUrl: widget.video.creatorUrl,
+                              ),
+                            ),
+                          );
+                        },
+                        child: Text(
+                          '${widget.video.channelName} • ${_formatViews(_liveViews)} views • ${_getTimeAgo(widget.video.createdAt)}', 
+                          style: TextStyle(color: Colors.grey[400], fontSize: 12),
+                        ),
                       ),
                     ],
                   ),

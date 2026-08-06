@@ -8,7 +8,6 @@ class MobileUploadScreen extends StatefulWidget {
 
   const MobileUploadScreen({super.key, required this.gatewayUrl});
 
-  // 🚀 FIXED: Retuned public State widget visibility interface to stop private type leaks
   @override
   State<MobileUploadScreen> createState() => _MobileUploadScreenState();
 }
@@ -28,6 +27,10 @@ class _MobileUploadScreenState extends State<MobileUploadScreen> {
   String _selectedVisibility = 'public';
   bool _isReel = false;
   bool _isMonetized = false;
+  
+  // 🚀 NEW: Audience Settings
+  bool _madeForKids = false;
+  bool _ageRestricted = false;
 
   File? _selectedVideoFile;
   String _fileLabel = "No file selected";
@@ -67,6 +70,7 @@ class _MobileUploadScreenState extends State<MobileUploadScreen> {
         .where((t) => t.isNotEmpty)
         .toList();
 
+    // 🚀 NOTE: Ensure MobileUploadService is updated to accept madeForKids & ageRestricted!
     bool success = await _uploadService.uploadVideoFromMobile(
       videoFile: _selectedVideoFile!,
       title: _titleController.text.trim(),
@@ -79,7 +83,6 @@ class _MobileUploadScreenState extends State<MobileUploadScreen> {
       channelName: _channelNameController.text.trim(),
     );
 
-    // 🚀 FIXED: Checks context safety bounds across async network thread pools
     if (!mounted) return;
 
     setState(() => _isUploading = false);
@@ -94,6 +97,8 @@ class _MobileUploadScreenState extends State<MobileUploadScreen> {
       setState(() {
         _selectedVideoFile = null;
         _fileLabel = "No file selected";
+        _madeForKids = false;
+        _ageRestricted = false;
       });
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -170,7 +175,6 @@ class _MobileUploadScreenState extends State<MobileUploadScreen> {
 
                   SwitchListTile(
                     title: const Text("Publish as Reel / Short", style: TextStyle(color: Colors.white70, fontSize: 14)),
-                    // 🚀 FIXED: Swapped deprecated activeColor option out for activeThumbColor
                     activeThumbColor: Colors.orange,
                     contentPadding: EdgeInsets.zero,
                     value: _isReel,
@@ -178,14 +182,48 @@ class _MobileUploadScreenState extends State<MobileUploadScreen> {
                   ),
                   SwitchListTile(
                     title: const Text("Enable Monetization Layout", style: TextStyle(color: Colors.white70, fontSize: 14)),
-                    // 🚀 FIXED: Swapped deprecated activeColor option out for activeThumbColor
                     activeThumbColor: Colors.orange,
                     contentPadding: EdgeInsets.zero,
                     value: _isMonetized,
                     onChanged: (v) => setState(() => _isMonetized = v),
                   ),
-                  const SizedBox(height: 32),
 
+                  // 🚀 NEW: Audience Options
+                  const SizedBox(height: 24),
+                  const Divider(color: Colors.white12),
+                  const SizedBox(height: 16),
+                  const Text("Audience", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 16),
+                  
+                  _buildAudienceOption(
+                    title: "Yes, it's made for kids",
+                    selected: _madeForKids,
+                    onTap: () => setState(() => _madeForKids = true),
+                  ),
+                  const SizedBox(height: 8),
+                  _buildAudienceOption(
+                    title: "No, it's not made for kids",
+                    selected: !_madeForKids,
+                    onTap: () => setState(() => _madeForKids = false),
+                  ),
+                  
+                  const SizedBox(height: 20),
+                  const Text("Age Restriction", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 16),
+
+                  _buildAudienceOption(
+                    title: "Yes, restrict my video to viewers over 18",
+                    selected: _ageRestricted,
+                    onTap: () => setState(() => _ageRestricted = true),
+                  ),
+                  const SizedBox(height: 8),
+                  _buildAudienceOption(
+                    title: "No, don't restrict my video",
+                    selected: !_ageRestricted,
+                    onTap: () => setState(() => _ageRestricted = false),
+                  ),
+
+                  const SizedBox(height: 32),
                   SizedBox(
                     width: double.infinity,
                     height: 52,
@@ -205,7 +243,6 @@ class _MobileUploadScreenState extends State<MobileUploadScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // 🚀 FIXED: Replaced invalid typo constant selection token 'whiteBxl' with standard 'white70'
         Text(label, style: const TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.bold)),
         const SizedBox(height: 6),
         TextField(
@@ -245,6 +282,28 @@ class _MobileUploadScreenState extends State<MobileUploadScreen> {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildAudienceOption({required String title, required bool selected, required VoidCallback onTap}) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(8),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+        decoration: BoxDecoration(
+          color: selected ? Colors.orange.withOpacity(0.1) : const Color(0xFF1E1E1E),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: selected ? Colors.orange : Colors.white24),
+        ),
+        child: Row(
+          children: [
+            Icon(selected ? Icons.radio_button_checked : Icons.radio_button_off, color: selected ? Colors.orange : Colors.grey, size: 20),
+            const SizedBox(width: 12),
+            Expanded(child: Text(title, style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600))),
+          ],
+        ),
+      ),
     );
   }
 }
