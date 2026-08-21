@@ -73,20 +73,20 @@ class _MobileHomeLoaderState extends State<MobileHomeLoader> {
         elevation: 0,
       ),
       body: ListView.separated(
-     padding: const EdgeInsets.only(top: 8, bottom: 80),
-     itemCount: _videos.length,
-     separatorBuilder: (context, index) => const Divider(
-     color: Colors.white12,
-     thickness: 2,
-     height: 1,
-   ),
-   itemBuilder: (context, index) {
-     return LoaderVideoCard(
-       video: _videos[index], 
-       gatewayUrl: widget.gatewayUrl,
-     );
-   },
-),  
+        padding: const EdgeInsets.only(top: 8, bottom: 80),
+        itemCount: _videos.length,
+        separatorBuilder: (context, index) => const Divider(
+          color: Colors.white12,
+          thickness: 1,
+          height: 1,
+        ),
+        itemBuilder: (context, index) {
+          return LoaderVideoCard(
+            video: _videos[index], 
+            gatewayUrl: widget.gatewayUrl,
+          );
+        },
+      ),
     );
   }
 }
@@ -126,6 +126,67 @@ class _LoaderVideoCardState extends State<LoaderVideoCard> {
     if (views >= 1000000) return '${(views / 1000000).toStringAsFixed(1)}M';
     if (views >= 1000) return '${(views / 1000).toStringAsFixed(1)}K';
     return views.toString();
+  }
+
+  // 🚀 Audience badge — only 18+ shown on home feed cards (monetization/kids
+  // tags removed per request; keep this file lean)
+  List<Widget> _buildAudienceBadges() {
+    final badges = <Widget>[];
+    if (widget.video.ageRating == '18+') {
+      badges.add(
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+          decoration: BoxDecoration(
+            color: Colors.redAccent.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(4),
+            border: Border.all(color: Colors.redAccent.withOpacity(0.55)),
+          ),
+          child: const Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.warning_amber_rounded, size: 11, color: Colors.redAccent),
+              SizedBox(width: 3),
+              Text('18+', style: TextStyle(color: Colors.redAccent, fontSize: 10, fontWeight: FontWeight.w700)),
+            ],
+          ),
+        ),
+      );
+    }
+    return badges;
+  }
+
+  // 🚀 ADDED: Engagement counts row (reactions / saves / reposts) — mirrors
+  // desktop's player_video_card.dart engagement metrics row
+  Widget _buildEngagementRow() {
+    final items = <Widget>[];
+    if (widget.video.totalReactions > 0) {
+      items.addAll([
+        Icon(Icons.favorite, size: 11, color: Colors.pinkAccent.withOpacity(0.7)),
+        const SizedBox(width: 2),
+        Text(_formatViews(widget.video.totalReactions), style: TextStyle(color: Colors.grey[500], fontSize: 11)),
+        const SizedBox(width: 8),
+      ]);
+    }
+    if (widget.video.saveCount > 0) {
+      items.addAll([
+        Icon(Icons.bookmark, size: 11, color: Colors.grey[500]),
+        const SizedBox(width: 2),
+        Text(_formatViews(widget.video.saveCount), style: TextStyle(color: Colors.grey[500], fontSize: 11)),
+        const SizedBox(width: 8),
+      ]);
+    }
+    if (widget.video.repostCount > 0) {
+      items.addAll([
+        Icon(Icons.repeat, size: 11, color: Colors.grey[500]),
+        const SizedBox(width: 2),
+        Text(_formatViews(widget.video.repostCount), style: TextStyle(color: Colors.grey[500], fontSize: 11)),
+      ]);
+    }
+    if (items.isEmpty) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.only(top: 4),
+      child: Row(children: items),
+    );
   }
 
   String _getTimeAgo(String? dateString) {
@@ -288,6 +349,17 @@ class _LoaderVideoCardState extends State<LoaderVideoCard> {
                           style: TextStyle(color: Colors.grey[400], fontSize: 12),
                         ),
                       ),
+                      // 🚀 ADDED: Engagement counts (reactions/saves/reposts)
+                      _buildEngagementRow(),
+                      // 🚀 ADDED: Audience badges (Monetized / Made for Kids / 18+)
+                      if (widget.video.ageRating == '18+') ...[
+                        const SizedBox(height: 6),
+                        Wrap(
+                          spacing: 6,
+                          runSpacing: 4,
+                          children: _buildAudienceBadges(),
+                        ),
+                      ],
                     ],
                   ),
                 ),
