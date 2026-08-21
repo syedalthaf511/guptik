@@ -99,14 +99,20 @@ class _MobileVideoPlayerWidgetState extends State<MobileVideoPlayerWidget> {
 
     _fetchRecommendations();
 
-    // 3. Establishes the video streaming link
-    String cleanGateway = widget.video.creatorUrl;
+   // 3. Establishes the video streaming link with robust local network sanitization
+    String cleanGateway = widget.video.creatorUrl.trim();
     
-    // 🚀 THE EXOPLAYER FIX: Force the HTTP/HTTPS scheme so Android knows it's a network stream, not a local file!
-    if (!cleanGateway.startsWith('http')) {
-      if (cleanGateway.contains('localhost') || cleanGateway.contains('127.0.0.1')) {
+    if (cleanGateway.contains('192.168.1.15')) {
+      cleanGateway = cleanGateway.replaceAll('192.168.1.15', '192.168.1.186');
+    }
+
+    if (cleanGateway.contains('192.168.') || cleanGateway.contains('10.0.') || cleanGateway.contains('127.0.0.1') || cleanGateway.contains('localhost')) {
+      cleanGateway = cleanGateway.replaceAll('https://', 'http://');
+      if (!cleanGateway.startsWith('http://')) {
         cleanGateway = 'http://$cleanGateway';
-      } else {
+      }
+    } else {
+      if (!cleanGateway.startsWith('http')) {
         cleanGateway = 'https://$cleanGateway';
       }
     }
@@ -115,12 +121,15 @@ class _MobileVideoPlayerWidgetState extends State<MobileVideoPlayerWidget> {
       cleanGateway = cleanGateway.substring(0, cleanGateway.length - 1);
     }
     
+    if ((cleanGateway.contains('192.168.') || cleanGateway.contains('10.0.') || cleanGateway.contains('127.0.0.1')) && !cleanGateway.contains(':55000')) {
+      cleanGateway = '$cleanGateway:55000';
+    }
+    
     final String fullStreamUrl = '$cleanGateway/player/video/stream/${widget.video.videoId}';
     
     debugPrint("📱 Mobile attempting to stream channel: $fullStreamUrl");
 
-    _controller = VideoPlayerController.networkUrl(Uri.parse(fullStreamUrl));
-    
+    _controller = VideoPlayerController.networkUrl(Uri.parse(fullStreamUrl));    
     try {
       await _controller!.initialize();
       if (mounted) {
@@ -446,17 +455,31 @@ class _MobileVideoPlayerWidgetState extends State<MobileVideoPlayerWidget> {
                   final rec = _recommendedVideos[idx];
                   
                   // Clean URL for thumbnails
-                  String cleanUrl = rec.creatorUrl;
-                  if (!cleanUrl.startsWith('http')) {
-                    if (cleanUrl.contains('localhost') || cleanUrl.contains('127.0.0.1')) {
+                  String cleanUrl = rec.creatorUrl.trim();
+                  if (cleanUrl.contains('192.168.1.15')) {
+                    cleanUrl = cleanUrl.replaceAll('192.168.1.15', '192.168.1.186');
+                  }
+
+                  if (cleanUrl.contains('192.168.') || cleanUrl.contains('10.0.') || cleanUrl.contains('127.0.0.1') || cleanUrl.contains('localhost')) {
+                    cleanUrl = cleanUrl.replaceAll('https://', 'http://');
+                    if (!cleanUrl.startsWith('http://')) {
                       cleanUrl = 'http://$cleanUrl';
-                    } else {
+                    }
+                  } else {
+                    if (!cleanUrl.startsWith('http')) {
                       cleanUrl = 'https://$cleanUrl';
                     }
                   }
+
                   if (cleanUrl.endsWith('/')) {
                     cleanUrl = cleanUrl.substring(0, cleanUrl.length - 1);
                   }
+
+                  if ((cleanUrl.contains('192.168.') || cleanUrl.contains('10.0.') || cleanUrl.contains('127.0.0.1')) && !cleanUrl.contains(':55000')) {
+                    cleanUrl = '$cleanUrl:55000';
+                  }
+
+                  final itemThumbUrl = '$cleanUrl/player/video/thumbnail/${rec.videoId}';
                   
                   return ListTile(
                     leading: AspectRatio(
@@ -464,9 +487,9 @@ class _MobileVideoPlayerWidgetState extends State<MobileVideoPlayerWidget> {
                       child: Container(
                         color: Colors.grey[800],
                         child: Image.network(
-                          '$cleanUrl/player/video/thumbnail/${rec.videoId}',
+                          itemThumbUrl,
                           fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => const Icon(Icons.play_circle_fill, color: Colors.orange),
+                          errorBuilder: (_, _, _) => const Icon(Icons.play_circle_fill, color: Colors.orange),
                         ),
                       ),
                     ),

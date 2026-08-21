@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:guptik/models/mediaplyer/player_video_model.dart';
 import 'package:guptik/services/mediaplayer/mobile_bridge_service.dart';
 import 'package:guptik/widgets/mediaplayer/mobile_video_player_widget.dart';
@@ -71,16 +72,21 @@ class _MobileHomeLoaderState extends State<MobileHomeLoader> {
         ),
         elevation: 0,
       ),
-      body: ListView.builder(
-        padding: const EdgeInsets.only(top: 8, bottom: 80),
-        itemCount: _videos.length,
-        itemBuilder: (context, index) {
-          return LoaderVideoCard(
-            video: _videos[index], 
-            gatewayUrl: widget.gatewayUrl,
-          );
-        },
-      ),
+      body: ListView.separated(
+     padding: const EdgeInsets.only(top: 8, bottom: 80),
+     itemCount: _videos.length,
+     separatorBuilder: (context, index) => const Divider(
+     color: Colors.white12,
+     thickness: 2,
+     height: 1,
+   ),
+   itemBuilder: (context, index) {
+     return LoaderVideoCard(
+       video: _videos[index], 
+       gatewayUrl: widget.gatewayUrl,
+     );
+   },
+),  
     );
   }
 }
@@ -138,20 +144,63 @@ class _LoaderVideoCardState extends State<LoaderVideoCard> {
     }
   }
 
-  @override
+    @override
   Widget build(BuildContext context) {
-    // 🚀 Robust URL normalization for thumbnail loading
-    String cleanUrl = widget.video.creatorUrl;
-    if (!cleanUrl.startsWith('http')) {
-      cleanUrl = cleanUrl.contains('localhost') || cleanUrl.contains('127.0.0.1')
-          ? 'http://$cleanUrl'
-          : 'https://$cleanUrl';
-    }
-    if (cleanUrl.endsWith('/')) {
-      cleanUrl = cleanUrl.substring(0, cleanUrl.length - 1);
-    }
-    final thumbnailUrl = '$cleanUrl/player/video/thumbnail/${widget.video.videoId}';
+    // 🚀 Robust URL normalization for local & cloud nodes
+    String cleanUrl = widget.video.creatorUrl.trim();
 
+    // 🚀 THE FIX: only assume "this is my own local gateway" when the video
+    // actually belongs to the currently logged-in user. Applying this fallback
+    // to OTHER creators' videos was silently redirecting their thumbnail
+    // requests to OUR OWN gateway (which doesn't have their file -> 404),
+    // even though their video streamed fine because the player widget builds
+    // its URL separately and doesn't have this bug.
+    final currentUserId = Supabase.instance.client.auth.currentUser?.id;
+    final isOwnVideo = currentUserId != null && widget.video.creatorUid == currentUserId;
+
+    // Auto-swap old IP to current active PC IP
+    if (cleanUrl.contains('192.168.1.15')) {
+      cleanUrl = cleanUrl.replaceAll('192.168.1.15', '192.168.1.186');
+    }
+
+    // 🚀 THE REAL FIX: 'myqrmart.com' is our OWN app's real cloud tunnel domain
+    // (e.g. "xyz.myqrmart.com" is a legitimate, working address for any creator),
+    // NOT a placeholder meaning "unset". Treating it as unset was wrongly
+    // redirecting other creators' real, working thumbnail URLs to our own PC.
+    // We now only substitute our own gateway when the URL is genuinely EMPTY,
+    // and only for our own videos. Everyone else's non-empty URL (including
+    // myqrmart.com ones) just gets normal scheme normalization, same as the
+    // bridge service already does successfully for /stats calls.
+    if (cleanUrl.isEmpty) {
+      if (isOwnVideo) {
+        cleanUrl = 'http://192.168.1.186:55000';
+      }
+      // else: leave empty; errorBuilder will show the placeholder icon
+    } else {
+      // Force http for local network addresses
+      if (cleanUrl.contains('192.168.') || cleanUrl.contains('10.0.') || cleanUrl.contains('127.0.0.1') || cleanUrl.contains('localhost')) {
+        cleanUrl = cleanUrl.replaceAll('https://', 'http://');
+        if (!cleanUrl.startsWith('http://')) {
+          cleanUrl = 'http://$cleanUrl';
+        }
+      } else {
+        if (!cleanUrl.startsWith('http')) {
+          cleanUrl = 'https://$cleanUrl';
+        }
+      }
+
+      if (cleanUrl.endsWith('/')) {
+        cleanUrl = cleanUrl.substring(0, cleanUrl.length - 1);
+      }
+
+      // Enforce port 55000 for local network IPs if missing
+      if ((cleanUrl.contains('192.168.') || cleanUrl.contains('10.0.') || cleanUrl.contains('127.0.0.1')) && !cleanUrl.contains(':55000')) {
+        cleanUrl = '$cleanUrl:55000';
+      }
+    }
+
+    final thumbnailUrl = '$cleanUrl/player/video/thumbnail/${widget.video.videoId}';
+    
     return GestureDetector(
       onTap: () async {
         await Navigator.push(
@@ -195,8 +244,8 @@ class _LoaderVideoCardState extends State<LoaderVideoCard> {
                       context,
                       MaterialPageRoute(
                         builder: (context) => MobileProfileScreen(
-                          channelId: widget.video.creatorUid,
-                          nodeUrl: widget.video.creatorUrl,
+                          channelId: widget.video.channelId,
+                          nodeUrl: '', // 🚀 force fresh tunnel_url lookup instead of trusting a possibly stale stored URL
                         ),
                       ),
                     );
@@ -228,8 +277,8 @@ class _LoaderVideoCardState extends State<LoaderVideoCard> {
                             context,
                             MaterialPageRoute(
                               builder: (context) => MobileProfileScreen(
-                                channelId: widget.video.creatorUid,
-                                nodeUrl: widget.video.creatorUrl,
+                                channelId: widget.video.channelId,
+                                nodeUrl: '', // 🚀 force fresh tunnel_url lookup instead of trusting a possibly stale stored URL
                               ),
                             ),
                           );

@@ -4,17 +4,37 @@ import 'package:http/http.dart' as http;
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-
 class MobileBridgeService {
   final String gatewayUrl; 
 
   MobileBridgeService({required this.gatewayUrl});
 
-  String get _cleanGateway {
-    String url = gatewayUrl.startsWith('http') ? gatewayUrl : 'https://$gatewayUrl';
+ String get _cleanGateway {
+    String url = gatewayUrl.trim();
+    
+    // Auto-swap old IP if present
+    if (url.contains('192.168.1.15')) {
+      url = url.replaceAll('192.168.1.15', '192.168.1.186');
+    }
+
+    // Force http:// for local network IPs and localhost
+    if (url.contains('192.168.') || url.contains('10.0.') || url.contains('127.0.0.1') || url.contains('localhost')) {
+      url = url.replaceAll('https://', '').replaceAll('http://', '');
+      url = 'http://$url';
+    } else {
+      if (!url.startsWith('http://') && !url.startsWith('https://')) {
+        url = 'https://$url';
+      }
+    }
+
+    // Enforce port 55000 for local network nodes if missing
+    if ((url.contains('192.168.') || url.contains('10.0.') || url.contains('127.0.0.1')) && !url.contains(':55000')) {
+      url = '$url:55000';
+    }
+
     return url.endsWith('/') ? url.substring(0, url.length - 1) : url;
   }
-
+  
   Future<List<PlayerVideo>> getRemoteFeed() async {
     try {
       final supabase = Supabase.instance.client;
@@ -290,7 +310,7 @@ class MobileBridgeService {
     }
   }
 
-  Future<Map<String, dynamic>?> fetchChannelProfile(String channelId) async {
+ Future<Map<String, dynamic>?> fetchChannelProfile(String channelId) async {
     try {
       final response = await http.get(Uri.parse('$_cleanGateway/channel/profile/$channelId'));
       if (response.statusCode == 200) {

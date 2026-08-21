@@ -35,8 +35,6 @@ class _MobileProfileScreenState extends State<MobileProfileScreen> {
 
     try {
       // 🚀 1. SELF-HEALING TUNNEL RESOLUTION:
-      // If the passed nodeUrl is empty or points to a generic domain, 
-      // look up this specific channel's active tunnel URL from Supabase (`mp_channels`).
       if (_resolvedNodeUrl.isEmpty || _resolvedNodeUrl.contains('myqrmart.com')) {
         try {
           final channelMeta = await Supabase.instance.client
@@ -46,9 +44,31 @@ class _MobileProfileScreenState extends State<MobileProfileScreen> {
               .maybeSingle();
 
           if (channelMeta != null && channelMeta['tunnel_url'] != null) {
-            String dbTunnel = channelMeta['tunnel_url'].toString();
-            if (!dbTunnel.startsWith('http')) {
-              dbTunnel = 'https://$dbTunnel';
+            String dbTunnel = channelMeta['tunnel_url'].toString().trim();
+            
+            // Auto-swap old IP if present
+            if (dbTunnel.contains('192.168.1.15')) {
+              dbTunnel = dbTunnel.replaceAll('192.168.1.15', '192.168.1.186');
+            }
+
+            if (dbTunnel.contains('192.168.') || dbTunnel.contains('10.0.') || dbTunnel.contains('127.0.0.1') || dbTunnel.contains('localhost')) {
+              dbTunnel = dbTunnel.replaceAll('https://', 'http://');
+              if (!dbTunnel.startsWith('http://')) {
+                dbTunnel = 'http://$dbTunnel';
+              }
+            } else {
+              if (!dbTunnel.startsWith('http')) {
+                dbTunnel = 'https://$dbTunnel';
+              }
+            }
+
+            if (dbTunnel.endsWith('/')) {
+              dbTunnel = dbTunnel.substring(0, dbTunnel.length - 1);
+            }
+
+            // Force port 55000 if it's missing on local IPs
+            if ((dbTunnel.contains('192.168.') || dbTunnel.contains('10.0.') || dbTunnel.contains('127.0.0.1')) && !dbTunnel.contains(':55000')) {
+              dbTunnel = '$dbTunnel:55000';
             }
             _resolvedNodeUrl = dbTunnel;
           }
@@ -59,7 +79,7 @@ class _MobileProfileScreenState extends State<MobileProfileScreen> {
 
       // Final fallback if local testing or unmapped node
       if (_resolvedNodeUrl.isEmpty) {
-        _resolvedNodeUrl = 'http://10.0.2.2:55000'; // Android Emulator localhost bridge fallback
+        _resolvedNodeUrl = 'http://192.168.1.186:55000';
       }
 
       _bridge = MobileBridgeService(gatewayUrl: _resolvedNodeUrl);
@@ -91,37 +111,6 @@ class _MobileProfileScreenState extends State<MobileProfileScreen> {
     if (views >= 1000000) return '${(views / 1000000).toStringAsFixed(1)}M';
     if (views >= 1000) return '${(views / 1000).toStringAsFixed(1)}K';
     return views.toString();
-  }
-
-  void _showVideoOptions(PlayerVideo video) {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: const Color(0xFF1E1E1E),
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
-      builder: (ctx) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(Icons.edit, color: Colors.white),
-              title: const Text('Edit Video', style: TextStyle(color: Colors.white)),
-              onTap: () {
-                Navigator.pop(ctx);
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Edit coming soon!')));
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.delete_forever, color: Colors.redAccent),
-              title: const Text('Delete Video', style: TextStyle(color: Colors.redAccent)),
-              onTap: () {
-                Navigator.pop(ctx);
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Delete triggered!')));
-              },
-            ),
-          ],
-        ),
-      ),
-    );
   }
 
   @override
@@ -252,13 +241,32 @@ class _MobileProfileScreenState extends State<MobileProfileScreen> {
                 delegate: SliverChildBuilderDelegate(
                   (context, index) {
                     final video = activeList[index];
-                    String baseNodeUrl = _resolvedNodeUrl;
-                    if (!baseNodeUrl.startsWith('http')) {
-                      baseNodeUrl = 'https://$baseNodeUrl';
+                    
+                    // 🚀 Robust thumbnail URL sanitization
+                    String baseNodeUrl = _resolvedNodeUrl.trim();
+                    if (baseNodeUrl.contains('192.168.1.15')) {
+                      baseNodeUrl = baseNodeUrl.replaceAll('192.168.1.15', '192.168.1.186');
                     }
+
+                    if (baseNodeUrl.contains('192.168.') || baseNodeUrl.contains('10.0.') || baseNodeUrl.contains('127.0.0.1') || baseNodeUrl.contains('localhost')) {
+                      baseNodeUrl = baseNodeUrl.replaceAll('https://', 'http://');
+                      if (!baseNodeUrl.startsWith('http://')) {
+                        baseNodeUrl = 'http://$baseNodeUrl';
+                      }
+                    } else {
+                      if (!baseNodeUrl.startsWith('http')) {
+                        baseNodeUrl = 'https://$baseNodeUrl';
+                      }
+                    }
+
                     if (baseNodeUrl.endsWith('/')) {
                       baseNodeUrl = baseNodeUrl.substring(0, baseNodeUrl.length - 1);
                     }
+
+                    if ((baseNodeUrl.contains('192.168.') || baseNodeUrl.contains('10.0.') || baseNodeUrl.contains('127.0.0.1')) && !baseNodeUrl.contains(':55000')) {
+                      baseNodeUrl = '$baseNodeUrl:55000';
+                    }
+
                     final itemThumbUrl = '$baseNodeUrl/player/video/thumbnail/${video.videoId}';
 
                     return GestureDetector(

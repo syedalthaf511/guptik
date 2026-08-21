@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:guptik/services/mediaplayer/mobile_upload_service.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class MobileUploadScreen extends StatefulWidget {
   final String gatewayUrl;
@@ -39,6 +40,32 @@ class _MobileUploadScreenState extends State<MobileUploadScreen> {
   void initState() {
     super.initState();
     _uploadService = MobileUploadService(gatewayUrl: widget.gatewayUrl);
+    _fetchDesktopChannelContext(); // 🚀 Auto-fetch desktop channel data on load
+  }
+
+
+  Future<void> _fetchDesktopChannelContext() async {
+    try {
+      final currentUser = Supabase.instance.client.auth.currentUser;
+      if (currentUser == null) return;
+
+      // Query the mp_channels table to find the channel registered by the desktop app
+      final channelData = await Supabase.instance.client
+          .from('mp_channels')
+          .select('channel_name')
+          .or('channel_id.eq.${currentUser.id},owner_uid.eq.${currentUser.id}')
+          .maybeSingle();
+
+      if (channelData != null && channelData['channel_name'] != null) {
+        if (mounted && _channelNameController.text.isEmpty) {
+          setState(() {
+            _channelNameController.text = channelData['channel_name'].toString();
+          });
+        }
+      }
+    } catch (e) {
+      debugPrint("⚠️ Could not pre-fill desktop channel context: $e");
+    }
   }
 
   Future<void> _pickVideo() async {
