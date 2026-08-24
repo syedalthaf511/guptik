@@ -2,7 +2,9 @@ class AppConfig {
   // Supabase Configuration
   static const String supabaseUrl = 'https://aqmcriergkczfkkdgkzc.supabase.co';
   static const String supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFxbWNyaWVyZ2tjemZra2Rna3pjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI1MzU1NTUsImV4cCI6MjA5ODExMTU1NX0.GTFeWOWlfPBpQabdhwNhR0TGFg3oLzf4AOGkBbs2lP0';
-  
+
+  // static const String supabaseUrl = 'https://general-base.myqrmart.com';
+  // static const String supabaseAnonKey = 'eyJhbGciOiAiSFMyNTYiLCAidHlwIjogIkpXVCJ9.eyJyb2xlIjogImFub24iLCAiaXNzIjogInN1cGFiYXNlIiwgImlhdCI6IDE3ODMyMDM3OTAsICJleHAiOiAyMDk4NTYzNzkwfQ.NMI3uwDrk6jC_mf334CKM7vIEr2GrA9EqIBiKzp6cfo';
 
 
   // WhatsApp Business API - PASTE YOUR KEYS HERE
