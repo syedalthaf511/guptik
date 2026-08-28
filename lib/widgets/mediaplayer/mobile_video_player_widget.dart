@@ -4,6 +4,7 @@ import 'package:guptik/services/mediaplayer/mobile_bridge_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:video_player/video_player.dart';
 import 'mobile_reaction_bar.dart';
+import 'mobile_sticker_overlay.dart';
 
 class MobileVideoPlayerWidget extends StatefulWidget {
   final PlayerVideo video;
@@ -350,7 +351,16 @@ class _MobileVideoPlayerWidgetState extends State<MobileVideoPlayerWidget> {
                         ? Center(
                             child: AspectRatio(
                               aspectRatio: _controller!.value.aspectRatio,
-                              child: VideoPlayer(_controller!),
+                              child:Stack(
+                                children: [
+                                  VideoPlayer(_controller!),
+                                  MobileStickerOverlay(
+                                    videoId: widget.video.videoId,
+                                    gatewayUrl: widget.video.creatorUrl,
+                                    controller: _controller!,
+                                  ),
+                                ],
+                              ),
                             ),
                           )
                         : const Center(child: CircularProgressIndicator(color: Colors.orange)),

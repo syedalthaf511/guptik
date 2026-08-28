@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:guptik/models/mediaplyer/player_video_model.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter/foundation.dart';
@@ -309,6 +310,54 @@ class MobileBridgeService {
       return [];
     }
   }
+
+  
+  // 🚀 ADDED: posts a new shoppable sticker to the gateway's
+  // POST /player/video/sticker endpoint. Metadata goes in headers, the
+  // (optional) product image goes as raw bytes in the body — same pattern
+  // mobile_upload_service.dart already uses for video uploads.
+  Future<bool> addSticker({
+    required String videoId,
+    required String productName,
+    String description = '',
+    double timestampInVideo = 0,
+    double durationOnScreen = 8,
+    double? mrp,
+    double? salePrice,
+    String currency = 'USD',
+    String? linkUrl,
+    Map<String, double>? clickableZone,
+    File? imageFile,
+  }) async {
+    try {
+      final request = http.Request('POST', Uri.parse('$_cleanGateway/player/video/sticker'));
+      request.headers['Content-Type'] = 'application/octet-stream';
+      request.headers['x-video-id'] = videoId;
+      request.headers['x-product-name'] = Uri.encodeComponent(productName);
+      request.headers['x-description'] = Uri.encodeComponent(description);
+      request.headers['x-timestamp'] = timestampInVideo.toString();
+      request.headers['x-duration'] = durationOnScreen.toString();
+      if (mrp != null) request.headers['x-mrp'] = mrp.toString();
+      if (salePrice != null) request.headers['x-price'] = salePrice.toString();
+      request.headers['x-currency'] = currency;
+      if (linkUrl != null && linkUrl.isNotEmpty) {
+        request.headers['x-link-url'] = Uri.encodeComponent(linkUrl);
+      }
+      if (clickableZone != null) {
+        request.headers['x-clickable-zone'] = Uri.encodeComponent(jsonEncode(clickableZone));
+      }
+
+      request.bodyBytes = imageFile != null ? await imageFile.readAsBytes() : <int>[];
+
+      final streamedResponse = await request.send();
+      return streamedResponse.statusCode == 200;
+    } catch (e) {
+      debugPrint('Add Sticker Error: $e');
+      return false;
+    }
+  }
+
+
 
  Future<Map<String, dynamic>?> fetchChannelProfile(String channelId) async {
     try {

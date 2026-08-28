@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:guptik/screens/mediaplayer/Mobile_monetization_screen.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'mobile_home_loader.dart';
@@ -158,7 +159,8 @@ class _MobileMainLayoutState extends State<MobileMainLayout> {
         key: ValueKey(effectiveChannelId), 
         channelId: effectiveChannelId, 
         nodeUrl: sanitizedNodeUrl,
-      ), 
+      ),
+      MobileMonetizationScreen(channelId: effectiveChannelId), 
     ];
 
     return Scaffold(
@@ -193,6 +195,7 @@ class _MobileMainLayoutState extends State<MobileMainLayout> {
               _buildNavItem(icon: Icons.home_filled, index: 0, label: "Home"),
               _buildCenterUploadButton(),
               _buildNavItem(icon: Icons.person_rounded, index: 2, label: "Profile"),
+              _buildNavItem(icon: Icons.monetization_on_outlined, index: 3, label: "Earnings"), // 🚀 ADDED
             ],
           ),
         ),
