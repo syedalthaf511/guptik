@@ -145,8 +145,8 @@ class ClickableZone {
   final double height;
 
   const ClickableZone({
-    this.x = 0.7,
-    this.y = 0.1,
+    this.x = 0.36,
+    this.y = 0.36,
     this.width = 0.28,
     this.height = 0.28,
   });

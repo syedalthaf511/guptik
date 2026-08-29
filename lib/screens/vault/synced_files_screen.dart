@@ -569,15 +569,40 @@ class _MobileSystemFolderScreenState extends State<MobileSystemFolderScreen> {
                       itemCount: _folderItems.length,
                       itemBuilder: (context, index) {
                         final item = _folderItems[index];
-                        final filename = item['title'] ?? 'Shared Media';
+                        final bool isSticker = item['is_sticker'] == true;
+                        // 🚀 FIX: for stickers, always prefer the REAL video's
+                        // title/channel (now returned by the gateway via a
+                        // JOIN) instead of the sticker's own product name and
+                        // the generic 'Local Vault' label — shown both in this
+                        // grid tile and when the video is opened, matching the
+                        // same correctness fix already applied on desktop.
+                        final displayTitle = isSticker
+                            ? (item['video_title']?.toString().isNotEmpty == true
+                                ? item['video_title'].toString()
+                                : (item['title'] ?? 'Shared Media'))
+                            : (item['title'] ?? 'Shared Media');
+                        final displayChannelName = isSticker
+                            ? (item['channel_name']?.toString().isNotEmpty == true
+                                ? item['channel_name'].toString()
+                                : 'Local Vault')
+                            : 'Local Vault';
+                        final displayChannelId = isSticker
+                            ? (item['channel_id']?.toString() ?? 'guest')
+                            : 'guest';
+                        final filename = displayTitle;
                         final videoId = item['video_id'] ?? '';
                         final sizeStr = _formatSize(item['size_bytes']);
-                        
+
                         String cleanBaseUrl = widget.desktopUrl ?? '';
                         if (cleanBaseUrl.endsWith('/')) {
                           cleanBaseUrl = cleanBaseUrl.substring(0, cleanBaseUrl.length - 1);
                         }
-                        final thumbUrl = '$cleanBaseUrl/player/video/thumbnail/$videoId';
+                        // 🚀 FIX: stickers use their own image_url (already a full
+                        // URL from the gateway), not the video thumbnail route —
+                        // a sticker's id isn't a real video, so that route would 404.
+                        final thumbUrl = isSticker
+                            ? (item['image_url']?.toString() ?? '')
+                            : '$cleanBaseUrl/player/video/thumbnail/$videoId';
 
                         return InkWell(
                           onTap: () {
@@ -589,17 +614,17 @@ class _MobileSystemFolderScreenState extends State<MobileSystemFolderScreen> {
                                   appBar: AppBar(
                                     backgroundColor: Colors.black,
                                     iconTheme: const IconThemeData(color: Colors.orange),
-                                    title: Text(filename, style: const TextStyle(color: Colors.white)),
+                                    title: Text(displayTitle, style: const TextStyle(color: Colors.white)),
                                   ),
                                   body: MobileVideoPlayerWidget(
                                     // 🚀 COMPILER FIX: Instantiating PlayerVideo with all required fields from Step 1
                                     video: PlayerVideo(
                                       videoId: videoId,
-                                      title: filename,
+                                      title: displayTitle,
                                       creatorUrl: widget.desktopUrl ?? '',
-                                      channelName: 'Local Vault',
+                                      channelName: displayChannelName, // 🚀 FIX: real channel name for stickers
                                       viewCount: 0,
-                                      creatorUid: 'guest',
+                                      creatorUid: displayChannelId, // 🚀 FIX: real channel id for stickers
                                       description: '',
                                       filePath: '',
                                       likeCount: 0,
@@ -634,21 +659,21 @@ class _MobileSystemFolderScreenState extends State<MobileSystemFolderScreen> {
                                       color: Colors.white.withValues(alpha: 0.02),
                                       borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
                                     ),
-                                    child: videoId.isNotEmpty
+                                    child: thumbUrl.isNotEmpty
                                         ? ClipRRect(
                                             borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
                                             child: Image.network(
                                               thumbUrl,
                                               fit: BoxFit.cover,
-                                              errorBuilder: (_, _, _) => Icon(
-                                                Icons.play_circle_outline,
+                                              errorBuilder: (_, __, ___) => Icon(
+                                                isSticker ? Icons.shopping_bag : Icons.play_circle_outline,
                                                 color: widget.folderColor.withValues(alpha: 0.7),
                                                 size: 40,
                                               ),
                                             ),
                                           )
                                         : Icon(
-                                            Icons.insert_drive_file,
+                                            isSticker ? Icons.shopping_bag : Icons.insert_drive_file,
                                             color: widget.folderColor.withValues(alpha: 0.7),
                                             size: 40,
                                           ),
@@ -666,8 +691,9 @@ class _MobileSystemFolderScreenState extends State<MobileSystemFolderScreen> {
                                         style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600),
                                       ),
                                       const SizedBox(height: 4),
+                                      // 🚀 FIX: show price for stickers instead of a meaningless "0 B" file size
                                       Text(
-                                        sizeStr,
+                                        isSticker ? '${item['price'] ?? '-'} ${item['currency'] ?? ''}' : sizeStr,
                                         style: TextStyle(color: Colors.grey[500], fontSize: 10),
                                       ),
                                     ],

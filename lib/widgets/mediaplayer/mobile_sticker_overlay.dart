@@ -196,39 +196,54 @@ class _MobileStickerOverlayState extends State<MobileStickerOverlay> {
     if (_activeSticker == null) return const SizedBox.shrink();
     final zone = _activeSticker!.clickableZone ?? const ClickableZone();
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        return Positioned(
-          left: zone.x * constraints.maxWidth,
-          top: zone.y * constraints.maxHeight,
-          width: zone.width * constraints.maxWidth,
-          height: zone.height * constraints.maxHeight,
-          child: GestureDetector(
-            onTap: () => _showProductSheet(_activeSticker!),
-            child: Container(
-              decoration: BoxDecoration(
-                color: Colors.black.withOpacity(0.6),
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: Colors.orange, width: 1.5),
-              ),
-              padding: const EdgeInsets.all(6),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.shopping_bag, color: Colors.orange, size: 16),
-                  const SizedBox(height: 2),
-                  Text(
-                    _activeSticker!.formattedSalePrice,
-                    style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+    // 🚀 FIX: previously this widget returned a bare LayoutBuilder → Positioned
+    // directly as a Stack child. As a non-Positioned Stack child, its actual
+    // rendered box wasn't guaranteed to match the video's real box (Stack's
+    // default StackFit.loose sizing for plain children is ambiguous), which
+    // caused the badge to stretch/spill above and below the visible video
+    // instead of sitting neatly inside it. Positioned.fill unambiguously
+    // fills the EXACT box of the parent Stack (the video's AspectRatio box),
+    // and the nested Stack + LayoutBuilder inside it then measures that exact
+    // box correctly before placing the badge as a fraction of it.
+    return Positioned.fill(
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          return Stack(
+            children: [
+              Positioned(
+                left: zone.x * constraints.maxWidth,
+                top: zone.y * constraints.maxHeight,
+                width: zone.width * constraints.maxWidth,
+                height: zone.height * constraints.maxHeight,
+                child: GestureDetector(
+                  onTap: () => _showProductSheet(_activeSticker!),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: Colors.black.withOpacity(0.6),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: Colors.orange, width: 1.5),
+                    ),
+                    padding: const EdgeInsets.all(6),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.shopping_bag, color: Colors.orange, size: 16),
+                        const SizedBox(height: 2),
+                        Text(
+                          _activeSticker!.formattedSalePrice,
+                          style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
                   ),
-                ],
+                ),
               ),
-            ),
-          ),
-        );
-      },
+            ],
+          );
+        },
+      ),
     );
   }
 }
