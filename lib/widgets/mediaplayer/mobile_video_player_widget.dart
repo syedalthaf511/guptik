@@ -4,7 +4,7 @@ import 'package:guptik/services/mediaplayer/mobile_bridge_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:video_player/video_player.dart';
 import 'mobile_reaction_bar.dart';
-import 'mobile_sticker_overlay.dart';
+import 'mobile_sticker_overlay.dart'; // 🚀 ADDED: shoppable stickers overlay
 
 class MobileVideoPlayerWidget extends StatefulWidget {
   final PlayerVideo video;
@@ -285,7 +285,16 @@ class _MobileVideoPlayerWidgetState extends State<MobileVideoPlayerWidget> {
                                 if (text.isEmpty) return;
                                 
                                 final currentUser = Supabase.instance.client.auth.currentUser;
-                                final username = currentUser?.userMetadata?['channel_name'] ?? 'Mobile Viewer';
+                                // 🚀 FIX: was only checking userMetadata['channel_name'] and
+                                // falling straight to the generic 'Mobile Viewer' placeholder,
+                                // so the SAME logged-in user showed under two different names
+                                // depending on which device they commented from. Now matches
+                                // desktop's exact fallback chain (desktop_media_player_screen.dart),
+                                // so the real username shows consistently on both platforms.
+                                final username = currentUser?.userMetadata?['channel_name'] ??
+                                    currentUser?.userMetadata?['username'] ??
+                                    currentUser?.email?.split('@')[0] ??
+                                    'Creator';
 
                                 bool success = await _bridge.postComment(
                                   widget.video.videoId, 
@@ -351,7 +360,8 @@ class _MobileVideoPlayerWidgetState extends State<MobileVideoPlayerWidget> {
                         ? Center(
                             child: AspectRatio(
                               aspectRatio: _controller!.value.aspectRatio,
-                              child:Stack(
+                              // 🚀 ADDED: Stack lets the sticker overlay render on top of the video
+                              child: Stack(
                                 children: [
                                   VideoPlayer(_controller!),
                                   MobileStickerOverlay(
