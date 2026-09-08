@@ -1,0 +1,29 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    
+    
+    {
+      "name": "Launch Mobile",
+      "request": "launch",
+      "type": "dart",
+      "cwd": "${workspaceFolder:guptik}",
+      "program": "lib/main.dart",
+      "deviceId": "chrome"
+    },
+    {
+      "name": "Launch Desktop",
+      "request": "launch",
+      "type": "dart",
+      "cwd": "${workspaceFolder:guptik_desktop}",
+      "program": "lib/main.dart",
+      "deviceId": "windows"
+    }
+  ],
+  "compounds": [
+    {
+      "name": "Run Both Apps",
+      "configurations": ["Launch Mobile", "Launch Desktop"]
+    }
+  ]
+}

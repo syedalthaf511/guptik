@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:guptik/models/mediaplyer/player_video_model.dart';
+import 'package:guptik/models/mediaplyer/player_comment_model.dart'; // 🚀 ADDED
 import 'package:guptik/services/mediaplayer/mobile_bridge_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:video_player/video_player.dart';
 import 'mobile_reaction_bar.dart';
 import 'mobile_sticker_overlay.dart'; // 🚀 ADDED: shoppable stickers overlay
+import 'mobile_comment_widget.dart'; // 🚀 ADDED: full comment UI with reactions/replies/edit/delete
 
 class MobileVideoPlayerWidget extends StatefulWidget {
   final PlayerVideo video;
@@ -219,8 +221,14 @@ class _MobileVideoPlayerWidgetState extends State<MobileVideoPlayerWidget> {
                       ),
                     ),
                     Expanded(
-                      child: FutureBuilder<List<dynamic>>(
-                        future: _bridge.fetchComments(widget.video.videoId),
+                      child: FutureBuilder<List<PlayerComment>>(
+                        // 🚀 FIX: now fetches parsed PlayerComment objects (with
+                        // reactions/edit/delete state) and passes the viewer's
+                        // uid so the gateway includes their own reaction.
+                        future: _bridge.fetchComments(
+                          widget.video.videoId,
+                          viewerUid: Supabase.instance.client.auth.currentUser?.id,
+                        ),
                         builder: (context, snapshot) {
                           if (snapshot.connectionState == ConnectionState.waiting) {
                             return const Center(child: CircularProgressIndicator(color: Colors.orange));
@@ -230,23 +238,19 @@ class _MobileVideoPlayerWidgetState extends State<MobileVideoPlayerWidget> {
                           }
 
                           final comments = snapshot.data!;
+                          // 🚀 FIX: full comment tile with reactions, threaded
+                          // replies, edit/delete, and report — mirrors desktop's
+                          // PlayerCommentWidget instead of a bare ListTile.
                           return ListView.builder(
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
                             itemCount: comments.length,
                             itemBuilder: (context, index) {
-                              final comment = comments[index];
-                              return ListTile(
-                                leading: const CircleAvatar(
-                                  backgroundColor: Colors.orange, 
-                                  child: Icon(Icons.person, color: Colors.black, size: 20)
-                                ),
-                                title: Text(
-                                  comment['creator_name'] ?? 'Viewer', 
-                                  style: const TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.bold)
-                                ),
-                                subtitle: Text(
-                                  comment['comment_text'] ?? '', 
-                                  style: const TextStyle(color: Colors.white, fontSize: 14)
-                                ),
+                              return MobileCommentWidget(
+                                comment: comments[index],
+                                bridge: _bridge,
+                                videoId: widget.video.videoId,
+                                videoCreatorUid: widget.video.creatorUid,
+                                onCommentChanged: () => setModalState(() {}),
                               );
                             },
                           );

@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:guptik/models/mediaplyer/player_video_model.dart';
+import 'package:guptik/models/mediaplyer/player_comment_model.dart'; // 🚀 ADDED
 import 'package:http/http.dart' as http;
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -191,16 +192,130 @@ class MobileBridgeService {
     }
   }
 
-  Future<List<dynamic>> fetchComments(String videoId) async {
+  // 🚀 FIX: now returns parsed PlayerComment objects (with reaction counts,
+  // edit/delete state, and nested replies) instead of raw dynamic JSON, and
+  // sends the viewer's uid so the gateway can include their own reaction.
+  Future<List<PlayerComment>> fetchComments(String videoId, {String? viewerUid}) async {
     try {
-      final response = await http.get(Uri.parse('$_cleanGateway/player/video/comments/$videoId'));
+      final response = await http.get(
+        Uri.parse('$_cleanGateway/player/video/comments/$videoId'),
+        headers: {
+          'Content-Type': 'application/json',
+          if (viewerUid != null) 'X-Viewer-Uid': viewerUid,
+        },
+      );
       if (response.statusCode == 200) {
-        return jsonDecode(response.body);
+        final body = jsonDecode(response.body);
+        if (body is List) {
+          return body
+              .map((c) => PlayerComment.fromJson(Map<String, dynamic>.from(c as Map)))
+              .toList();
+        }
       }
       return [];
     } catch (e) {
       debugPrint('Fetch Comments Error: $e');
       return [];
+    }
+  }
+
+  // 🚀 ADDED: fetches replies for a specific parent comment.
+  Future<List<PlayerComment>> fetchReplies(String videoId, String parentCommentId, {String? viewerUid}) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$_cleanGateway/player/video/comments/$videoId/replies/$parentCommentId'),
+        headers: {
+          'Content-Type': 'application/json',
+          if (viewerUid != null) 'X-Viewer-Uid': viewerUid,
+        },
+      );
+      if (response.statusCode == 200) {
+        final body = jsonDecode(response.body);
+        if (body is List) {
+          return body
+              .map((c) => PlayerComment.fromJson(Map<String, dynamic>.from(c as Map)))
+              .toList();
+        }
+      }
+      return [];
+    } catch (e) {
+      debugPrint('Fetch Replies Error: $e');
+      return [];
+    }
+  }
+
+  // 🚀 ADDED: edits an existing comment (only succeeds if editorUid owns it).
+  Future<bool> editComment(String commentId, String newText, String editorUid) async {
+    try {
+      final response = await http.put(
+        Uri.parse('$_cleanGateway/player/video/comment/$commentId'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'comment_text': newText, 'editor_uid': editorUid}),
+      );
+      return response.statusCode == 200;
+    } catch (e) {
+      debugPrint('Edit Comment Error: $e');
+      return false;
+    }
+  }
+
+  // 🚀 ADDED: soft-deletes a comment (only succeeds if deleterUid owns it).
+  Future<bool> deleteComment(String commentId, String deleterUid) async {
+    try {
+      final response = await http.delete(
+        Uri.parse('$_cleanGateway/player/video/comment/$commentId'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'deleter_uid': deleterUid}),
+      );
+      return response.statusCode == 200;
+    } catch (e) {
+      debugPrint('Delete Comment Error: $e');
+      return false;
+    }
+  }
+
+  // 🚀 ADDED: toggles a reaction on a comment. Returns the new active
+  // reaction type, or null if the reaction was removed (toggled off).
+  Future<String?> toggleCommentReaction({
+    required String commentId,
+    required String reactorUid,
+    required String reactionType,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$_cleanGateway/player/video/comment/$commentId/react'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'reactor_uid': reactorUid, 'reaction_type': reactionType}),
+      );
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        if (data['active'] == true) {
+          return data['reaction_type']?.toString();
+        }
+      }
+      return null;
+    } catch (e) {
+      debugPrint('Comment Reaction Error: $e');
+      return null;
+    }
+  }
+
+  // 🚀 ADDED: reports a comment for moderation review.
+  Future<bool> reportComment({
+    required String commentId,
+    required String reporterUid,
+    required String reason,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$_cleanGateway/player/video/comment/$commentId/report'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'reporter_uid': reporterUid, 'reason': reason}),
+      );
+      return response.statusCode == 200;
+    } catch (e) {
+      debugPrint('Report Comment Error: $e');
+      return false;
     }
   }
 
@@ -311,7 +426,6 @@ class MobileBridgeService {
     }
   }
 
-  
   // 🚀 ADDED: posts a new shoppable sticker to the gateway's
   // POST /player/video/sticker endpoint. Metadata goes in headers, the
   // (optional) product image goes as raw bytes in the body — same pattern
@@ -356,8 +470,6 @@ class MobileBridgeService {
       return false;
     }
   }
-
-
 
  Future<Map<String, dynamic>?> fetchChannelProfile(String channelId) async {
     try {
