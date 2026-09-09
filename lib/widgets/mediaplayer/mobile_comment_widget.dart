@@ -381,9 +381,15 @@ class _MobileCommentWidgetState extends State<MobileCommentWidget> {
                   children: [
                     Row(
                       children: [
-                        Text(
-                          _comment.isIncognito ? 'Anonymous' : (_comment.creatorName.isEmpty ? 'Creator' : _comment.creatorName),
-                          style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
+                        // 🚀 FIX: Flexible + ellipsis so a longer username
+                        // shrinks instead of forcing extra width — part of
+                        // the fix for the "RIGHT OVERFLOWED" bug on replies.
+                        Flexible(
+                          child: Text(
+                            _comment.isIncognito ? 'Anonymous' : (_comment.creatorName.isEmpty ? 'Creator' : _comment.creatorName),
+                            style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
+                            overflow: TextOverflow.ellipsis,
+                          ),
                         ),
                         const SizedBox(width: 8),
                         Text(_getTimeAgo(_comment.createdAt), style: TextStyle(color: Colors.grey[500], fontSize: 11)),
@@ -392,12 +398,23 @@ class _MobileCommentWidgetState extends State<MobileCommentWidget> {
                           Text('(edited)', style: TextStyle(color: Colors.grey[500], fontSize: 11)),
                         ],
                         const Spacer(),
-                        PopupMenuButton<String>(
-                          icon: Icon(Icons.more_vert, color: Colors.grey[400], size: 16),
-                          color: const Color(0xFF1E1E1E),
-                          onSelected: (value) {
-                            switch (value) {
-                              case 'edit':
+                        // 🚀 FIX: PopupMenuButton reserves a 48x48 minimum tap
+                        // target regardless of icon size — that fixed minimum
+                        // doesn't shrink under a reply's extra indentation,
+                        // which is exactly what caused the "RIGHT OVERFLOWED
+                        // BY 8.6 PIXELS" banner on nested replies. Wrapping it
+                        // in a tightly-sized SizedBox with zero padding forces
+                        // it down to a compact, indentation-safe size.
+                        SizedBox(
+                          width: 28,
+                          height: 28,
+                          child: PopupMenuButton<String>(
+                            padding: EdgeInsets.zero,
+                            icon: Icon(Icons.more_vert, color: Colors.grey[400], size: 16),
+                            color: const Color(0xFF1E1E1E),
+                            onSelected: (value) {
+                              switch (value) {
+                                case 'edit':
                                 setState(() {
                                   _isEditing = true;
                                   _editController.text = _comment.commentText;
@@ -451,6 +468,7 @@ class _MobileCommentWidgetState extends State<MobileCommentWidget> {
                                 ]),
                               ),
                           ],
+                          ),
                         ),
                       ],
                     ),

@@ -26,6 +26,14 @@ class _MobileVideoPlayerWidgetState extends State<MobileVideoPlayerWidget> {
   bool _hasError = false;
   bool _ageConfirmed = false;
   bool _isBlockedByAge = false;
+  // 🚀 FIX: lives on the State object itself, not inside any builder closure.
+  // showModalBottomSheet's outer `builder:` callback can be re-invoked by
+  // Flutter internally (e.g. when the keyboard opens/closes and the sheet
+  // resizes) — so a variable declared inside that closure gets recreated
+  // right along with it, which is exactly what caused the comment list to
+  // keep resetting to loading. A real State field survives any number of
+  // closure re-invocations, and only changes when we explicitly reassign it.
+  Future<List<PlayerComment>>? _commentsFuture;
   String? _watcherInterest;
   List<PlayerVideo> _recommendedVideos = [];
 
@@ -188,6 +196,14 @@ class _MobileVideoPlayerWidgetState extends State<MobileVideoPlayerWidget> {
   void _showCommentsBottomSheet() {
     final TextEditingController commentController = TextEditingController();
 
+    // 🚀 FIX: initialize the State-level future HERE, once, before the sheet
+    // even opens — not inside any builder callback that Flutter might
+    // re-invoke on its own (e.g. on keyboard-triggered resize).
+    _commentsFuture = _bridge.fetchComments(
+      widget.video.videoId,
+      viewerUid: Supabase.instance.client.auth.currentUser?.id,
+    );
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -196,6 +212,10 @@ class _MobileVideoPlayerWidgetState extends State<MobileVideoPlayerWidget> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (context) {
+        // 🚀 NOTE: this outer builder CAN be re-invoked by Flutter (e.g. on
+        // keyboard open/close), but that's now harmless — it no longer
+        // declares or creates the future itself, it just reads the stable
+        // State field below.
         return StatefulBuilder(
           builder: (BuildContext context, StateSetter setModalState) {
             return Padding(
@@ -222,13 +242,9 @@ class _MobileVideoPlayerWidgetState extends State<MobileVideoPlayerWidget> {
                     ),
                     Expanded(
                       child: FutureBuilder<List<PlayerComment>>(
-                        // 🚀 FIX: now fetches parsed PlayerComment objects (with
-                        // reactions/edit/delete state) and passes the viewer's
-                        // uid so the gateway includes their own reaction.
-                        future: _bridge.fetchComments(
-                          widget.video.videoId,
-                          viewerUid: Supabase.instance.client.auth.currentUser?.id,
-                        ),
+                        // 🚀 FIX: stable reference — no longer recreated on
+                        // every setModalState() call (see note above).
+                        future: _commentsFuture,
                         builder: (context, snapshot) {
                           if (snapshot.connectionState == ConnectionState.waiting) {
                             return const Center(child: CircularProgressIndicator(color: Colors.orange));
@@ -250,6 +266,10 @@ class _MobileVideoPlayerWidgetState extends State<MobileVideoPlayerWidget> {
                                 bridge: _bridge,
                                 videoId: widget.video.videoId,
                                 videoCreatorUid: widget.video.creatorUid,
+                                // 🚀 FIX: just rebuilds with the SAME future —
+                                // MobileCommentWidget already updated its own
+                                // local state (reply/reaction/edit/delete), so
+                                // no full-list refetch is needed here.
                                 onCommentChanged: () => setModalState(() {}),
                               );
                             },
@@ -309,7 +329,16 @@ class _MobileVideoPlayerWidgetState extends State<MobileVideoPlayerWidget> {
 
                                 if (success) {
                                   commentController.clear();
-                                  setModalState(() {});
+                                  // 🚀 FIX: a NEW top-level comment genuinely
+                                  // needs a fresh full-list fetch (it's not
+                                  // reflected anywhere locally yet), so this is
+                                  // the one case where we DO reassign the future.
+                                  setModalState(() {
+                                    _commentsFuture = _bridge.fetchComments(
+                                      widget.video.videoId,
+                                      viewerUid: Supabase.instance.client.auth.currentUser?.id,
+                                    );
+                                  });
                                   setState(() => _liveComments += 1);
                                 }
                               },
