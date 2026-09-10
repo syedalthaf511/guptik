@@ -193,6 +193,17 @@ class _MobileVideoPlayerWidgetState extends State<MobileVideoPlayerWidget> {
     });
   }
 
+  // 🚀 ADDED: recursively counts a comment plus all of its nested replies at
+  // any depth, so the header count always matches what's actually rendered
+  // (see Bug A fix in the header above).
+  int _countAllComments(List<PlayerComment> comments) {
+    int total = 0;
+    for (final c in comments) {
+      total += 1 + _countAllComments(c.replies);
+    }
+    return total;
+  }
+
   void _showCommentsBottomSheet() {
     final TextEditingController commentController = TextEditingController();
 
@@ -232,7 +243,26 @@ class _MobileVideoPlayerWidgetState extends State<MobileVideoPlayerWidget> {
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Text("Comments ($_liveComments)", style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+                          // 🚀 FIX (Bug A): was showing _liveComments, which
+                          // initializes from widget.video.commentCount — a
+                          // separately-maintained, easily-stale counter field
+                          // (from a legacy Supabase column never wired to
+                          // reflect real comment activity), so it could show
+                          // e.g. "10" while the actual list was empty. Now
+                          // computed directly from the SAME data being
+                          // displayed below, by reusing the same
+                          // _commentsFuture, so the header can never disagree
+                          // with what's actually shown.
+                          FutureBuilder<List<PlayerComment>>(
+                            future: _commentsFuture,
+                            builder: (context, snapshot) {
+                              final liveCount = snapshot.hasData ? _countAllComments(snapshot.data!) : _liveComments;
+                              return Text(
+                                "Comments ($liveCount)",
+                                style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                              );
+                            },
+                          ),
                           IconButton(
                             icon: const Icon(Icons.close, color: Colors.white),
                             onPressed: () => Navigator.pop(context),
