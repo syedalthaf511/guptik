@@ -6,6 +6,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'mobile_home_loader.dart';
 import 'mobile_upload_screen.dart';
 import 'mobile_profile_screen.dart';
+import 'mobile_reels_screen.dart';
 
 class MobileMainLayout extends StatefulWidget {
   final String gatewayUrl;
@@ -151,9 +152,15 @@ class _MobileMainLayoutState extends State<MobileMainLayout> {
     final effectiveChannelId = _userChannelId ?? '93f468b5-6653-4103-8f5e-71b7b323b46e';
     final sanitizedNodeUrl = _getSanitizedGatewayUrl();
 
-    // 🚀 Updated screens layout: Home (0), Upload (1), Profile (2), Settings (3) positioned at the very bottom/end
+    // 🚀 Updated screens layout: Home (0), Shots (1), Upload (2), Profile (3), Earnings (4)
     final List<Widget> screens = [
       MobileHomeLoader(gatewayUrl: sanitizedNodeUrl),
+      // 🚀 FIX: MobileReelsScreen lives inside an IndexedStack, so it stays
+      // mounted (and its video was auto-playing) even while another tab is
+      // showing. `isVisible` is only true while the Shots tab (index 1) is
+      // actually selected, so playback only starts when the user taps the
+      // Shots icon and stops the instant they switch away.
+      MobileReelsScreen(gatewayUrl: sanitizedNodeUrl, isVisible: _currentIndex == 1),
       MobileUploadScreen(gatewayUrl: sanitizedNodeUrl),
       MobileProfileScreen(
         key: ValueKey(effectiveChannelId), 
@@ -193,9 +200,10 @@ class _MobileMainLayoutState extends State<MobileMainLayout> {
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               _buildNavItem(icon: Icons.home_filled, index: 0, label: "Home"),
+              _buildNavItem(icon: Icons.slow_motion_video_rounded, index: 1, label: "Shots"), // 🚀 ADDED: Shots tab (reels-only vertical feed)
               _buildCenterUploadButton(),
-              _buildNavItem(icon: Icons.person_rounded, index: 2, label: "Profile"),
-              _buildNavItem(icon: Icons.monetization_on_outlined, index: 3, label: "Earnings"), // 🚀 ADDED
+              _buildNavItem(icon: Icons.person_rounded, index: 3, label: "Profile"),
+              _buildNavItem(icon: Icons.monetization_on_outlined, index: 4, label: "Earnings"), // 🚀 ADDED
             ],
           ),
         ),
@@ -233,7 +241,7 @@ class _MobileMainLayoutState extends State<MobileMainLayout> {
 
   Widget _buildCenterUploadButton() {
     return GestureDetector(
-      onTap: () => _onTabTapped(1),
+      onTap: () => _onTabTapped(2),
       child: Container(
         height: 50,
         width: 50,
@@ -245,7 +253,7 @@ class _MobileMainLayoutState extends State<MobileMainLayout> {
           ),
           borderRadius: BorderRadius.circular(15),
           boxShadow: [
-            if (_currentIndex == 1)
+            if (_currentIndex == 2)
               BoxShadow(
                 color: Colors.orange.withOpacity(0.4),
                 blurRadius: 12,

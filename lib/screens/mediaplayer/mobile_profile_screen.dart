@@ -236,7 +236,12 @@ class _MobileProfileScreenState extends State<MobileProfileScreen> {
                   crossAxisCount: _selectedTabIndex == 0 ? 2 : 3,
                   crossAxisSpacing: 12,
                   mainAxisSpacing: 20,
-                  childAspectRatio: _selectedTabIndex == 0 ? 0.75 : 0.55, 
+                  // 🚀 FIX: the Shorts (9:16) thumbnail alone already consumes most of
+                  // the 0.55 ratio's height budget, leaving almost no room for the
+                  // 2-line title + views text below it — causing a ~39px bottom
+                  // RenderFlex overflow on every Shorts grid cell. Lowering the ratio
+                  // (taller cells) gives the title/views text enough vertical space.
+                  childAspectRatio: _selectedTabIndex == 0 ? 0.75 : 0.42,
                 ),
                 delegate: SliverChildBuilderDelegate(
                   (context, index) {

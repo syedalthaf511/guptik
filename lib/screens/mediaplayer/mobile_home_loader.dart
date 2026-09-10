@@ -4,6 +4,7 @@ import 'package:guptik/models/mediaplyer/player_video_model.dart';
 import 'package:guptik/services/mediaplayer/mobile_bridge_service.dart';
 import 'package:guptik/widgets/mediaplayer/mobile_video_player_widget.dart';
 import 'package:guptik/screens/mediaplayer/mobile_profile_screen.dart'; // 🚀 Added import for profile routing
+import 'package:guptik/screens/mediaplayer/mobile_reels_screen.dart'; // 🚀 ADDED: YouTube-style Shorts carousel opens the full reels feed
 
 class MobileHomeLoader extends StatefulWidget {
   final String gatewayUrl;
@@ -16,23 +17,53 @@ class MobileHomeLoader extends StatefulWidget {
 
 class _MobileHomeLoaderState extends State<MobileHomeLoader> {
   late MobileBridgeService _bridge;
+
+  // 🚀 ADDED: the unfiltered master lists fetched from the feed, kept intact
+  // so search can be cleared and instantly restore the full feed without a
+  // re-fetch.
+  List<PlayerVideo> _allVideos = [];
+  List<PlayerVideo> _allReels = [];
+
+  // The lists actually rendered — either the full feed, or a search-filtered
+  // subset of it.
   List<PlayerVideo> _videos = [];
+  // 🚀 ADDED: reels are pulled out of the main feed and shown separately in a
+  // horizontal "Shots" carousel, YouTube-style, instead of mixed in as
+  // regular full-width cards.
+  List<PlayerVideo> _reels = [];
   bool _isLoading = true;
   String _errorMessage = '';
+
+  // 🚀 ADDED: search controller — toggles an inline AppBar search field that
+  // filters the home feed (both regular videos and Shots) by title, channel
+  // name, or category as the user types.
+  final TextEditingController _searchController = TextEditingController();
+  bool _isSearching = false;
 
   @override
   void initState() {
     super.initState();
     _bridge = MobileBridgeService(gatewayUrl: widget.gatewayUrl);
     _fetchVideos();
+    _searchController.addListener(_onSearchChanged);
+  }
+
+  @override
+  void dispose() {
+    _searchController.removeListener(_onSearchChanged);
+    _searchController.dispose();
+    super.dispose();
   }
 
   Future<void> _fetchVideos() async {
     try {
-      final videos = await _bridge.getRemoteFeed();
+      final feed = await _bridge.getRemoteFeed();
       if (mounted) {
         setState(() {
-          _videos = videos;
+          _allVideos = feed.where((v) => !v.isReel).toList();
+          _allReels = feed.where((v) => v.isReel).toList();
+          _videos = _allVideos;
+          _reels = _allReels;
           _isLoading = false;
         });
       }
@@ -44,6 +75,32 @@ class _MobileHomeLoaderState extends State<MobileHomeLoader> {
         });
       }
     }
+  }
+
+  void _onSearchChanged() {
+    final query = _searchController.text.trim().toLowerCase();
+    setState(() {
+      if (query.isEmpty) {
+        _videos = _allVideos;
+        _reels = _allReels;
+      } else {
+        bool matches(PlayerVideo v) =>
+            v.title.toLowerCase().contains(query) ||
+            v.channelName.toLowerCase().contains(query) ||
+            v.category.toLowerCase().contains(query);
+        _videos = _allVideos.where(matches).toList();
+        _reels = _allReels.where(matches).toList();
+      }
+    });
+  }
+
+  void _toggleSearch() {
+    setState(() {
+      _isSearching = !_isSearching;
+      if (!_isSearching) {
+        _searchController.clear();
+      }
+    });
   }
 
   @override
@@ -66,26 +123,215 @@ class _MobileHomeLoaderState extends State<MobileHomeLoader> {
       backgroundColor: Colors.black,
       appBar: AppBar(
         backgroundColor: Colors.black,
-        title: const Text(
-          'Guptik Network', 
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 22)
-        ),
         elevation: 0,
+        // 🚀 ADDED: search controller — tapping the search icon swaps the
+        // title for an inline TextField that live-filters the feed by
+        // title / channel name / category.
+        title: _isSearching
+            ? TextField(
+                controller: _searchController,
+                autofocus: true,
+                style: const TextStyle(color: Colors.white, fontSize: 16),
+                cursorColor: Colors.orange,
+                decoration: const InputDecoration(
+                  hintText: 'Search videos, channels...',
+                  hintStyle: TextStyle(color: Colors.white54),
+                  border: InputBorder.none,
+                ),
+              )
+            : const Text(
+                'Guptik MediaPlayer',
+                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 22),
+              ),
+        actions: [
+          IconButton(
+            icon: Icon(_isSearching ? Icons.close : Icons.search, color: Colors.white),
+            onPressed: _toggleSearch,
+          ),
+        ],
       ),
-      body: ListView.separated(
-        padding: const EdgeInsets.only(top: 8, bottom: 80),
-        itemCount: _videos.length,
-        separatorBuilder: (context, index) => const Divider(
-          color: Colors.white12,
-          thickness: 1,
-          height: 1,
+      body: _buildFeedList(),
+    );
+  }
+
+  // 🚀 YouTube-style mixed feed: the first 2 regular videos show as normal
+  // full-width cards, then (if any reels exist) a horizontal "Shots"
+  // carousel is inserted, and the rest of the regular videos continue
+  // below it as normal cards — exactly like the YouTube home feed layout.
+  Widget _buildFeedList() {
+    // 🚀 ADDED: friendly empty-state when a search query matches nothing.
+    if (_videos.isEmpty && _reels.isEmpty) {
+      return Center(
+        child: Text(
+          _isSearching || _searchController.text.isNotEmpty
+              ? 'No results for "${_searchController.text}"'
+              : 'No videos available yet.',
+          style: const TextStyle(color: Colors.white54),
         ),
-        itemBuilder: (context, index) {
-          return LoaderVideoCard(
-            video: _videos[index], 
-            gatewayUrl: widget.gatewayUrl,
-          );
-        },
+      );
+    }
+
+    const int carouselInsertAfter = 2;
+    final bool hasCarousel = _reels.isNotEmpty;
+    // Total rows = video cards + (1 carousel row, if any reels)
+    final int itemCount = _videos.length + (hasCarousel ? 1 : 0);
+
+    return ListView.separated(
+      padding: const EdgeInsets.only(top: 8, bottom: 80),
+      itemCount: itemCount,
+      separatorBuilder: (context, index) => const Divider(
+        color: Colors.white12,
+        thickness: 1,
+        height: 1,
+      ),
+      itemBuilder: (context, index) {
+        // Insert the Shots carousel right after the first `carouselInsertAfter`
+        // regular videos (or at the end if fewer videos exist than that).
+        final int carouselPosition = hasCarousel
+            ? (carouselInsertAfter <= _videos.length ? carouselInsertAfter : _videos.length)
+            : -1;
+
+        if (hasCarousel && index == carouselPosition) {
+          return _buildShotsCarousel();
+        }
+
+        // Shift the video index down by one once we're past the carousel row.
+        final videoIndex = (hasCarousel && index > carouselPosition) ? index - 1 : index;
+        return LoaderVideoCard(
+          video: _videos[videoIndex],
+          gatewayUrl: widget.gatewayUrl,
+        );
+      },
+    );
+  }
+
+  // 🚀 YouTube-Shorts-style horizontal carousel row. Tapping any thumbnail
+  // opens the full-screen vertical MobileReelsScreen, pre-loaded with the
+  // whole _reels list starting at the tapped item — mirroring how YouTube's
+  // home feed "Shorts" row launches straight into the Shorts player.
+  Widget _buildShotsCarousel() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
+          child: Row(
+            children: const [
+              Icon(Icons.slow_motion_video_rounded, color: Colors.orange, size: 22),
+              SizedBox(width: 6),
+              Text(
+                'Shots',
+                style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+              ),
+            ],
+          ),
+        ),
+        SizedBox(
+          height: 230,
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            itemCount: _reels.length,
+            itemBuilder: (context, index) {
+              return _ShotsCarouselItem(
+                video: _reels[index],
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => MobileReelsScreen(
+                        gatewayUrl: widget.gatewayUrl,
+                        reels: _reels,
+                        initialIndex: index,
+                      ),
+                    ),
+                  );
+                },
+              );
+            },
+          ),
+        ),
+        const SizedBox(height: 8),
+      ],
+    );
+  }
+}
+
+// 🚀 ADDED: a single vertical (9:16) thumbnail tile for the Shots carousel.
+class _ShotsCarouselItem extends StatelessWidget {
+  final PlayerVideo video;
+  final VoidCallback onTap;
+
+  const _ShotsCarouselItem({required this.video, required this.onTap});
+
+  String _cleanThumbnailUrl(String raw) {
+    String cleanUrl = raw.trim();
+    if (cleanUrl.contains('192.168.1.15')) {
+      cleanUrl = cleanUrl.replaceAll('192.168.1.15', '192.168.1.186');
+    }
+    if (cleanUrl.isEmpty) return cleanUrl;
+    if (cleanUrl.contains('192.168.') || cleanUrl.contains('10.0.') || cleanUrl.contains('127.0.0.1') || cleanUrl.contains('localhost')) {
+      cleanUrl = cleanUrl.replaceAll('https://', 'http://');
+      if (!cleanUrl.startsWith('http://')) {
+        cleanUrl = 'http://$cleanUrl';
+      }
+    } else {
+      if (!cleanUrl.startsWith('http')) {
+        cleanUrl = 'https://$cleanUrl';
+      }
+    }
+    if (cleanUrl.endsWith('/')) {
+      cleanUrl = cleanUrl.substring(0, cleanUrl.length - 1);
+    }
+    if ((cleanUrl.contains('192.168.') || cleanUrl.contains('10.0.') || cleanUrl.contains('127.0.0.1')) && !cleanUrl.contains(':55000')) {
+      cleanUrl = '$cleanUrl:55000';
+    }
+    return cleanUrl;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final cleanUrl = _cleanThumbnailUrl(video.creatorUrl);
+    final thumbnailUrl = '$cleanUrl/player/video/thumbnail/${video.videoId}';
+
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 130,
+        margin: const EdgeInsets.only(right: 10),
+        decoration: BoxDecoration(
+          color: const Color(0xFF1E1E1E),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            Image.network(
+              thumbnailUrl,
+              fit: BoxFit.cover,
+              errorBuilder: (context, error, stackTrace) => const Center(
+                child: Icon(Icons.play_circle_fill_rounded, size: 40, color: Colors.orange),
+              ),
+            ),
+            const Positioned(
+              top: 8,
+              left: 8,
+              child: Icon(Icons.slow_motion_video_rounded, color: Colors.white, size: 18),
+            ),
+            Positioned(
+              left: 8,
+              right: 8,
+              bottom: 8,
+              child: Text(
+                video.title,
+                style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
