@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:guptik/models/mediaplyer/player_video_model.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:uuid/uuid.dart';
 import '../../services/mediaplayer/mobile_bridge_service.dart';
+import '../../services/vault/vault_sync_service.dart';
 import '../../screens/mediaplayer/mobile_profile_screen.dart';
 
 class MobileReactionBar extends StatefulWidget {
@@ -81,6 +83,69 @@ class _MobileReactionBarState extends State<MobileReactionBar> {
       reposterUid: currentUser.id,
       reposterChannelName: reposterName,
     );
+
+    if (success) {
+      // 🚀 FIX: Mirrors desktop's PlayerOrganizationService.saveLocalRepost —
+      // on desktop, the reposter's OWN local Postgres (127.0.0.1:55432) gets
+      // a mirror row in `mp_repost_videos` so "My Reposts" shows on THEIR
+      // node's user-side table too (visible in Adminer under their own DB).
+      // Mobile has no local Postgres of its own, so instead we call the same
+      // gateway `/player/video/repost` endpoint — but against the REPOSTER's
+      // own linked desktop node (fetched via VaultSyncService), not the
+      // original video's creator's node. This is a best-effort mirror: if
+      // the reposter has no desktop paired yet, we simply skip it.
+      try {
+        final myDesktopUrl = await VaultSyncService().getDesktopUrl();
+        if (myDesktopUrl != null && myDesktopUrl.isNotEmpty) {
+          final myBridge = MobileBridgeService(gatewayUrl: myDesktopUrl);
+          await myBridge.repostVideo(
+            originalVideoId: widget.video.videoId,
+            originalCreatorUid: widget.video.creatorUid,
+            originalCreatorName: widget.video.channelName,
+            originalChannelName: widget.video.channelName,
+            reposterUid: currentUser.id,
+            reposterChannelName: reposterName,
+          );
+        }
+      } catch (e) {
+        debugPrint('Mobile local-node repost mirror error (non-fatal): $e');
+      }
+
+      try {
+        final supabase = Supabase.instance.client;
+
+        final orig = await supabase
+            .from('mp_videos')
+            .select('id')
+            .eq('video_id', widget.video.videoId)
+            .maybeSingle();
+
+        final origRowId = orig?['id']?.toString();
+
+        if (origRowId != null) {
+          final repostVideoId = const Uuid().v4();
+
+          await supabase.from('mp_videos').insert({
+            'video_id': repostVideoId,
+            'creator_uid': currentUser.id,
+            'channel_name': reposterName,
+            'title': widget.video.title,
+            'description': widget.video.description,
+            'creator_cloudflare_url': widget.video.originalCreatorUrl ?? widget.video.creatorUrl,
+            'thumbnail_url': widget.video.thumbnailUrl ?? '',
+            'category': widget.video.category,
+            'visibility': 'public',
+            'is_reel': widget.video.isReel,
+            'is_monetized': false,
+            'made_for_kids': widget.video.madeForKids,
+            'age_rating': widget.video.ageRating,
+            'repost_id': origRowId,
+          });
+        }
+      } catch (e) {
+        debugPrint('Mobile repost global feed insert error (non-fatal): $e');
+      }
+    }
 
     if (mounted) {
       if (success) {

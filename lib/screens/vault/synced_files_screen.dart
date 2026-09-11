@@ -9,6 +9,7 @@ import 'package:guptik/widgets/mediaplayer/mobile_video_player_widget.dart';
 import 'package:photo_manager/photo_manager.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 const Color _ancientGold = Color(0xFFD4AF37);
 const Color _darkBg = Color(0xFF0A0A0A);
@@ -495,6 +496,18 @@ class _MobileSystemFolderScreenState extends State<MobileSystemFolderScreen> {
   }
 
   Future<void> _fetchRemoteFolderContent() async {
+    // 🚀 FIX: Reposts must be fetched from Supabase, not the local Docker
+    // gateway. A repost you make is written as a NEW `mp_videos` row owned
+    // by YOU (creator_uid = you, repost_id = original) in the global
+    // Supabase table — it does NOT live on your own desktop node's local
+    // Postgres, so the gateway's `/vault/system-folder/repost` route (which
+    // only reads the local node) can never see it. This mirrors exactly how
+    // `desktop_system_folder_screen.dart` handles the 'repost' folder type.
+    if (widget.folderType == 'repost') {
+      await _fetchRepostsFromSupabase();
+      return;
+    }
+
     if (widget.desktopUrl == null || widget.desktopUrl!.isEmpty) {
       if (mounted) setState(() => _isLoading = false);
       return;
@@ -515,6 +528,73 @@ class _MobileSystemFolderScreenState extends State<MobileSystemFolderScreen> {
       }
     } catch (e) {
       debugPrint("❌ Network folder stream tracking error: $e");
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _fetchRepostsFromSupabase() async {
+    try {
+      final supabase = Supabase.instance.client;
+      final currentUser = supabase.auth.currentUser;
+      if (currentUser == null) {
+        if (mounted) setState(() => _isLoading = false);
+        return;
+      }
+
+      // 1. This user's repost rows (rows THEY created when they reposted).
+      final response = await supabase
+          .from('mp_videos')
+          .select('*')
+          .eq('creator_uid', currentUser.id)
+          .not('repost_id', 'is', null)
+          .order('published_at', ascending: false);
+
+      final List<Map<String, dynamic>> userReposts =
+          List<Map<String, dynamic>>.from(response as List);
+      final List<String> repostIds =
+          userReposts.map((v) => v['repost_id'].toString()).toList();
+
+      final List<Map<String, dynamic>> loadedItems = [];
+
+      if (repostIds.isNotEmpty) {
+        // 2. Fetch the original physical videos so we can play/display them.
+        final originalsResponse = await supabase
+            .from('mp_videos')
+            .select('*')
+            .filter('id', 'in', repostIds);
+
+        final Map<String, Map<String, dynamic>> origMap = {};
+        for (final o in originalsResponse as List) {
+          origMap[o['id'].toString()] = Map<String, dynamic>.from(o);
+        }
+
+        // 3. Build items in the same shape the folder grid already expects
+        // (video_id, title, size_bytes) so the existing UI/tap logic works.
+        for (final v in userReposts) {
+          final orig = origMap[v['repost_id'].toString()];
+          if (orig != null) {
+            loadedItems.add({
+              'video_id': orig['video_id'] ?? orig['id'],
+              'title': orig['title'] ?? v['title'] ?? 'Reposted Video',
+              'video_title': orig['title'] ?? v['title'] ?? 'Reposted Video',
+              'size_bytes': 0,
+              'creator_cloudflare_url': orig['creator_cloudflare_url'],
+              'thumbnail_url': orig['thumbnail_url'],
+              'channel_name': orig['channel_name'] ?? 'Creator',
+              'channel_id': orig['creator_uid'] ?? '',
+            });
+          }
+        }
+      }
+
+      if (mounted) {
+        setState(() {
+          _folderItems = loadedItems;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      debugPrint("❌ Supabase repost folder fetch error: $e");
       if (mounted) setState(() => _isLoading = false);
     }
   }
@@ -570,30 +650,43 @@ class _MobileSystemFolderScreenState extends State<MobileSystemFolderScreen> {
                       itemBuilder: (context, index) {
                         final item = _folderItems[index];
                         final bool isSticker = item['is_sticker'] == true;
+                        final bool isRepost = widget.folderType == 'repost';
                         // 🚀 FIX: for stickers, always prefer the REAL video's
                         // title/channel (now returned by the gateway via a
                         // JOIN) instead of the sticker's own product name and
                         // the generic 'Local Vault' label — shown both in this
                         // grid tile and when the video is opened, matching the
                         // same correctness fix already applied on desktop.
-                        final displayTitle = isSticker
+                        // For reposts, use the ORIGINAL creator's channel name
+                        // (fetched from Supabase in _fetchRepostsFromSupabase),
+                        // since the video physically lives on their node.
+                        final displayTitle = (isSticker || isRepost)
                             ? (item['video_title']?.toString().isNotEmpty == true
                                 ? item['video_title'].toString()
                                 : (item['title'] ?? 'Shared Media'))
                             : (item['title'] ?? 'Shared Media');
-                        final displayChannelName = isSticker
+                        final displayChannelName = (isSticker || isRepost)
                             ? (item['channel_name']?.toString().isNotEmpty == true
                                 ? item['channel_name'].toString()
                                 : 'Local Vault')
                             : 'Local Vault';
-                        final displayChannelId = isSticker
+                        final displayChannelId = (isSticker || isRepost)
                             ? (item['channel_id']?.toString() ?? 'guest')
                             : 'guest';
                         final filename = displayTitle;
                         final videoId = item['video_id'] ?? '';
                         final sizeStr = _formatSize(item['size_bytes']);
 
-                        String cleanBaseUrl = widget.desktopUrl ?? '';
+                        // 🚀 FIX: reposted videos physically live on the
+                        // ORIGINAL creator's node, not on this device's own
+                        // linked desktop — so route playback/thumbnails to
+                        // `creator_cloudflare_url` instead of `widget.desktopUrl`.
+                        String cleanBaseUrl = isRepost
+                            ? (item['creator_cloudflare_url']?.toString() ?? widget.desktopUrl ?? '')
+                            : (widget.desktopUrl ?? '');
+                        if (isRepost && cleanBaseUrl.isNotEmpty && !cleanBaseUrl.startsWith('http')) {
+                          cleanBaseUrl = 'https://$cleanBaseUrl';
+                        }
                         if (cleanBaseUrl.endsWith('/')) {
                           cleanBaseUrl = cleanBaseUrl.substring(0, cleanBaseUrl.length - 1);
                         }
